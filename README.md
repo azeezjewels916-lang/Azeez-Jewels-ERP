@@ -24,19 +24,20 @@ A specialized, full-featured retail **Point-of-Sale (POS)** and **Enterprise Res
 - **BIS HUID & Barcode Tracking**: SKU scanning and Hallmark Unique Identification.
 - **Comprehensive Categories**: 
   1. Ring
-  2. Haar
-  3. Laccha
-  4. Choker
-  5. Japka
-  6. Mangtila
-  7. Motol
-  8. Necklace
-  9. Tops
-  10. Bracelet
-  11. Kada
-  12. Baali
-  13. Earring
-  14. Pendent
+  2. Chain
+  3. Haar
+  4. Laccha
+  5. Choker
+  6. Japka
+  7. Mangtila
+  8. Motol
+  9. Necklace
+  10. Tops
+  11. Bracelet
+  12. Kada
+  13. Baali
+  14. Earring
+  15. Pendent
 - **Live Category Metrics**: Check item count, piece quantity, total net weight (g), and total gross weight (g) per category (e.g. Ring, Haar, etc.) with a single click or category filter.
 - **Purity Options**: 24K, 22K, 18K, 14K, Silver (925), Silver (70), Selam.
 - **Keyboard Shortcuts**: `Alt + N` (New Item), `Alt + B` (Focus Barcode), `Ctrl + S` (Save), `Esc` (Close).

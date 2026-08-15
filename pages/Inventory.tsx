@@ -259,6 +259,7 @@ export const Inventory: React.FC = () => {
 
   const CATEGORY_LIST = [
     'Ring',
+    'Chain',
     'Haar',
     'Laccha',
     'Choker',
@@ -697,6 +698,7 @@ export const Inventory: React.FC = () => {
                                     onChange={e => handleInputChange('category', e.target.value)}
                                     options={[
                                         {value: 'Ring', label: 'Ring'},
+                                        {value: 'Chain', label: 'Chain'},
                                         {value: 'Haar', label: 'Haar'},
                                         {value: 'Laccha', label: 'Laccha'},
                                         {value: 'Choker', label: 'Choker'},
