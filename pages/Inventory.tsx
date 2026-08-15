@@ -175,7 +175,15 @@ export const Inventory: React.FC = () => {
       fetchData();
     } catch (error: any) {
       console.error('Error saving item:', error);
-      toast({ title: 'Error', description: error.message || 'Failed to save item.', variant: 'destructive' });
+      if (error.message?.includes('items_barcode_key') || error.code === '23505') {
+        toast({ 
+          title: 'Duplicate Barcode Database Constraint', 
+          description: 'Your Supabase database table has a UNIQUE constraint on barcodes. Please run this in your Supabase SQL Editor to allow duplicate barcodes: ALTER TABLE items DROP CONSTRAINT IF EXISTS items_barcode_key;', 
+          variant: 'destructive' 
+        });
+      } else {
+        toast({ title: 'Error', description: error.message || 'Failed to save item.', variant: 'destructive' });
+      }
     }
   };
 
