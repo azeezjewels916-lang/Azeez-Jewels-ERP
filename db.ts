@@ -253,10 +253,10 @@ export const getItemByBarcode = async (barcode: string) => {
     .from('items')
     .select('*')
     .eq('barcode', barcode)
-    .single();
+    .limit(1);
 
   if (error) throw error;
-  return data;
+  return data && data.length > 0 ? data[0] : null;
 };
 
 // --- GOLD RATES ---

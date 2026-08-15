@@ -43,7 +43,7 @@ export const Inventory: React.FC = () => {
     barcode: '', 
     huid: '', 
     item_name: '', 
-    category: 'Haar', 
+    category: 'Ring', 
     stone_type: '',
     gross_weight: 0, 
     net_weight: 0, 
@@ -254,16 +254,91 @@ export const Inventory: React.FC = () => {
       setIsModalOpen(true);
   };
 
-  // --- DERIVED STATE ---
-  
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+
+  const CATEGORY_LIST = [
+    'Ring',
+    'Haar',
+    'Laccha',
+    'Choker',
+    'Japka',
+    'Mangtila',
+    'Motol',
+    'Necklace',
+    'Tops',
+    'Bracelet',
+    'Kada',
+    'Baali',
+    'Earring',
+    'Pendent',
+  ];
+
+  // --- DERIVED STATE & METRICS ---
+
+  // 1. Calculate per-category breakdown metrics across ALL items
+  const categoryMetrics = useMemo(() => {
+    const map: Record<string, { count: number; totalQty: number; totalNetWt: number; totalGrossWt: number }> = {};
+    
+    // Initialize standard categories
+    CATEGORY_LIST.forEach(cat => {
+      map[cat] = { count: 0, totalQty: 0, totalNetWt: 0, totalGrossWt: 0 };
+    });
+
+    items.forEach(item => {
+      const cat = item.category || 'Other';
+      if (!map[cat]) {
+        map[cat] = { count: 0, totalQty: 0, totalNetWt: 0, totalGrossWt: 0 };
+      }
+      const qty = Number(item.quantity) || 1;
+      const netWt = Number(item.net_weight || item.weight || 0);
+      const grossWt = Number(item.gross_weight || item.net_weight || item.weight || 0);
+
+      map[cat].count += 1;
+      map[cat].totalQty += qty;
+      map[cat].totalNetWt += netWt * qty;
+      map[cat].totalGrossWt += grossWt * qty;
+    });
+
+    return map;
+  }, [items]);
+
+  // 2. Filter items by Search Term AND Selected Category
   const filteredItems = useMemo(() => {
     const lowerTerm = searchTerm.toLowerCase();
-    return items.filter(item => 
-      item.item_name.toLowerCase().includes(lowerTerm) || 
-      item.barcode.toLowerCase().includes(lowerTerm) ||
-      (item.category && item.category.toLowerCase().includes(lowerTerm))
-    );
-  }, [items, searchTerm]);
+    return items.filter(item => {
+      const matchesSearch = 
+        item.item_name.toLowerCase().includes(lowerTerm) || 
+        item.barcode.toLowerCase().includes(lowerTerm) ||
+        (item.category && item.category.toLowerCase().includes(lowerTerm)) ||
+        (item.huid && item.huid.toLowerCase().includes(lowerTerm));
+
+      const matchesCat = selectedCategory === 'ALL' || (item.category && item.category.toLowerCase() === selectedCategory.toLowerCase());
+
+      return matchesSearch && matchesCat;
+    });
+  }, [items, searchTerm, selectedCategory]);
+
+  // 3. Metrics for currently displayed / filtered view
+  const currentViewStats = useMemo(() => {
+    let totalItems = 0;
+    let totalQty = 0;
+    let totalNetWt = 0;
+    let totalGrossWt = 0;
+
+    filteredItems.forEach(item => {
+      const qty = Number(item.quantity) || 1;
+      const netWt = Number(item.net_weight || item.weight || 0);
+      const grossWt = Number(item.gross_weight || item.net_weight || item.weight || 0);
+
+      totalItems += 1;
+      totalQty += qty;
+      totalNetWt += netWt * qty;
+      totalGrossWt += grossWt * qty;
+    });
+
+    return { totalItems, totalQty, totalNetWt, totalGrossWt };
+  }, [filteredItems]);
 
   // --- RENDER ---
 
@@ -271,7 +346,7 @@ export const Inventory: React.FC = () => {
     <div className="h-full flex flex-col bg-white text-charcoal-900 relative overflow-hidden font-sans">
       
       {/* 1. HEADER & TOOLBAR */}
-      <div className="bg-white border-b border-gray-200 px-8 py-5 flex justify-between items-center shadow-sm z-10">
+      <div className="bg-white border-b border-gray-200 px-8 py-4 flex flex-wrap justify-between items-center gap-4 shadow-sm z-10">
          <div className="flex items-center gap-4">
              <div className="w-10 h-10 rounded-full bg-charcoal-900 text-gold-500 flex items-center justify-center shadow-md">
                  <Package size={20} />
@@ -284,8 +359,38 @@ export const Inventory: React.FC = () => {
              </div>
          </div>
 
-         <div className="flex items-center gap-4">
-            <div className="relative w-80">
+         <div className="flex items-center gap-3 flex-wrap">
+            {/* Category Filter Select */}
+            <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Category:</span>
+                <select
+                  value={selectedCategory}
+                  onChange={e => setSelectedCategory(e.target.value)}
+                  className="bg-gray-50 border border-gray-300 text-charcoal-900 text-xs font-bold rounded-md px-3 py-2 focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500 transition-all cursor-pointer"
+                >
+                  <option value="ALL">All Categories ({items.length})</option>
+                  {CATEGORY_LIST.map(cat => {
+                    const catCount = categoryMetrics[cat]?.count || 0;
+                    return (
+                      <option key={cat} value={cat}>
+                        {cat} ({catCount})
+                      </option>
+                    );
+                  })}
+                </select>
+            </div>
+
+            {/* Category Breakdown Button */}
+            <button
+               onClick={() => setIsSummaryModalOpen(true)}
+               className="bg-charcoal-800 hover:bg-charcoal-900 text-white px-3 py-2 rounded-md text-xs font-bold tracking-wide flex items-center gap-1.5 transition-all shadow-sm"
+               title="View Category Breakdown"
+            >
+               <Tag size={14} className="text-gold-500" /> Breakdown Summary
+            </button>
+
+            {/* Search Input */}
+            <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gold-500" size={16} />
                 <input 
                    type="text"
@@ -295,15 +400,74 @@ export const Inventory: React.FC = () => {
                    onChange={e => setSearchTerm(e.target.value)}
                 />
             </div>
-            <div className="h-8 w-px bg-gray-300 mx-2"></div>
-            <Button onClick={handleOpenModal} className="bg-gradient-to-r from-gold-500 to-gold-600 shadow-lg hover:shadow-gold-500/20 gap-2 px-6">
-                <Plus size={18} /> Add New Item
+            
+            <Button onClick={handleOpenModal} className="bg-gradient-to-r from-gold-500 to-gold-600 shadow-lg hover:shadow-gold-500/20 gap-2 px-5 py-2 text-xs">
+                <Plus size={16} /> Add New Item
             </Button>
          </div>
       </div>
 
-      {/* 2. TABLE SECTION */}
-      <div className="flex-1 overflow-hidden flex flex-col p-8 bg-gray-50/50">
+      {/* 2. SUMMARY KPI BANNER (Live Category Weight & Count Breakdown) */}
+      <div className="px-8 pt-4 pb-2 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50/50">
+        <Card className="!p-3 border-l-4 border-l-gold-500 flex items-center justify-between shadow-sm bg-white">
+           <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active Category</p>
+              <h3 className="text-base font-bold text-charcoal-900 mt-0.5 flex items-center gap-2">
+                 {selectedCategory === 'ALL' ? 'ALL CATEGORIES' : selectedCategory.toUpperCase()}
+                 {selectedCategory !== 'ALL' && (
+                    <button 
+                       onClick={() => setSelectedCategory('ALL')} 
+                       className="text-[10px] font-normal text-red-500 hover:underline ml-1"
+                    >
+                       Clear
+                    </button>
+                 )}
+              </h3>
+           </div>
+           <div className="w-8 h-8 bg-gold-100 rounded-full flex items-center justify-center text-gold-600">
+             <Tag size={16} />
+           </div>
+        </Card>
+
+        <Card className="!p-3 border-l-4 border-l-charcoal-700 flex items-center justify-between shadow-sm bg-white">
+           <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Items & Quantity</p>
+              <h3 className="text-lg font-bold text-charcoal-900 mt-0.5">
+                 {currentViewStats.totalItems} <span className="text-xs text-gray-500 font-normal">items</span> ({currentViewStats.totalQty} <span className="text-xs text-gray-500 font-normal">pcs</span>)
+              </h3>
+           </div>
+           <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-charcoal-700">
+             <Package size={16} />
+           </div>
+        </Card>
+
+        <Card className="!p-3 border-l-4 border-l-green-600 flex items-center justify-between shadow-sm bg-white">
+           <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Net Weight</p>
+              <h3 className="text-lg font-mono font-bold text-green-700 mt-0.5">
+                 {currentViewStats.totalNetWt.toFixed(3)} <span className="text-xs font-sans font-medium text-gray-500">g</span>
+              </h3>
+           </div>
+           <div className="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center text-green-600">
+             <Tag size={16} />
+           </div>
+        </Card>
+
+        <Card className="!p-3 border-l-4 border-l-blue-600 flex items-center justify-between shadow-sm bg-white">
+           <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Gross Weight</p>
+              <h3 className="text-lg font-mono font-bold text-blue-700 mt-0.5">
+                 {currentViewStats.totalGrossWt.toFixed(3)} <span className="text-xs font-sans font-medium text-gray-500">g</span>
+              </h3>
+           </div>
+           <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
+             <Tag size={16} />
+           </div>
+        </Card>
+      </div>
+
+      {/* 3. TABLE SECTION */}
+      <div className="flex-1 overflow-hidden flex flex-col p-8 pt-2 bg-gray-50/50">
          <div className="flex-1 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
             <div className="overflow-auto flex-1">
                <table className="w-full text-left text-sm">
@@ -339,7 +503,11 @@ export const Inventory: React.FC = () => {
                                 <span className="ml-2 inline-block w-2 h-2 rounded-full bg-red-500" title="Out of Stock"/>
                               )}
                            </td>
-                           <td className="py-3 px-6 text-gray-500">{item.category}</td>
+                           <td className="py-3 px-6 text-gray-500 font-medium">
+                              <span className="bg-gray-100 text-charcoal-800 text-xs px-2 py-0.5 rounded font-bold uppercase border border-gray-200">
+                                 {item.category || '-'}
+                              </span>
+                           </td>
                            <td className="py-3 px-6 text-right font-mono text-gray-400">{item.gross_weight?.toFixed(3) || '0.000'}</td>
                            <td className="py-3 px-6 text-right font-mono font-bold text-charcoal-900">{item.net_weight?.toFixed(3) || '0.000'}</td>
                            <td className="py-3 px-6 text-center font-mono font-bold text-gold-600">{item.quantity || 1}</td>
@@ -392,6 +560,77 @@ export const Inventory: React.FC = () => {
             </div>
          </div>
       </div>
+
+      {/* 4. CATEGORY BREAKDOWN SUMMARY MODAL */}
+      {isSummaryModalOpen && (
+        <div className="fixed inset-0 z-50 bg-charcoal-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+           <div className="bg-white w-full max-w-4xl rounded-lg shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 max-h-[85vh] overflow-hidden">
+              
+              <div className="bg-charcoal-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
+                 <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gold-500 text-charcoal-900 flex items-center justify-center font-bold">
+                       <Tag size={18}/>
+                    </div>
+                    <h3 className="font-sans font-bold text-lg tracking-wide">Category Weight & Stock Breakdown</h3>
+                 </div>
+                 <button onClick={() => setIsSummaryModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+                    <X size={24}/>
+                 </button>
+              </div>
+
+              <div className="flex-1 overflow-auto p-6 bg-gray-50/50">
+                 <table className="w-full text-left text-sm bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                    <thead className="bg-gray-100 border-b border-gray-200 text-charcoal-800 font-bold uppercase text-xs tracking-wider">
+                       <tr>
+                          <th className="py-3 px-5">Category</th>
+                          <th className="py-3 px-5 text-center">Items Count</th>
+                          <th className="py-3 px-5 text-center">Total Quantity (Pcs)</th>
+                          <th className="py-3 px-5 text-right">Total Net Wt (g)</th>
+                          <th className="py-3 px-5 text-right">Total Gross Wt (g)</th>
+                          <th className="py-3 px-5 text-center">Action</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                       {CATEGORY_LIST.map(cat => {
+                          const metric = categoryMetrics[cat] || { count: 0, totalQty: 0, totalNetWt: 0, totalGrossWt: 0 };
+                          const isSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
+                          return (
+                             <tr key={cat} className={`hover:bg-gold-50/20 transition-colors ${isSelected ? 'bg-gold-50/40 font-bold' : ''}`}>
+                                <td className="py-3 px-5 font-bold text-charcoal-900">
+                                   {cat}
+                                </td>
+                                <td className="py-3 px-5 text-center font-mono">{metric.count}</td>
+                                <td className="py-3 px-5 text-center font-mono font-bold text-gold-600">{metric.totalQty}</td>
+                                <td className="py-3 px-5 text-right font-mono font-bold text-green-700">{metric.totalNetWt.toFixed(3)} g</td>
+                                <td className="py-3 px-5 text-right font-mono text-blue-700">{metric.totalGrossWt.toFixed(3)} g</td>
+                                <td className="py-3 px-5 text-center">
+                                   <button
+                                      onClick={() => {
+                                         setSelectedCategory(cat);
+                                         setIsSummaryModalOpen(false);
+                                      }}
+                                      className="px-3 py-1 bg-charcoal-900 hover:bg-gold-600 text-white hover:text-charcoal-900 rounded text-xs font-bold uppercase transition-all"
+                                   >
+                                      Filter {cat}
+                                   </button>
+                                </td>
+                             </tr>
+                          );
+                       })}
+                    </tbody>
+                 </table>
+              </div>
+
+              <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center text-xs text-gray-500">
+                 <span>Showing all 14 categories</span>
+                 <Button onClick={() => { setSelectedCategory('ALL'); setIsSummaryModalOpen(false); }} variant="outline" size="sm">
+                    Reset Filter (Show All)
+                 </Button>
+              </div>
+
+           </div>
+        </div>
+      )}
 
       {/* 3. ADD ITEM MODAL */}
       {isModalOpen && (
@@ -457,6 +696,7 @@ export const Inventory: React.FC = () => {
                                     value={formData.category}
                                     onChange={e => handleInputChange('category', e.target.value)}
                                     options={[
+                                        {value: 'Ring', label: 'Ring'},
                                         {value: 'Haar', label: 'Haar'},
                                         {value: 'Laccha', label: 'Laccha'},
                                         {value: 'Choker', label: 'Choker'},

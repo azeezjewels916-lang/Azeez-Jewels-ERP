@@ -341,30 +341,32 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
           .from('items')
           .select('*')
           .eq('barcode', barcode)
-          .single();
+          .limit(1);
 
-        if (data) {
-          const mType = data.metal_type || 'gold';
+        const item = data && data.length > 0 ? data[0] : null;
+
+        if (item) {
+          const mType = item.metal_type || 'gold';
           const applicableRate = allMetalRates[mType] || dailyGoldRate || 0;
 
           setNewItem(prev => ({
             ...prev,
-            item_name: data.item_name || '',
-            huid: data.huid || '',
-            gross_weight: data.gross_weight || data.weight || 0,
-            grossWeightInput: (data.gross_weight || data.weight)?.toString() || '',
-            net_weight: data.net_weight || data.weight || 0,
-            netWeightInput: (data.net_weight || data.weight)?.toString() || '',
-            weight: data.net_weight || data.weight || 0,
-            weightInput: (data.net_weight || data.weight)?.toString() || '',
+            item_name: item.item_name || '',
+            huid: item.huid || '',
+            gross_weight: item.gross_weight || item.weight || 0,
+            grossWeightInput: (item.gross_weight || item.weight)?.toString() || '',
+            net_weight: item.net_weight || item.weight || 0,
+            netWeightInput: (item.net_weight || item.weight)?.toString() || '',
+            weight: item.net_weight || item.weight || 0,
+            weightInput: (item.net_weight || item.weight)?.toString() || '',
             rate: applicableRate,
             rateInput: applicableRate > 0 ? applicableRate.toString() : '',
-            making_charges: data.making_charges || 0,
-            makingChargesInput: data.making_charges?.toString() || '',
+            making_charges: item.making_charges || 0,
+            makingChargesInput: item.making_charges?.toString() || '',
             metal_type: mType,
-            hsn_code: data.hsn_code || '711319'
+            hsn_code: item.hsn_code || '711319'
           }));
-          toast({ title: "Item Found", description: data.item_name });
+          toast({ title: "Item Found", description: item.item_name });
         }
       } catch (err) {
         console.log("Item not found or error", err);
