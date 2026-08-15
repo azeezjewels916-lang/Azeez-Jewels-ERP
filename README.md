@@ -38,7 +38,8 @@ A specialized, full-featured retail **Point-of-Sale (POS)** and **Enterprise Res
   13. Baali
   14. Earring
   15. Pendent
-- **Live Category Metrics**: Check item count, piece quantity, total net weight (g), and total gross weight (g) per category (e.g. Ring, Haar, etc.) with a single click or category filter.
+- **Live Category Metrics**: Check item count, piece quantity, and total weight (g) per category (e.g. Ring, Chain, Haar, etc.) with a single click or category filter.
+- **Single Total Weight Standard**: Unified weight tracking using Total Weight (g) across item forms, stock tables, breakdown metrics, and printable receipts.
 - **Purity Options**: 24K, 22K, 18K, 14K, Silver (925), Silver (70), Selam.
 - **Keyboard Shortcuts**: `Alt + N` (New Item), `Alt + B` (Focus Barcode), `Ctrl + S` (Save), `Esc` (Close).
 

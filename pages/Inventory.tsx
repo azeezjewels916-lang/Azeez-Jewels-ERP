@@ -129,8 +129,8 @@ export const Inventory: React.FC = () => {
     const newData = { ...formData, [field]: value };
     
     // Auto-calculate Net Price
-    if (['gross_weight', 'net_weight', 'price_per_gram', 'making_charges', 'gst_rate', 'quantity'].includes(field)) {
-      const w = Number(newData.net_weight || 0);
+    if (['weight', 'gross_weight', 'net_weight', 'price_per_gram', 'making_charges', 'gst_rate', 'quantity'].includes(field)) {
+      const w = Number(newData.net_weight || newData.weight || newData.gross_weight || 0);
       const rate = Number(newData.price_per_gram || 0);
       const making = Number(newData.making_charges || 0);
       const gst = Number(newData.gst_rate || 0);
@@ -145,8 +145,9 @@ export const Inventory: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!formData.barcode || !formData.item_name || !formData.net_weight) {
-      toast({ title: 'Validation Error', description: 'Please fill required fields (Barcode, Name, Net Weight)', variant: 'destructive' });
+    const weightVal = Number(formData.net_weight || formData.weight || formData.gross_weight || 0);
+    if (!formData.barcode || !formData.item_name || !weightVal) {
+      toast({ title: 'Validation Error', description: 'Please fill required fields (Barcode, Name, Total Weight)', variant: 'destructive' });
       return;
     }
 
@@ -155,7 +156,9 @@ export const Inventory: React.FC = () => {
       const itemToSave = {
         ...formData,
         quantity: (!isNaN(parsedQty) && parsedQty > 0) ? parsedQty : 1,
-        weight: formData.net_weight || 0 // Sync weight with net_weight
+        weight: weightVal,
+        net_weight: weightVal,
+        gross_weight: weightVal
       };
 
       if (editingId) {
@@ -177,6 +180,7 @@ export const Inventory: React.FC = () => {
   };
 
   const handlePrint = (item: InventoryItem) => {
+    const itemWeight = item.net_weight || item.weight || item.gross_weight || 0;
     // Basic item details print with branding
     const printContent = `
       <html>
@@ -210,8 +214,7 @@ export const Inventory: React.FC = () => {
           <div class="row"><span class="label">HUID:</span> <span class="value">${item.huid || '-'}</span></div>
           <div class="row"><span class="label">Category:</span> <span class="value">${item.category}</span></div>
           <div class="row"><span class="label">Metal:</span> <span class="value">${item.metal_type} (${item.purity})</span></div>
-          <div class="row"><span class="label">Gross Weight:</span> <span class="value">${item.gross_weight?.toFixed(3)}g</span></div>
-          <div class="row"><span class="label">Net Weight:</span> <span class="value">${item.net_weight?.toFixed(3)}g</span></div>
+          <div class="row"><span class="label">Total Weight:</span> <span class="value">${itemWeight.toFixed(3)}g</span></div>
           <div class="row"><span class="label">Quantity:</span> <span class="value">${item.quantity || 1}</span></div>
           <div class="row"><span class="label">Location:</span> <span class="value">${item.location || '-'}</span></div>
           <div class="footer">Luxury Redefined • Est 2024</div>
@@ -275,30 +278,26 @@ export const Inventory: React.FC = () => {
     'Pendent',
   ];
 
-  // --- DERIVED STATE & METRICS ---
-
-  // 1. Calculate per-category breakdown metrics across ALL items
+  // --- DERIVED STATE & METRICS ---  // 1. Calculate per-category breakdown metrics across ALL items
   const categoryMetrics = useMemo(() => {
-    const map: Record<string, { count: number; totalQty: number; totalNetWt: number; totalGrossWt: number }> = {};
+    const map: Record<string, { count: number; totalQty: number; totalWeight: number }> = {};
     
     // Initialize standard categories
     CATEGORY_LIST.forEach(cat => {
-      map[cat] = { count: 0, totalQty: 0, totalNetWt: 0, totalGrossWt: 0 };
+      map[cat] = { count: 0, totalQty: 0, totalWeight: 0 };
     });
 
     items.forEach(item => {
       const cat = item.category || 'Other';
       if (!map[cat]) {
-        map[cat] = { count: 0, totalQty: 0, totalNetWt: 0, totalGrossWt: 0 };
+        map[cat] = { count: 0, totalQty: 0, totalWeight: 0 };
       }
       const qty = Number(item.quantity) || 1;
-      const netWt = Number(item.net_weight || item.weight || 0);
-      const grossWt = Number(item.gross_weight || item.net_weight || item.weight || 0);
+      const wt = Number(item.net_weight || item.weight || item.gross_weight || 0);
 
       map[cat].count += 1;
       map[cat].totalQty += qty;
-      map[cat].totalNetWt += netWt * qty;
-      map[cat].totalGrossWt += grossWt * qty;
+      map[cat].totalWeight += wt * qty;
     });
 
     return map;
@@ -324,21 +323,18 @@ export const Inventory: React.FC = () => {
   const currentViewStats = useMemo(() => {
     let totalItems = 0;
     let totalQty = 0;
-    let totalNetWt = 0;
-    let totalGrossWt = 0;
+    let totalWeight = 0;
 
     filteredItems.forEach(item => {
       const qty = Number(item.quantity) || 1;
-      const netWt = Number(item.net_weight || item.weight || 0);
-      const grossWt = Number(item.gross_weight || item.net_weight || item.weight || 0);
+      const wt = Number(item.net_weight || item.weight || item.gross_weight || 0);
 
       totalItems += 1;
       totalQty += qty;
-      totalNetWt += netWt * qty;
-      totalGrossWt += grossWt * qty;
+      totalWeight += wt * qty;
     });
 
-    return { totalItems, totalQty, totalNetWt, totalGrossWt };
+    return { totalItems, totalQty, totalWeight };
   }, [filteredItems]);
 
   // --- RENDER ---
@@ -432,9 +428,9 @@ export const Inventory: React.FC = () => {
 
         <Card className="!p-3 border-l-4 border-l-charcoal-700 flex items-center justify-between shadow-sm bg-white">
            <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Items & Quantity</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Items Count</p>
               <h3 className="text-lg font-bold text-charcoal-900 mt-0.5">
-                 {currentViewStats.totalItems} <span className="text-xs text-gray-500 font-normal">items</span> ({currentViewStats.totalQty} <span className="text-xs text-gray-500 font-normal">pcs</span>)
+                 {currentViewStats.totalItems} <span className="text-xs text-gray-500 font-normal">items</span>
               </h3>
            </div>
            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-charcoal-700">
@@ -442,26 +438,26 @@ export const Inventory: React.FC = () => {
            </div>
         </Card>
 
-        <Card className="!p-3 border-l-4 border-l-green-600 flex items-center justify-between shadow-sm bg-white">
+        <Card className="!p-3 border-l-4 border-l-purple-600 flex items-center justify-between shadow-sm bg-white">
            <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Net Weight</p>
-              <h3 className="text-lg font-mono font-bold text-green-700 mt-0.5">
-                 {currentViewStats.totalNetWt.toFixed(3)} <span className="text-xs font-sans font-medium text-gray-500">g</span>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Quantity</p>
+              <h3 className="text-lg font-mono font-bold text-purple-700 mt-0.5">
+                 {currentViewStats.totalQty} <span className="text-xs font-sans font-medium text-gray-500">pcs</span>
               </h3>
            </div>
-           <div className="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center text-green-600">
-             <Tag size={16} />
+           <div className="w-8 h-8 bg-purple-50 rounded-full flex items-center justify-center text-purple-600">
+             <Package size={16} />
            </div>
         </Card>
 
-        <Card className="!p-3 border-l-4 border-l-blue-600 flex items-center justify-between shadow-sm bg-white">
+        <Card className="!p-3 border-l-4 border-l-green-600 flex items-center justify-between shadow-sm bg-white">
            <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Gross Weight</p>
-              <h3 className="text-lg font-mono font-bold text-blue-700 mt-0.5">
-                 {currentViewStats.totalGrossWt.toFixed(3)} <span className="text-xs font-sans font-medium text-gray-500">g</span>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Weight</p>
+              <h3 className="text-lg font-mono font-bold text-green-700 mt-0.5">
+                 {currentViewStats.totalWeight.toFixed(3)} <span className="text-xs font-sans font-medium text-gray-500">g</span>
               </h3>
            </div>
-           <div className="w-8 h-8 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
+           <div className="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center text-green-600">
              <Tag size={16} />
            </div>
         </Card>
@@ -478,8 +474,7 @@ export const Inventory: React.FC = () => {
                         <th className="py-4 px-6">HUID</th>
                         <th className="py-4 px-6">Item Name</th>
                         <th className="py-4 px-6">Category</th>
-                        <th className="py-4 px-6 text-right">Gross Wt</th>
-                        <th className="py-4 px-6 text-right">Net Wt</th>
+                        <th className="py-4 px-6 text-right">Total Weight</th>
                         <th className="py-4 px-6 text-center">Qty</th>
                         <th className="py-4 px-6 text-right">Price/g</th>
                         <th className="py-4 px-6">Location</th>
@@ -489,7 +484,7 @@ export const Inventory: React.FC = () => {
                   <tbody className="divide-y divide-gray-100">
                      {loading ? (
                         <tr>
-                           <td colSpan={10} className="py-20 text-center text-gray-400">
+                           <td colSpan={9} className="py-20 text-center text-gray-400">
                               <RefreshCw className="animate-spin mx-auto mb-2" size={24}/>
                               <span className="text-xs font-bold uppercase tracking-widest">Loading Inventory...</span>
                            </td>
@@ -509,8 +504,9 @@ export const Inventory: React.FC = () => {
                                  {item.category || '-'}
                               </span>
                            </td>
-                           <td className="py-3 px-6 text-right font-mono text-gray-400">{item.gross_weight?.toFixed(3) || '0.000'}</td>
-                           <td className="py-3 px-6 text-right font-mono font-bold text-charcoal-900">{item.net_weight?.toFixed(3) || '0.000'}</td>
+                           <td className="py-3 px-6 text-right font-mono font-bold text-charcoal-900">
+                              {(item.net_weight || item.weight || item.gross_weight || 0).toFixed(3)} g
+                           </td>
                            <td className="py-3 px-6 text-center font-mono font-bold text-gold-600">{item.quantity || 1}</td>
                            <td className="py-3 px-6 text-right font-mono text-gray-500">{item.price_per_gram?.toLocaleString() || '0'}</td>
                            <td className="py-3 px-6 text-xs uppercase text-gray-400 font-bold">{item.location}</td>
@@ -543,7 +539,7 @@ export const Inventory: React.FC = () => {
                      ))}
                      {!loading && filteredItems.length === 0 && (
                         <tr>
-                           <td colSpan={10} className="py-20 text-center text-gray-400 italic">
+                           <td colSpan={9} className="py-20 text-center text-gray-400 italic">
                               No items found matching your criteria.
                            </td>
                         </tr>
@@ -586,14 +582,13 @@ export const Inventory: React.FC = () => {
                           <th className="py-3 px-5">Category</th>
                           <th className="py-3 px-5 text-center">Items Count</th>
                           <th className="py-3 px-5 text-center">Total Quantity (Pcs)</th>
-                          <th className="py-3 px-5 text-right">Total Net Wt (g)</th>
-                          <th className="py-3 px-5 text-right">Total Gross Wt (g)</th>
+                          <th className="py-3 px-5 text-right">Total Weight (g)</th>
                           <th className="py-3 px-5 text-center">Action</th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                        {CATEGORY_LIST.map(cat => {
-                          const metric = categoryMetrics[cat] || { count: 0, totalQty: 0, totalNetWt: 0, totalGrossWt: 0 };
+                          const metric = categoryMetrics[cat] || { count: 0, totalQty: 0, totalWeight: 0 };
                           const isSelected = selectedCategory.toLowerCase() === cat.toLowerCase();
                           return (
                              <tr key={cat} className={`hover:bg-gold-50/20 transition-colors ${isSelected ? 'bg-gold-50/40 font-bold' : ''}`}>
@@ -602,8 +597,7 @@ export const Inventory: React.FC = () => {
                                 </td>
                                 <td className="py-3 px-5 text-center font-mono">{metric.count}</td>
                                 <td className="py-3 px-5 text-center font-mono font-bold text-gold-600">{metric.totalQty}</td>
-                                <td className="py-3 px-5 text-right font-mono font-bold text-green-700">{metric.totalNetWt.toFixed(3)} g</td>
-                                <td className="py-3 px-5 text-right font-mono text-blue-700">{metric.totalGrossWt.toFixed(3)} g</td>
+                                <td className="py-3 px-5 text-right font-mono font-bold text-green-700">{metric.totalWeight.toFixed(3)} g</td>
                                 <td className="py-3 px-5 text-center">
                                    <button
                                       onClick={() => {
@@ -623,7 +617,7 @@ export const Inventory: React.FC = () => {
               </div>
 
               <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center text-xs text-gray-500">
-                 <span>Showing all 14 categories</span>
+                 <span>Showing all 15 categories</span>
                  <Button onClick={() => { setSelectedCategory('ALL'); setIsSummaryModalOpen(false); }} variant="outline" size="sm">
                     Reset Filter (Show All)
                  </Button>
@@ -730,22 +724,21 @@ export const Inventory: React.FC = () => {
                         <Tag size={14}/> Specifications
                         </h3>
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input 
-                                    label="Gross Weight (g)" 
-                                    type="number" 
-                                    isMonospaced 
-                                    value={formData.gross_weight || ''}
-                                    onChange={e => handleInputChange('gross_weight', parseFloat(e.target.value))}
-                                />
-                                <Input 
-                                    label="Net Weight (g)" 
-                                    type="number" 
-                                    isMonospaced 
-                                    value={formData.net_weight || ''}
-                                    onChange={e => handleInputChange('net_weight', parseFloat(e.target.value))}
-                                />
-                            </div>
+                             <div>
+                                 <Input 
+                                     label="Total Weight (g)" 
+                                     type="number" 
+                                     isMonospaced 
+                                     placeholder="0.000"
+                                     value={formData.net_weight || formData.weight || formData.gross_weight || ''}
+                                     onChange={e => {
+                                         const val = parseFloat(e.target.value) || 0;
+                                         handleInputChange('net_weight', val);
+                                         handleInputChange('gross_weight', val);
+                                         handleInputChange('weight', val);
+                                     }}
+                                 />
+                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <Input 
                                     label="HSN Code" 
