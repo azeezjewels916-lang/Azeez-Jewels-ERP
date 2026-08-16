@@ -18,7 +18,7 @@ import {
 import { Input, Button, Select, Card, toast } from '../components/UIComponents';
 import { BillItem, PaymentRecord, Customer } from '../types';
 import { supabase } from '../supabaseClient';
-import { generateBillNo, createBill, createBillItems, updateBill, createCustomer, searchCustomers } from '../db';
+import { generateBillNo, createBill, createBillItems, updateBill, createCustomer, searchCustomers, deductInventoryStock } from '../db';
 import { InvoicePrint } from '../components/InvoicePrint';
 import { ExchangePrint } from '../components/ExchangePrint';
 
@@ -666,6 +666,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
          });
       }
       await createBillItems(savedBill.id, billItems);
+      await deductInventoryStock(billItems);
       toast({ title: "Success", description: billId ? "Bill updated successfully!" : "Bill saved successfully!" });
       handleOpenPreview('invoice');
     } catch (err: any) {

@@ -217,33 +217,38 @@ export const getInventoryItems = async () => {
 };
 
 export const createInventoryItem = async (itemData: any) => {
+  const { id: _id, created_at: _created_at, ...cleanData } = itemData;
+
   const { data, error } = await supabase
     .from('items')
-    .insert(itemData)
-    .select()
-    .single();
+    .insert(cleanData)
+    .select();
 
   if (error) throw error;
-  return data;
+  return data && data.length > 0 ? data[0] : null;
 };
 
-export const updateInventoryItem = async (id: string, itemData: any) => {
+export const updateInventoryItem = async (id: string | number, itemData: any) => {
+  const { id: _id, created_at: _created_at, ...cleanData } = itemData;
+  const targetId = (typeof id === 'string' && !isNaN(Number(id))) ? Number(id) : id;
+
   const { data, error } = await supabase
     .from('items')
-    .update(itemData)
-    .eq('id', id)
-    .select()
-    .single();
+    .update(cleanData)
+    .eq('id', targetId)
+    .select();
 
   if (error) throw error;
-  return data;
+  return data && data.length > 0 ? data[0] : null;
 };
 
-export const deleteInventoryItem = async (id: string) => {
+export const deleteInventoryItem = async (id: string | number) => {
+  const targetId = (typeof id === 'string' && !isNaN(Number(id))) ? Number(id) : id;
+
   const { error } = await supabase
     .from('items')
     .delete()
-    .eq('id', id);
+    .eq('id', targetId);
 
   if (error) throw error;
 };
@@ -257,6 +262,37 @@ export const getItemByBarcode = async (barcode: string) => {
 
   if (error) throw error;
   return data && data.length > 0 ? data[0] : null;
+};
+
+export const deductInventoryStock = async (billItems: any[]) => {
+  for (const billItem of billItems) {
+    if (!billItem.barcode) continue;
+    
+    // Find matching item in inventory by barcode
+    const { data: matchedItems, error: fetchErr } = await supabase
+      .from('items')
+      .select('*')
+      .eq('barcode', billItem.barcode)
+      .order('created_at', { ascending: false });
+
+    if (fetchErr || !matchedItems || matchedItems.length === 0) continue;
+
+    // Pick target item to deduct stock from (prefer items in_stock / quantity > 0)
+    const targetItem = matchedItems.find(i => (i.quantity || 0) > 0 || i.stock_status !== 'out_of_stock') || matchedItems[0];
+    
+    const soldQty = 1;
+    const currentQty = targetItem.quantity !== undefined && targetItem.quantity !== null ? Number(targetItem.quantity) : 1;
+    const newQty = Math.max(0, currentQty - soldQty);
+    const newStatus = newQty === 0 ? 'out_of_stock' : (targetItem.stock_status || 'in_stock');
+
+    await supabase
+      .from('items')
+      .update({ 
+        quantity: newQty, 
+        stock_status: newStatus 
+      })
+      .eq('id', targetItem.id);
+  }
 };
 
 // --- GOLD RATES ---

@@ -241,6 +241,12 @@ export const Inventory: React.FC = () => {
     }
   };
 
+  const handleOpenModal = () => {
+    setEditingId(null);
+    setFormData(initialFormState);
+    setIsModalOpen(true);
+  };
+
   const handleEdit = (item: InventoryItem) => {
     setEditingId(item.id);
     setFormData({ ...item });
@@ -257,12 +263,6 @@ export const Inventory: React.FC = () => {
       console.error('Error deleting item:', error);
       toast({ title: 'Error', description: error.message || 'Failed to delete item.', variant: 'destructive' });
     }
-  };
-
-  const handleOpenModal = () => {
-      setEditingId(null);
-      setFormData(initialFormState);
-      setIsModalOpen(true);
   };
 
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
