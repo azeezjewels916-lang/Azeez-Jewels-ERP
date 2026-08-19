@@ -20,6 +20,8 @@ import { Button, Card, toast } from '../components/UIComponents';
 import { supabase } from '../supabaseClient';
 import { deleteBill } from '../db';
 import { InvoicePrint } from '../components/InvoicePrint';
+import { exportToExcel } from '../components/exportUtils';
+import { FileSpreadsheet } from 'lucide-react';
 
 // --- HELPERS ---
 
@@ -175,6 +177,26 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
     preparePrint();
   };
 
+  const handleExportExcel = () => {
+    if (!filteredSales || filteredSales.length === 0) {
+      toast({ title: 'Export Warning', description: 'No sales records available to export.', variant: 'destructive' });
+      return;
+    }
+    const exportData = filteredSales.map(s => ({
+      Bill_No: s.bill_no,
+      Date: formatDate(s.bill_date),
+      Customer_Name: s.customers?.name || 'Walk-in Customer',
+      Customer_Phone: s.customers?.phone || '',
+      Type: s.sale_type?.toUpperCase() || 'GST',
+      Subtotal: s.subtotal || 0,
+      GST_Amount: s.gst_amount || 0,
+      Grand_Total: s.grand_total || 0,
+      Status: s.bill_status || 'final'
+    }));
+    exportToExcel(exportData, 'Sales_History_Report');
+    toast({ title: 'Excel Exported', description: `${exportData.length} sales records downloaded to Excel.` });
+  };
+
   // --- RENDER ---
 
   return (
@@ -278,8 +300,8 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
            <Button variant="outline" size="sm" onClick={fetchSales} className="bg-white hover:bg-gray-50">
              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
            </Button>
-           <Button variant="secondary" size="sm" className="shadow-sm border-green-600 text-green-700 hover:bg-green-50">
-             <FileText size={16} className="mr-2" /> Export Excel
+           <Button onClick={handleExportExcel} variant="secondary" size="sm" className="shadow-sm border-green-600 text-green-700 hover:bg-green-50">
+             <FileSpreadsheet size={16} className="mr-2 text-green-600" /> Export Excel
            </Button>
         </div>
       </div>

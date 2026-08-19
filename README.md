@@ -22,25 +22,29 @@ A specialized, full-featured retail **Point-of-Sale (POS)** and **Enterprise Res
 
 ### 📦 Inventory & Hallmarking
 - **BIS HUID & Barcode Tracking**: SKU scanning and Hallmark Unique Identification.
-- **Comprehensive Categories**: 
+- **Comprehensive Categories (16 Standard Categories)**: 
   1. Ring
-  2. Chain
-  3. Haar
-  4. Laccha
-  5. Choker
-  6. Japka
-  7. Mangtila
-  8. Motol
-  9. Necklace
-  10. Tops
-  11. Bracelet
-  12. Kada
-  13. Baali
-  14. Earring
-  15. Pendent
-- **Live Category Metrics**: Check item count, piece quantity, and total weight (g) per category (e.g. Ring, Chain, Haar, etc.) with a single click or category filter.
+  2. Bangle
+  3. Chain
+  4. Haar
+  5. Laccha
+  6. Choker
+  7. Japka
+  8. Mangtila
+  9. Motol
+  10. Necklace
+  11. Tops
+  12. Bracelet
+  13. Kada
+  14. Baali
+  15. Earring
+  16. Pendent
+- **Live Category Metrics**: Check item count, piece quantity, and total weight (g) per category with a single click or category filter.
 - **Single Total Weight Standard**: Unified weight tracking using Total Weight (g) across item forms, stock tables, breakdown metrics, and printable receipts.
-- **Purity Options**: 24K, 22K, 18K, 14K, Silver (925), Silver (70), Selam.
+- **Automatic Stock Removal**: Upon POS sale confirmation, sold items are automatically deleted/deducted from available showroom inventory stock.
+- **Excel / CSV Export**: Instant 1-click Excel export across Inventory, Sales History, Order Bookings, Customers, and Layaway modules.
+- **Purity Options**: 24K (Pure), 22K (916), 18K (750), 14K (585), Silver (925), Silver (70), Selam.
+- **Print Side Borders**: Sharp, visible outer side frame borders on all printed invoices (A5 Tax Bills, Old Gold Receipts, Layaway Statements, Advance Bookings).
 - **Keyboard Shortcuts**: `Alt + N` (New Item), `Alt + B` (Focus Barcode), `Ctrl + S` (Save), `Esc` (Close).
 
 ### 🔄 Gold Exchange / Buying

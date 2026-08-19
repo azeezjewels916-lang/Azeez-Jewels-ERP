@@ -28,6 +28,8 @@ import {
   X
 } from 'lucide-react';
 import { Button, Input, Select, Card, toast } from '../components/UIComponents';
+import { exportToExcel } from '../components/exportUtils';
+import { FileSpreadsheet } from 'lucide-react';
 import { 
   getAdvanceBookings, 
   createAdvanceBooking, 
@@ -84,6 +86,7 @@ export const AdvanceBooking: React.FC = () => {
     }
   }, [metalRates, newItem.purity, newItem.rate]);
 
+  const [saleType, setSaleType] = useState<'GST' | 'NON GST'>('GST');
   const [showOldGold, setShowOldGold] = useState(false);
   const [oldGold, setOldGold] = useState<any>({ particulars: '', weight: 0, rate: 0 });
   const [isPriceLocked, setIsPriceLocked] = useState(false);
@@ -113,10 +116,33 @@ export const AdvanceBooking: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleExportExcel = () => {
+    if (!filteredBookings || filteredBookings.length === 0) {
+      toast({ title: 'Export Warning', description: 'No bookings data to export.', variant: 'destructive' });
+      return;
+    }
+    const exportData = filteredBookings.map(b => ({
+      Bill_No: b.bills?.bill_no || '',
+      Customer_Name: b.bills?.customers?.name || '',
+      Customer_Phone: b.bills?.customers?.phone || '',
+      Booking_Date: formatDate(b.booking_date),
+      Delivery_Date: formatDate(b.delivery_date),
+      Sale_Type: b.sale_type || 'GST',
+      Total_Amount: b.total_amount || 0,
+      Advance_Paid: b.advance_amount || 0,
+      Balance_Due: (b.total_amount - b.advance_amount) || 0,
+      Status: b.booking_status
+    }));
+    exportToExcel(exportData, 'Order_Bookings_Report');
+    toast({ title: 'Excel Exported', description: `${exportData.length} booking records downloaded.` });
+  };
+
   // --- DERIVED VALUES ---
   const itemsTotal = useMemo(() => items.reduce((sum, item) => sum + (item.lineTotal || 0), 0), [items]);
+  const gstAmount = useMemo(() => saleType === 'GST' ? itemsTotal * 0.03 : 0, [itemsTotal, saleType]);
   const oldGoldValue = useMemo(() => (oldGold.weight || 0) * (oldGold.rate || 0), [oldGold.weight, oldGold.rate]);
-  const calculatedGrandTotal = Math.max(0, itemsTotal - oldGoldValue);
+  const calculatedGrandTotal = Math.max(0, itemsTotal + gstAmount - oldGoldValue);
   const finalTotal = isPriceLocked ? (parseFloat(manualTotal) || 0) : calculatedGrandTotal;
   const balanceDue = finalTotal - (parseFloat(advanceInput) || 0);
   const filteredBookings = useMemo(() => {
@@ -415,9 +441,18 @@ export const AdvanceBooking: React.FC = () => {
                   onChange={e => setSearchTerm(e.target.value)}
                 />
              </div>
-             <Button onClick={() => setIsModalOpen(true)} className="shadow-md">
-               <Plus size={18} className="mr-2"/> New Order Booking
-             </Button>
+             <div className="flex gap-3">
+               <button
+                 onClick={handleExportExcel}
+                 className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-md text-xs font-bold tracking-wide flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                 title="Export Bookings to Excel / CSV"
+               >
+                 <FileSpreadsheet size={14} className="text-white" /> Export Excel
+               </button>
+               <Button onClick={() => setIsModalOpen(true)} className="shadow-md">
+                 <Plus size={18} className="mr-2"/> New Order Booking
+               </Button>
+             </div>
           </div>
           {/* Row 2: Tabs & Filters */}
           <div className="flex justify-between items-end">
@@ -658,48 +693,75 @@ export const AdvanceBooking: React.FC = () => {
                           <div><Input label="Expected Delivery" type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} /></div>
                        </div>
                     </section>
-                    <section className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex-1 flex flex-col">
-                       <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2"><ShoppingBag size={14}/> Order Requirements</h4>
-                       <div className="grid grid-cols-12 gap-3 mb-4 items-end bg-gray-50 p-3 rounded border border-gray-100">
-                          <div className="col-span-4"><Input label="Item Name" placeholder="e.g. Ring" value={newItem.name || ''} onChange={e => setNewItem({...newItem, name: e.target.value})} /></div>
-                          <div className="col-span-2"><Select label="Purity" options={[{value:'22K', label:'22K'}, {value:'18K', label:'18K'}, {value:'24K', label:'24K'}]} value={newItem.purity} onChange={e => {
-                            const newPurity = e.target.value;
-                            let newRate = 0;
-                            if (metalRates) {
-                              if (newPurity === '22K') newRate = metalRates.gold22k;
-                              else if (newPurity === '18K') newRate = metalRates.gold18k;
-                              else if (newPurity === '24K') newRate = metalRates.goldStd;
-                            }
-                            setNewItem({...newItem, purity: newPurity, rate: newRate || newItem.rate});
-                          }} /></div>
-                          <div className="col-span-2"><Input label="Wt (g)" type="number" isMonospaced value={newItem.weight || ''} onChange={e => setNewItem({...newItem, weight: parseFloat(e.target.value)})} /></div>
-                          <div className="col-span-2"><Input label="Rate" type="number" isMonospaced value={newItem.rate || ''} onChange={e => setNewItem({...newItem, rate: parseFloat(e.target.value)})} /></div>
-                          <div className="col-span-2"><Button onClick={handleAddItem} className="w-full !px-0 bg-gold-500 hover:bg-gold-600"><Plus size={20}/></Button></div>
-                       </div>
-                       <div className="border border-gray-200 rounded overflow-hidden flex-1 overflow-auto min-h-[200px]">
-                          <table className="w-full text-xs text-left">
-                             <thead className="bg-gray-100 font-bold text-gray-600 uppercase sticky top-0">
-                               <tr><th className="p-3">Item</th><th className="p-3 text-right">Wt</th><th className="p-3 text-right">Rate</th><th className="p-3 text-right">Total</th><th className="p-3"></th></tr>
-                             </thead>
-                             <tbody>
-                               {items.map(item => (
-                                 <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50">
-                                   <td className="p-3 font-medium">{item.name} <span className="text-gray-400">({item.purity})</span></td>
-                                   <td className="p-3 text-right font-mono">{item.weight}g</td>
-                                   <td className="p-3 text-right font-mono">{item.rate}</td>
-                                   <td className="p-3 text-right font-mono font-bold">{formatCurrency(item.lineTotal)}</td>
-                                   <td className="p-3 text-center text-red-400 cursor-pointer hover:text-red-600">
-                                      <button onClick={() => setItems(items.filter(i => i.id !== item.id))}><Trash2 size={14}/></button>
-                                   </td>
-                                 </tr>
-                               ))}
-                               {items.length === 0 && (
-                                 <tr><td colSpan={5} className="p-12 text-center text-gray-400 italic"><div className="flex flex-col items-center gap-2"><ShoppingBag size={24} className="opacity-20"/><span>List is empty. Add items above.</span></div></td></tr>
-                               )}
-                             </tbody>
-                          </table>
-                       </div>
-                    </section>
+                     <section className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex-1 flex flex-col">
+                        <div className="flex justify-between items-center mb-4">
+                           <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2"><ShoppingBag size={14}/> Order Requirements</h4>
+                           <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-md border border-gray-200">
+                              <span className="text-[10px] font-bold text-gray-500 uppercase px-1">Bill Type:</span>
+                              <button 
+                                onClick={() => setSaleType('GST')}
+                                className={`px-2.5 py-1 text-xs font-bold rounded transition-colors ${saleType === 'GST' ? 'bg-gold-500 text-white shadow-sm' : 'text-gray-500 hover:text-charcoal-900'}`}
+                              >
+                                GST (3%)
+                              </button>
+                              <button 
+                                onClick={() => setSaleType('NON GST')}
+                                className={`px-2.5 py-1 text-xs font-bold rounded transition-colors ${saleType === 'NON GST' ? 'bg-charcoal-900 text-white shadow-sm' : 'text-gray-500 hover:text-charcoal-900'}`}
+                              >
+                                NON-GST
+                              </button>
+                           </div>
+                        </div>
+                        <div className="grid grid-cols-12 gap-3 mb-4 items-end bg-gray-50 p-3 rounded border border-gray-100">
+                           <div className="col-span-3"><Input label="Item Name" placeholder="e.g. Ring / Bangle" value={newItem.name || ''} onChange={e => setNewItem({...newItem, name: e.target.value})} /></div>
+                           <div className="col-span-2"><Select label="Purity" options={[
+                             {value:'24K (Pure)', label:'24K (Pure)'},
+                             {value:'22K (916)', label:'22K (916)'},
+                             {value:'18K (750)', label:'18K (750)'},
+                             {value:'14K (585)', label:'14K (585)'},
+                             {value:'Silver (925)', label:'Silver (925)'},
+                             {value:'Silver (70)', label:'Silver (70)'},
+                             {value:'Selam', label:'Selam'}
+                           ]} value={newItem.purity} onChange={e => {
+                             const newPurity = e.target.value;
+                             let newRate = 0;
+                             if (metalRates) {
+                               if (newPurity.includes('22K') || newPurity.includes('916')) newRate = metalRates.gold22k;
+                               else if (newPurity.includes('18K') || newPurity.includes('750')) newRate = metalRates.gold18k;
+                               else if (newPurity.includes('24K') || newPurity.includes('Pure')) newRate = metalRates.goldStd;
+                             }
+                             setNewItem({...newItem, purity: newPurity, rate: newRate || newItem.rate});
+                           }} /></div>
+                           <div className="col-span-2"><Input label="Wt (g)" type="number" isMonospaced value={newItem.weight || ''} onChange={e => setNewItem({...newItem, weight: parseFloat(e.target.value)})} /></div>
+                           <div className="col-span-2"><Input label="Rate/g" type="number" isMonospaced value={newItem.rate || ''} onChange={e => setNewItem({...newItem, rate: parseFloat(e.target.value)})} /></div>
+                           <div className="col-span-2"><Input label="Making (MC)" type="number" isMonospaced value={newItem.makingCharges || ''} onChange={e => setNewItem({...newItem, makingCharges: parseFloat(e.target.value)})} /></div>
+                           <div className="col-span-1"><Button onClick={handleAddItem} className="w-full !px-0 bg-gold-500 hover:bg-gold-600"><Plus size={20}/></Button></div>
+                        </div>
+                        <div className="border border-gray-200 rounded overflow-hidden flex-1 overflow-auto min-h-[200px]">
+                           <table className="w-full text-xs text-left">
+                              <thead className="bg-gray-100 font-bold text-gray-600 uppercase sticky top-0">
+                                <tr><th className="p-3">Item</th><th className="p-3 text-right">Wt</th><th className="p-3 text-right">Rate</th><th className="p-3 text-right">MC</th><th className="p-3 text-right">Total</th><th className="p-3"></th></tr>
+                              </thead>
+                              <tbody>
+                                {items.map(item => (
+                                  <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50">
+                                    <td className="p-3 font-medium">{item.name} <span className="text-gray-400">({item.purity})</span></td>
+                                    <td className="p-3 text-right font-mono">{item.weight}g</td>
+                                    <td className="p-3 text-right font-mono">{item.rate}</td>
+                                    <td className="p-3 text-right font-mono text-gray-500">{item.makingCharges || 0}</td>
+                                    <td className="p-3 text-right font-mono font-bold">{formatCurrency(item.lineTotal)}</td>
+                                    <td className="p-3 text-center text-red-400 cursor-pointer hover:text-red-600">
+                                       <button onClick={() => setItems(items.filter(i => i.id !== item.id))}><Trash2 size={14}/></button>
+                                    </td>
+                                  </tr>
+                                ))}
+                                {items.length === 0 && (
+                                  <tr><td colSpan={6} className="p-12 text-center text-gray-400 italic"><div className="flex flex-col items-center gap-2"><ShoppingBag size={24} className="opacity-20"/><span>List is empty. Add items above.</span></div></td></tr>
+                                )}
+                              </tbody>
+                           </table>
+                        </div>
+                     </section>
                     <section className={`border rounded-lg overflow-hidden transition-all shrink-0 ${showOldGold ? 'border-pink-200 bg-[#FFF5F5]' : 'border-gray-200 bg-white'}`}>
                         <div className="px-5 py-3 flex justify-between items-center cursor-pointer" onClick={() => setShowOldGold(!showOldGold)}>
                            <h4 className="text-xs font-bold text-pink-700 uppercase tracking-wide flex items-center gap-2"><CreditCard size={14}/> Old Gold Exchange (Pink Slip)</h4>
@@ -727,7 +789,8 @@ export const AdvanceBooking: React.FC = () => {
                           <button onClick={() => setIsPriceLocked(!isPriceLocked)} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${isPriceLocked ? 'bg-gold-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{isPriceLocked ? <Lock size={12}/> : <Unlock size={12}/>}{isPriceLocked ? 'LOCKED' : 'ESTIMATE'}</button>
                        </div>
                        <div className="space-y-3 font-mono text-sm">
-                          <div className="flex justify-between text-gray-400"><span>Items Total</span><span>{formatCurrency(itemsTotal)}</span></div>
+                          <div className="flex justify-between text-gray-400"><span>Items Subtotal</span><span>{formatCurrency(itemsTotal)}</span></div>
+                          {saleType === 'GST' && (<div className="flex justify-between text-gold-400"><span>GST (3%)</span><span>+ {formatCurrency(gstAmount)}</span></div>)}
                           {oldGoldValue > 0 && (<div className="flex justify-between text-pink-300"><span>Less: Old Gold</span><span>- {formatCurrency(oldGoldValue)}</span></div>)}
                           <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-700">
                              <span className="font-sans font-bold text-white">Grand Total</span>

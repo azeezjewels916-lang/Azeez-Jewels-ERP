@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { Button, Input, Card, toast } from '../components/UIComponents';
 import { Customer } from '../types';
+import { exportToExcel } from '../components/exportUtils';
+import { FileSpreadsheet } from 'lucide-react';
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getCustomerHistory, getCustomerBookings, getCustomerLayaways } from '../db';
 
 export const Customers: React.FC = () => {
@@ -163,6 +165,25 @@ export const Customers: React.FC = () => {
     return { total, newThisMonth };
   }, [customers]);
 
+  const handleExportExcel = () => {
+    if (!filteredCustomers || filteredCustomers.length === 0) {
+      toast({ title: 'Export Warning', description: 'No customer data available to export.', variant: 'destructive' });
+      return;
+    }
+    const exportData = filteredCustomers.map(c => ({
+      Customer_Code: c.customer_code || '',
+      Name: c.name,
+      Phone: c.phone,
+      Email: c.email || '',
+      Address: c.address || '',
+      GSTIN: c.gstin || '',
+      PAN: c.pan || '',
+      Notes: c.notes || ''
+    }));
+    exportToExcel(exportData, 'Customer_Directory_Report');
+    toast({ title: 'Excel Exported', description: `${exportData.length} customer records downloaded.` });
+  };
+
   return (
     <div className="h-full flex flex-col bg-app-bg overflow-hidden relative font-sans">
       
@@ -170,8 +191,8 @@ export const Customers: React.FC = () => {
       <div className="p-6 pb-2 grid grid-cols-3 gap-6">
         <Card className="border-l-4 border-l-gold-500 !p-4 flex items-center justify-between shadow-sm bg-white">
            <div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Clients</p>
-              <h3 className="text-2xl font-bold text-charcoal-900 mt-1">{stats.total}</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Directory</p>
+              <h3 className="text-2xl font-bold text-charcoal-900 mt-1">{stats.total} Clients</h3>
            </div>
            <div className="w-10 h-10 bg-gold-100 rounded-full flex items-center justify-center text-gold-600">
              <Users size={20} />
@@ -215,6 +236,13 @@ export const Customers: React.FC = () => {
            <Button variant="outline" onClick={fetchCustomers} className="bg-white">
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
            </Button>
+           <button
+             onClick={handleExportExcel}
+             className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-md text-xs font-bold tracking-wide flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+             title="Export Customers to Excel / CSV"
+           >
+             <FileSpreadsheet size={14} className="text-white" /> Export Excel
+           </button>
            <Button onClick={() => handleOpenModal()} className="bg-charcoal-900 text-white hover:bg-black shadow-lg">
               <Plus size={16} className="mr-2" /> Add New Client
            </Button>

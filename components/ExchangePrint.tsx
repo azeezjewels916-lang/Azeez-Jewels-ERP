@@ -56,7 +56,7 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
   const finalHsnCode = exchangeData.hsn_code || '7113';
 
   return (
-    <div className={`${isScreenPreview ? 'block w-[148mm] mx-auto shadow-2xl p-4 my-8' : 'hidden print:block w-[148mm] h-[210mm] mx-auto p-4'} bg-white`}>
+    <div className={`${isScreenPreview ? 'block w-[148mm] mx-auto shadow-2xl p-4 my-8' : 'hidden print:block w-[148mm] h-[210mm] mx-auto p-4'} bg-white border-2 border-black box-border`}>
       <style>{`
         @media print {
           @page {

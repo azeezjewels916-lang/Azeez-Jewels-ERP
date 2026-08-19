@@ -210,6 +210,7 @@ export const getInventoryItems = async () => {
   const { data, error } = await supabase
     .from('items')
     .select('*')
+    .range(0, 99999) // Fetch all inventory items without capping at default 1,000 limit
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -277,21 +278,29 @@ export const deductInventoryStock = async (billItems: any[]) => {
 
     if (fetchErr || !matchedItems || matchedItems.length === 0) continue;
 
-    // Pick target item to deduct stock from (prefer items in_stock / quantity > 0)
+    // Pick target item to deduct/remove
     const targetItem = matchedItems.find(i => (i.quantity || 0) > 0 || i.stock_status !== 'out_of_stock') || matchedItems[0];
     
     const soldQty = 1;
     const currentQty = targetItem.quantity !== undefined && targetItem.quantity !== null ? Number(targetItem.quantity) : 1;
     const newQty = Math.max(0, currentQty - soldQty);
-    const newStatus = newQty === 0 ? 'out_of_stock' : (targetItem.stock_status || 'in_stock');
 
-    await supabase
-      .from('items')
-      .update({ 
-        quantity: newQty, 
-        stock_status: newStatus 
-      })
-      .eq('id', targetItem.id);
+    if (newQty <= 0) {
+      // Delete sold product from inventory table after sale as requested
+      await supabase
+        .from('items')
+        .delete()
+        .eq('id', targetItem.id);
+    } else {
+      // Reduce quantity if item had multiple pcs stored
+      await supabase
+        .from('items')
+        .update({ 
+          quantity: newQty, 
+          stock_status: 'in_stock' 
+        })
+        .eq('id', targetItem.id);
+    }
   }
 };
 

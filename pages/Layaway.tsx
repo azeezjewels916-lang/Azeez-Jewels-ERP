@@ -22,6 +22,8 @@ import {
   Edit2
 } from 'lucide-react';
 import { Button, Input, Select, Card, toast } from '../components/UIComponents';
+import { exportToExcel } from '../components/exportUtils';
+import { FileSpreadsheet } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { 
   createLayawayTransaction, 
@@ -682,10 +684,37 @@ export const Layaway: React.FC = () => {
 
           <div className="flex-1"></div>
           
-          {/* New Layaway Button */}
-          <Button onClick={() => setIsLinkModalOpen(true)} className="shadow-lg gap-2">
-            <Plus size={18}/> New Layaway
-          </Button>
+          <div className="flex gap-3">
+             <button
+               onClick={() => {
+                 if (!filteredBills || filteredBills.length === 0) {
+                   toast({ title: 'Export Warning', description: 'No layaway records available to export.', variant: 'destructive' });
+                   return;
+                 }
+                 const exportData = filteredBills.map(b => ({
+                   Bill_No: b.bill_no,
+                   Customer_Name: b.customer_name,
+                   Customer_Phone: b.customer_phone,
+                   Item_Summary: b.item_name,
+                   Total_Amount: b.total_amount,
+                   Paid_Amount: b.paid_amount,
+                   Balance_Due: Math.max(0, b.total_amount - b.paid_amount),
+                   Created_Date: formatDate(b.created_at)
+                 }));
+                 exportToExcel(exportData, 'Layaway_Schemes_Report');
+                 toast({ title: 'Excel Exported', description: `${exportData.length} layaway records downloaded.` });
+               }}
+               className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-md text-xs font-bold tracking-wide flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+               title="Export Layaways to Excel / CSV"
+             >
+               <FileSpreadsheet size={14} className="text-white" /> Export Excel
+             </button>
+
+             {/* New Layaway Button */}
+             <Button onClick={() => setIsLinkModalOpen(true)} className="shadow-lg gap-2">
+               <Plus size={18}/> New Layaway
+             </Button>
+          </div>
         </div>
       </div>
 

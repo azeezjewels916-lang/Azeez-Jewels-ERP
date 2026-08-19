@@ -19,10 +19,12 @@ import {
   CheckCircle2,
   Plus,
   RefreshCw,
-  Printer
+  Printer,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Button, Input, Select, Card, toast } from '../components/UIComponents';
 import { InventoryItem, StockStatus } from '../types';
+import { exportToExcel } from '../components/exportUtils';
 import { 
   getInventoryItems, 
   createInventoryItem, 
@@ -265,11 +267,34 @@ export const Inventory: React.FC = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    if (!filteredItems || filteredItems.length === 0) {
+      toast({ title: 'Export Warning', description: 'No items available to export.', variant: 'destructive' });
+      return;
+    }
+    const exportData = filteredItems.map(item => ({
+      Barcode: item.barcode,
+      HUID: item.huid || '',
+      Item_Name: item.item_name,
+      Category: item.category || '',
+      Weight_g: (item.net_weight || item.weight || item.gross_weight || 0).toFixed(3),
+      Quantity_pcs: item.quantity || 1,
+      Price_Per_Gram: item.price_per_gram || 0,
+      Net_Price: item.net_price || 0,
+      Location: item.location || '',
+      Metal_Type: item.metal_type || 'Gold',
+      Purity: item.purity || '22K (916)'
+    }));
+    exportToExcel(exportData, 'Inventory_Stock_Report');
+    toast({ title: 'Excel Exported', description: `${exportData.length} inventory items downloaded to Excel.` });
+  };
+
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
   const CATEGORY_LIST = [
     'Ring',
+    'Bangle',
     'Chain',
     'Haar',
     'Laccha',
@@ -392,6 +417,15 @@ export const Inventory: React.FC = () => {
                title="View Category Breakdown"
             >
                <Tag size={14} className="text-gold-500" /> Breakdown Summary
+            </button>
+
+            {/* Export to Excel Button */}
+            <button
+               onClick={handleExportExcel}
+               className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-md text-xs font-bold tracking-wide flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+               title="Export Inventory to Excel / CSV"
+            >
+               <FileSpreadsheet size={14} className="text-white" /> Export Excel
             </button>
 
             {/* Search Input */}
@@ -779,10 +813,10 @@ export const Inventory: React.FC = () => {
                                     value={formData.purity}
                                     onChange={e => handleInputChange('purity', e.target.value)}
                                     options={[
-                                        {value: '24K', label: '24K'},
-                                        {value: '22K', label: '22K'},
-                                        {value: '18K', label: '18K'},
-                                        {value: '14K', label: '14K'},
+                                        {value: '24K (Pure)', label: '24K (Pure)'},
+                                        {value: '22K (916)', label: '22K (916)'},
+                                        {value: '18K (750)', label: '18K (750)'},
+                                        {value: '14K (585)', label: '14K (585)'},
                                         {value: 'Silver (925)', label: 'Silver (925)'},
                                         {value: 'Silver (70)', label: 'Silver (70)'},
                                         {value: 'Selam', label: 'Selam'},

@@ -45,11 +45,12 @@ const numberToWords = (num: number): string => {
 };
 
 const metalLabels: Record<string, string> = {
-  'gold': 'Std Gold',
-  'gold_916': '22k Gold',
-  'gold_750': '18k Gold',
-  'silver_92': 'Silver 925',
-  'silver_70': 'Silver 70',
+  'gold': '24K (Pure)',
+  'gold_916': '22K (916)',
+  'gold_750': '18K (750)',
+  'gold_585': '14K (585)',
+  'silver_92': 'Silver (925)',
+  'silver_70': 'Silver (70)',
   'selam_silver': 'Selam',
   'service': 'Service'
 };
@@ -75,7 +76,7 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({
   const activeMetals = Array.from(new Set(items.map(i => i.metal_type).filter(m => m && m !== 'service'))) as string[];
 
   return (
-    <div className={`${isScreenPreview ? 'block w-[148mm] mx-auto shadow-2xl p-4 my-8' : 'hidden print:block w-[148mm] h-[210mm] mx-auto p-4'} bg-white text-charcoal-900 font-sans font-bold flex flex-col`}>
+    <div className={`${isScreenPreview ? 'block w-[148mm] mx-auto shadow-2xl p-4 my-8' : 'hidden print:block w-[148mm] h-[210mm] mx-auto p-4'} bg-white text-charcoal-900 font-sans font-bold flex flex-col border-2 border-charcoal-900 box-border`}>
       <style>{`
         @media print {
           @page { margin: 0; size: A5 portrait; }
