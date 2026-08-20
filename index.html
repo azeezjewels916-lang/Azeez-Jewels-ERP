@@ -3,44 +3,61 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mayakka Jewellers ERP</title>
+    <title>Azeez Jewels ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
               app: {
-                bg: '#F3F4F6', // Light Gray
+                bg: '#FAF8F5', // Soft Warm Off-White / Alabaster
                 surface: '#FFFFFF',
-                border: '#D1D5DB', // Mid Gray for borders
+                card: '#F5F2EC', // Luxury Warm Beige Card
+                border: '#E8E3D9', // Subtle Linen Border
+                hover: '#EFE9DF',
               },
               gold: {
-                500: '#B8860B', // Professional Gold
-                600: '#9A7009',
-                100: '#FEF3C7',
+                500: '#C5A059', // Refined Champagne Gold
+                600: '#A3803C', // Antique Bronze Gold
+                700: '#826429',
+                100: '#F7F2E8', // Soft Champagne Tint
+                50: '#FAF7F0',
+              },
+              beige: {
+                50: '#FDFBF7',
+                100: '#FAF5EC',
+                200: '#F2EAD9',
+                300: '#E5D9C3',
+                400: '#D4C3A7',
+                500: '#BEA98B',
+                900: '#3D342A',
               },
               charcoal: {
-                900: '#111827', // Deep Black/Blue (Sidebar/Text)
-                800: '#1F2937',
-                700: '#374151',
+                900: '#1C1917', // Deep Warm Espresso / Charcoal
+                800: '#292524',
+                700: '#44403C',
+                600: '#57534E',
+                500: '#78716C',
               },
               pink: {
-                50: '#FDF2F8', // Old Gold Header
-                100: '#FCE7F3',
-                600: '#DB2777',
+                50: '#FAF7F0', // Replaced harsh pink with warm champagne silk
+                100: '#F5EFE6',
+                600: '#C5A059',
               }
             },
             fontFamily: {
               sans: ['"Inter"', 'sans-serif'],
-              serif: ['"Playfair Display"', 'serif'],
+              serif: ['"Playfair Display"', '"Cormorant Garamond"', 'serif'],
+              display: ['"Cormorant Garamond"', 'serif'],
               mono: ['"JetBrains Mono"', 'monospace'],
             },
             boxShadow: {
-              'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+              'card': '0 2px 8px -2px rgba(28, 25, 23, 0.05), 0 1px 3px 0 rgba(28, 25, 23, 0.03)',
+              'luxury': '0 10px 30px -5px rgba(28, 25, 23, 0.08), 0 4px 12px -2px rgba(28, 25, 23, 0.04)',
             }
           }
         }
@@ -48,8 +65,8 @@
     </script>
     <style>
       body {
-        background-color: #F3F4F6;
-        color: #111827;
+        background-color: #FAF8F5;
+        color: #1C1917;
         font-family: "Inter", sans-serif;
       }
       /* Custom Scrollbar */
@@ -57,14 +74,14 @@
         width: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: transparent;
+        background: #FAF8F5;
       }
       ::-webkit-scrollbar-thumb {
-        background: #9CA3AF;
+        background: #D4C3A7;
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #6B7280;
+        background: #BEA98B;
       }
 
       /* Hide Number Spinners Globally */

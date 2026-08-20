@@ -68,10 +68,11 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
         </div>
         
         <div className="text-center w-full -mt-2">
-          <h1 className="font-serif text-3xl font-bold text-charcoal-900 tracking-tighter leading-none mb-1">MAYAKKA JEWELLERS</h1>
+          <h1 className="font-serif text-3xl font-bold text-charcoal-900 tracking-tighter leading-none mb-1">AZEEZ JEWELS</h1>
           <div className="text-[10px] text-charcoal-800 leading-tight font-bold space-y-0.5">
-             <p>#312, Jumma Masjid Road, (O.P.H Road), Bengaluru – 560051</p>
-             <p className="text-xs">Ph: 99009 54791, 94491 19542</p>
+             <p className="text-[11px] font-bold text-gold-600">Dealers in : 22 Ct. 916 KDM Gold Silver Ornaments</p>
+             <p>#324, Jumma Masjid Road (OPH Road), Shivajinagar, Bangalore - 560051</p>
+             <p className="text-xs">Prop: Azmathulla Khan — Mobile: 9916667573</p>
              <p className="text-[10px] mt-0.5 underline decoration-1">GSTIN: 29BBGPM2303C1Z4</p>
           </div>
         </div>
@@ -188,7 +189,7 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
                  <p className="text-[8px] uppercase font-bold text-charcoal-900">Customer Signature</p>
               </div>
               <div className="text-center w-40 border-t border-charcoal-900 pt-1">
-                 <p className="text-[9px] uppercase font-bold text-charcoal-900">For MAYAKKA JEWELLERS</p>
+                 <p className="text-[9px] uppercase font-bold text-charcoal-900">For AZEEZ JEWELS</p>
               </div>
           </div>
       </div>

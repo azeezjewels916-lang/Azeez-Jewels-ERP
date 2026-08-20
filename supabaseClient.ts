@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from '@supabase/supabase-js';
 
 // Safe access to environment variables to prevent ReferenceErrors
 const getEnv = (key: string) => {
@@ -26,8 +26,8 @@ const envUrl = getEnv('NEXT_PUBLIC_SUPABASE_URL') || getEnv('VITE_SUPABASE_URL')
 const envKey = getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || getEnv('VITE_SUPABASE_ANON_KEY');
 
 // Use provided credentials as default fallback if env vars are missing
-const supabaseUrl = envUrl || 'https://ixqluabseedggibmlfmv.supabase.co';
-const supabaseKey = envKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4cWx1YWJzZWVkZ2dpYm1sZm12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyOTcyNDUsImV4cCI6MjA4Mzg3MzI0NX0.5d1tQ2IXxodFTzH6oFdDB-eyPXzC4ODkcflWxsoj3oI';
+const supabaseUrl = envUrl || 'https://vdhnjmeyvbcbvdreltcb.supabase.co';
+const supabaseKey = envKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkaG5qbWV5dmJjYnZkcmVsdGNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyNDk3MzksImV4cCI6MjEwMjgyNTczOX0.A1x8YFcJD2X3HEn5UeejPJwDwfA08T5yb4boMdkl5-4';
 
 if (!supabaseUrl || !supabaseKey) {
   console.warn('Supabase URL or Key is missing. API calls will fail. Check environment variables.');

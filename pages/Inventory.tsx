@@ -217,7 +217,7 @@ export const Inventory: React.FC = () => {
         <body>
           <div class="header">
             <img src="/logo.png" class="logo" />
-            <h1 class="shop-name">MAYAKKA JEWELLERS</h1>
+            <h1 class="shop-name">AZEEZ JEWELS</h1>
             <p class="sub-header">Inventory Record - ${item.barcode}</p>
           </div>
           <div class="row"><span class="label">Barcode:</span> <span class="value">${item.barcode}</span></div>

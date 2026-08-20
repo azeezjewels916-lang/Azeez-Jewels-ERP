@@ -28,9 +28,28 @@ const App: React.FC = () => {
   };
 
   const handleToggleRole = () => {
-    const newRole = userRole === 'admin' ? 'staff' : 'admin';
-    setUserRole(newRole);
-    if (newRole === 'staff') {
+    if (userRole === 'staff') {
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      // If user originally authenticated as admin, allow direct toggle back
+      if (storedUser.authenticated_role === 'admin') {
+        setUserRole('admin');
+        return;
+      }
+
+      // Prompt staff user for Admin Password
+      const enteredPass = window.prompt('Security Lock: Enter Admin Password to access Full ERP:');
+      if (enteredPass === 'admin123' || enteredPass === 'admin') {
+        setUserRole('admin');
+        // Temporarily elevate current session role
+        storedUser.role = 'admin';
+        localStorage.setItem('user', JSON.stringify(storedUser));
+        alert('Admin Access Granted: Full ERP Unlocked.');
+      } else if (enteredPass !== null) {
+        alert('Access Denied: Incorrect Admin Password.');
+      }
+    } else {
+      // Switch Admin to Staff Preview Mode
+      setUserRole('staff');
       setActiveModule('sales-bill');
     }
   };
@@ -44,9 +63,11 @@ const App: React.FC = () => {
     setActiveModule('sales-bill');
   };
 
+  const STAFF_ALLOWED_MODULES = ['sales-bill', 'all-sales', 'layaway', 'advance', 'customers'];
+
   const navigateToModule = (module: string) => {
-    // If staff role, force sales-bill only
-    if (userRole === 'staff' && module !== 'sales-bill') {
+    // If staff role, allow access to 5 modules: sales-bill, all-sales, layaway, advance, customers
+    if (userRole === 'staff' && !STAFF_ALLOWED_MODULES.includes(module)) {
       return;
     }
     if (module !== 'sales-bill') {
@@ -117,10 +138,10 @@ const App: React.FC = () => {
       
       {/* Main Content Area */}
       <main className="ml-64 print:ml-0 flex-1 h-screen flex flex-col overflow-hidden">
-        {/* Top Bar for User Profile/Context - minimalist */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0 print:hidden">
+        {/* Top Bar for User Profile/Context - minimalist luxury */}
+        <header className="h-16 bg-white border-b border-app-border flex items-center justify-between px-8 shrink-0 print:hidden shadow-sm">
            <div className="flex items-center gap-6">
-             <h1 className="font-sans font-bold text-xl text-charcoal-900 uppercase tracking-tight">
+             <h1 className="font-serif font-bold text-xl text-charcoal-900 tracking-tight">
                {activeModule === 'sales-bill' ? 'New Sales Invoice' : 
                 activeModule === 'all-sales' ? 'Sales History' : 
                 activeModule === 'layaway' ? 'Layaway Management' :
@@ -133,16 +154,16 @@ const App: React.FC = () => {
              </h1>
 
              {/* Zoom Controls */}
-             <div className="flex items-center bg-gray-100 rounded-lg p-1 gap-1 border border-gray-200 ml-4">
+             <div className="flex items-center bg-beige-100/70 rounded-lg p-1 gap-1 border border-app-border ml-4">
                 <button 
                   onClick={handleZoomOut}
-                  className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-gray-500 hover:text-charcoal-900 transition-all"
+                  className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-charcoal-600 hover:text-charcoal-900 transition-all"
                   title="Zoom Out"
                 >
                   <ZoomOut size={14} />
                 </button>
                 <div 
-                  className="text-[10px] font-bold text-gray-500 px-2 cursor-pointer hover:text-charcoal-900"
+                  className="text-[10px] font-bold text-charcoal-600 px-2 cursor-pointer hover:text-charcoal-900 font-mono"
                   onClick={handleResetZoom}
                   title="Reset Zoom"
                 >
@@ -150,7 +171,7 @@ const App: React.FC = () => {
                 </div>
                 <button 
                   onClick={handleZoomIn}
-                  className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-gray-500 hover:text-charcoal-900 transition-all"
+                  className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-charcoal-600 hover:text-charcoal-900 transition-all"
                   title="Zoom In"
                 >
                   <ZoomIn size={14} />
@@ -160,11 +181,11 @@ const App: React.FC = () => {
 
            <div className="flex items-center gap-4">
              <div className="text-right">
-               <p className="text-xs font-bold text-gold-600 uppercase tracking-wider">Showroom Manager</p>
-               <p className="text-xs text-gray-500 font-mono">{new Date().toLocaleDateString()}</p>
+               <p className="text-xs font-bold text-gold-600 uppercase tracking-wider">Azeez Jewels Showroom</p>
+               <p className="text-xs text-charcoal-500 font-mono">{new Date().toLocaleDateString()}</p>
              </div>
-             <div className="w-8 h-8 rounded-full bg-charcoal-900 text-gold-500 flex items-center justify-center font-bold text-xs">
-               SM
+             <div className="w-8 h-8 rounded-full bg-charcoal-900 text-gold-500 flex items-center justify-center font-bold text-xs shadow-sm border border-gold-500/30">
+               AJ
              </div>
            </div>
         </header>

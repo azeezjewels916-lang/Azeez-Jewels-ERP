@@ -123,16 +123,21 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
           .filter(item => item.item_name !== 'Value Added / MC')
           .map(item => ({
             id: item.id,
+            inventory_item_id: item.inventory_item_id || null,
+            category: item.category || '',
             barcode: item.barcode || '',
             item_name: item.item_name,
             weight: item.weight,
+            gross_weight: item.gross_weight || item.weight,
+            net_weight: item.net_weight || item.weight,
+            huid: item.huid || '',
             rate: item.rate,
             making_charges: item.making_charges,
             gst_rate: 0,
             line_total: item.line_total,
             metal_type: item.metal_type,
-            hsn_code: '711319',
-            purity: 'Standard'
+            hsn_code: item.hsn_code || '711319',
+            purity: item.purity || 'Standard'
           }));
         setItems(formattedItems);
 
@@ -663,6 +668,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       
       const billItems = items.map((item, idx) => ({
         bill_id: savedBill.id, 
+        inventory_item_id: item.inventory_item_id || null,
+        category: item.category || null,
         barcode: item.barcode || null, 
         item_name: item.item_name,
         huid: item.huid || null,

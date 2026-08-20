@@ -213,12 +213,13 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
 
             <div className="purchase-header-main">
               <div style={{ width: '90px', height: '90px', marginBottom: '2px', marginTop: '-10px' }}>
-                <img src="/logo.png" alt="MAYAKKA Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                <img src="/logo.png" alt="AZEEZ Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
-              <h1 className="purchase-title">MAYAKKA JEWELLERS</h1>
+              <h1 className="purchase-title">AZEEZ JEWELS</h1>
               <div className="text-center">
-                 <div style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', marginBottom: '1px' }}>#312, Jumma Masjid Road, (O.P.H Road), Bengaluru – 560 051</div>
-                 <div style={{ fontSize: '9px', fontWeight: '800' }}>Ph: 99009 54791, 94491 19542 | GSTIN: 29BBGPM2303C1Z4</div>
+                 <div style={{ fontSize: '10px', fontWeight: '900', color: '#A3803C', textTransform: 'uppercase', marginBottom: '1px' }}>Dealers in : 22 Ct. 916 KDM Gold Silver Ornaments</div>
+                 <div style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', marginBottom: '1px' }}>#324, Jumma Masjid Road (OPH Road), Shivajinagar, Bangalore - 560051</div>
+                 <div style={{ fontSize: '9px', fontWeight: '800' }}>Prop: Azmathulla Khan — Mobile: 9916667573 | GSTIN: 29BBGPM2303C1Z4</div>
               </div>
               <div className="flex justify-between w-full mt-1 items-end">
                  <div style={{ fontSize: '12px', fontWeight: '900', border: '1px solid #000', padding: '1px 6px', textTransform: 'uppercase' }}>Exchange Voucher</div>
@@ -229,12 +230,12 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
             </div>
 
             <div className="purchase-sub-info">
-              <div>Ph: 99009 54791, 94491 19542</div>
+              <div>Prop: Azmathulla Khan — Mobile: 9916667573</div>
               <div className="text-right font-mono uppercase">GSTIN: 29BBGPM2303C1Z4</div>
             </div>
 
             <div className="purchase-sub-info">
-              <div style={{ fontSize: '14px' }}>Address: #312, Jumma Masjid Road, (O.P.H Road), Bengaluru – 560 051</div>
+              <div style={{ fontSize: '12px' }}>Address: #324, Jumma Masjid Road (OPH Road), Shivajinagar, Bangalore - 560051</div>
               <div className="text-right">
                 Date: <span className="purchase-pink-write">{formatDate(date)}</span>
               </div>
@@ -282,7 +283,7 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
 
             <div className="purchase-signature">
               <div className="text-[10px] uppercase text-gray-400 mb-8">Authorized Signatory</div>
-              For MAYAKKA JEWELLERS
+              For AZEEZ JEWELS
             </div>
           </div>
         </div>

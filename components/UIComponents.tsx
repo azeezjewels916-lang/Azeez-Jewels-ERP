@@ -25,21 +25,21 @@ export const Button: React.FC<ButtonProps> = ({
   className = '', 
   ...props 
 }) => {
-  const baseStyles = "transition-all duration-200 font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2";
+  const baseStyles = "transition-all duration-200 font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 rounded-md";
   
   const sizeStyles = {
-    sm: "text-xs px-3 py-1.5 rounded",
-    md: "text-sm px-6 py-3 rounded-md",
-    lg: "text-base px-8 py-4 rounded-lg"
+    sm: "text-xs px-3 py-1.5",
+    md: "text-sm px-5 py-2.5",
+    lg: "text-base px-7 py-3.5"
   };
 
   const variants = {
-    primary: "bg-gold-500 hover:bg-gold-600 text-white shadow-sm uppercase", 
-    secondary: "bg-white border-2 border-gold-500 text-gold-500 hover:bg-gold-50 uppercase", 
-    ghost: "text-charcoal-700 hover:text-charcoal-900 hover:bg-gray-200",
+    primary: "bg-gold-500 hover:bg-gold-600 text-white shadow-sm uppercase tracking-wider", 
+    secondary: "bg-beige-50 border border-gold-500/50 text-gold-600 hover:bg-gold-100/60 uppercase tracking-wider", 
+    ghost: "text-charcoal-700 hover:text-charcoal-900 hover:bg-beige-100/70",
     danger: "text-red-600 hover:bg-red-50",
-    icon: "p-2 text-charcoal-500 hover:bg-gray-100 rounded-full",
-    outline: "border border-gray-300 bg-transparent hover:bg-gray-50 text-charcoal-700"
+    icon: "p-2 text-charcoal-600 hover:bg-beige-100 rounded-full",
+    outline: "border border-app-border bg-transparent hover:bg-beige-100/50 text-charcoal-800"
   };
 
   return (
@@ -72,13 +72,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   return (
     <div className={`relative ${className}`}>
       {label && (
-        <label className="block text-xs font-bold text-charcoal-700 mb-1.5 uppercase tracking-wide">
+        <label className="block text-xs font-bold text-charcoal-800 mb-1.5 uppercase tracking-wide">
           {label}
         </label>
       )}
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-500 pointer-events-none">
             {icon}
           </div>
         )}
@@ -86,12 +86,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
           ref={ref}
           className={`
             w-full bg-white 
-            border border-gray-300 rounded-md
-            focus:border-gold-500 focus:ring-1 focus:ring-gold-500 focus:border-2
+            border border-app-border rounded-md
+            focus:border-gold-500 focus:ring-1 focus:ring-gold-500/30
             outline-none 
             py-2.5 px-3
-            text-charcoal-900 placeholder-gray-400 font-medium
-            transition-all duration-100
+            text-charcoal-900 placeholder-charcoal-500/50 font-medium
+            transition-all duration-150
             shadow-sm
             ${icon ? 'pl-9' : ''}
             ${isMonospaced ? 'font-mono' : 'font-sans'}
@@ -106,7 +106,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
 
 Input.displayName = 'Input';
 
-// --- UNDERLINE INPUT (Legacy support if needed) ---
+// --- UNDERLINE INPUT ---
 
 interface UnderlineInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -122,18 +122,18 @@ export const UnderlineInput: React.FC<UnderlineInputProps> = ({
   return (
     <div className={`relative ${className}`}>
       {label && (
-        <label className="block text-xs font-bold text-charcoal-700 mb-1.5 uppercase tracking-wider">
+        <label className="block text-xs font-bold text-charcoal-800 mb-1.5 uppercase tracking-wider">
           {label}
         </label>
       )}
       <input 
         className={`
           w-full bg-transparent 
-          border-b border-gray-300
+          border-b border-app-border
           focus:border-gold-500
           outline-none 
           py-2 px-0
-          text-charcoal-900 placeholder-gray-400
+          text-charcoal-900 placeholder-charcoal-500/50
           transition-all duration-200
           font-sans
         `}
@@ -153,15 +153,15 @@ export const Select: React.FC<SelectProps> = ({ label, options, className = '', 
   return (
     <div className={`relative ${className}`}>
       {label && (
-        <label className="block text-xs font-bold text-charcoal-700 mb-1.5 uppercase tracking-wide">
+        <label className="block text-xs font-bold text-charcoal-800 mb-1.5 uppercase tracking-wide">
           {label}
         </label>
       )}
       <select 
         className={`
           w-full bg-white 
-          border border-gray-300 rounded-md
-          focus:border-gold-500 focus:ring-1 focus:ring-gold-500 focus:border-2
+          border border-app-border rounded-md
+          focus:border-gold-500 focus:ring-1 focus:ring-gold-500/30
           outline-none 
           py-2.5 px-3
           text-charcoal-900 font-medium
@@ -188,9 +188,9 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string; tit
   headerAction
 }) => {
   return (
-    <div className={`bg-white border border-gray-200 rounded-lg shadow-card ${className}`}>
+    <div className={`bg-white border border-app-border rounded-lg shadow-card ${className}`}>
       {(title || headerAction) && (
-        <div className="px-5 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50/50 rounded-t-lg">
+        <div className="px-5 py-3 border-b border-app-border flex justify-between items-center bg-app-card/60 rounded-t-lg">
           {title && <h3 className="font-bold text-charcoal-900 text-sm tracking-wide uppercase">{title}</h3>}
           {headerAction}
         </div>

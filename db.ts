@@ -29,8 +29,103 @@ export const generateBillNo = async () => {
   return `MJ-${padded}`;
 };
 
+export const restoreInventoryStock = async (billItems: any[]) => {
+  if (!billItems || billItems.length === 0) return;
+
+  for (const item of billItems) {
+    if (!item.barcode && !item.inventory_item_id) continue;
+    if (item.item_name === 'Value Added / MC') continue; // Skip fee lines
+
+    let existingItem: any = null;
+
+    // 1. Priority 1: Match by exact inventory primary key ID
+    if (item.inventory_item_id) {
+      const targetId = (typeof item.inventory_item_id === 'string' && !isNaN(Number(item.inventory_item_id)))
+        ? Number(item.inventory_item_id)
+        : item.inventory_item_id;
+
+      const { data: byId } = await supabase
+        .from('items')
+        .select('*')
+        .eq('id', targetId)
+        .limit(1);
+
+      if (byId && byId.length > 0) {
+        existingItem = byId[0];
+      }
+    }
+
+    // 2. Priority 2: Match by barcode + category/weight for duplicate barcodes
+    if (!existingItem && item.barcode) {
+      const { data: byBarcode } = await supabase
+        .from('items')
+        .select('*')
+        .eq('barcode', item.barcode)
+        .order('created_at', { ascending: false });
+
+      if (byBarcode && byBarcode.length > 0) {
+        existingItem = byBarcode.find(i => {
+          const matchCat = item.category && i.category && i.category.toLowerCase().trim() === item.category.toLowerCase().trim();
+          const matchWt = (item.net_weight || item.weight) && 
+            (Math.abs((i.net_weight || i.weight || 0) - (item.net_weight || item.weight || 0)) < 0.005);
+          return matchCat || matchWt;
+        }) || byBarcode[0];
+      }
+    }
+
+    if (existingItem) {
+      // If Item Exists in Inventory: Increments its quantity (quantity + 1) and sets status to in_stock
+      const currentQty = existingItem.quantity !== undefined && existingItem.quantity !== null ? Number(existingItem.quantity) : 1;
+      await supabase
+        .from('items')
+        .update({
+          quantity: currentQty + 1,
+          stock_status: 'in_stock'
+        })
+        .eq('id', existingItem.id);
+    } else {
+      // If Item Was Deleted Upon Sale: Automatically re-creates the item record back into items inventory table!
+      const itemToCreate = {
+        barcode: item.barcode || 'RESTORED-' + Math.floor(100000 + Math.random() * 900000),
+        item_name: item.item_name || 'Restored Jewellery Item',
+        category: item.category || 'General',
+        gross_weight: item.gross_weight || item.weight || 0,
+        net_weight: item.net_weight || item.weight || 0,
+        weight: item.weight || item.net_weight || 0,
+        purity: item.purity || '916',
+        metal_type: item.metal_type || 'gold',
+        making_charges: item.making_charges || 0,
+        hsn_code: item.hsn_code || '711319',
+        huid: item.huid || null,
+        quantity: 1,
+        stock_status: 'in_stock',
+        price_per_gram: item.rate || 0
+      };
+
+      await supabase
+        .from('items')
+        .insert([itemToCreate]);
+    }
+  }
+};
+
 export const deleteBill = async (id: number) => {
-  // Items will be deleted by CASCADE if set up, or manually
+  // 1. Fetch all items associated with this bill before deleting
+  const { data: billItems } = await supabase
+    .from('bill_items')
+    .select('*')
+    .eq('bill_id', id);
+
+  // 2. Restore stock back into items inventory
+  if (billItems && billItems.length > 0) {
+    try {
+      await restoreInventoryStock(billItems);
+    } catch (restoreErr) {
+      console.error('Error restoring inventory stock on bill deletion:', restoreErr);
+    }
+  }
+
+  // 3. Delete bill_items and bill records
   const { error: itemsError } = await supabase
     .from('bill_items')
     .delete()
@@ -291,10 +386,11 @@ export const getItemByBarcode = async (barcode: string) => {
 export const deductInventoryStock = async (billItems: any[]) => {
   for (const billItem of billItems) {
     if (!billItem.barcode && !billItem.inventory_item_id) continue;
+    if (billItem.item_name === 'Value Added / MC') continue;
     
     let targetItem: any = null;
 
-    // 1. Priority 1: Match by exact inventory primary key ID
+    // 1. Priority 1 (Exact Match): Match by unique database inventory_item_id
     if (billItem.inventory_item_id) {
       const targetId = (typeof billItem.inventory_item_id === 'string' && !isNaN(Number(billItem.inventory_item_id))) 
         ? Number(billItem.inventory_item_id) 
@@ -311,7 +407,7 @@ export const deductInventoryStock = async (billItems: any[]) => {
       }
     }
 
-    // 2. Priority 2: Match by barcode + category + weight for duplicate barcodes
+    // 2. Priority 2 (Category & Weight Match): Match by barcode + category + weight
     if (!targetItem && billItem.barcode) {
       const { data: matchedItems } = await supabase
         .from('items')
@@ -320,12 +416,18 @@ export const deductInventoryStock = async (billItems: any[]) => {
         .order('created_at', { ascending: false });
 
       if (matchedItems && matchedItems.length > 0) {
+        // Strict Category + Weight Match
         targetItem = matchedItems.find(i => {
           const matchCategory = billItem.category && i.category && i.category.toLowerCase().trim() === billItem.category.toLowerCase().trim();
-          const matchWeight = (billItem.net_weight || billItem.weight) && 
-            (Math.abs((i.net_weight || i.weight || 0) - (billItem.net_weight || billItem.weight || 0)) < 0.005);
-          return matchCategory || matchWeight;
-        }) || matchedItems[0];
+          const itemWt = i.net_weight || i.weight || 0;
+          const billWt = billItem.net_weight || billItem.weight || 0;
+          const matchWeight = billWt > 0 && Math.abs(itemWt - billWt) < 0.005;
+          return matchCategory && matchWeight;
+        }) 
+        // Category Match
+        || matchedItems.find(i => billItem.category && i.category && i.category.toLowerCase().trim() === billItem.category.toLowerCase().trim())
+        // Priority 3 (Fallback): Barcode fallback
+        || matchedItems[0];
       }
     }
 
