@@ -22,6 +22,7 @@ import { supabase } from '../supabaseClient';
 import { generateBillNo, createBill, createBillItems, updateBill, createCustomer, searchCustomers, deductInventoryStock } from '../db';
 import { InvoicePrint } from '../components/InvoicePrint';
 import { ExchangePrint } from '../components/ExchangePrint';
+import { SilverBillPrint } from '../components/SilverBillPrint';
 
 // --- HELPERS ---
 
@@ -176,8 +177,10 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   }, [billId]);
 
   // --- PRINT / PREVIEW STATE ---
-  const [activePrintView, setActivePrintView] = useState<'invoice' | 'exchange'>('invoice');
+  const [activePrintView, setActivePrintView] = useState<'invoice' | 'exchange' | 'silver'>('invoice');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [exchangeValuePct, setExchangeValuePct] = useState('40%');
+  const [returnValuePct, setReturnValuePct] = useState('50%');
 
   // --- CUSTOMER STATE ---
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -621,7 +624,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
   // --- PRINT / PREVIEW LOGIC ---
 
-  const handleOpenPreview = (type: 'invoice' | 'exchange') => {
+  const handleOpenPreview = (type: 'invoice' | 'exchange' | 'silver') => {
     setActivePrintView(type);
     setShowPreviewModal(true);
   };
@@ -720,6 +723,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             }}
           />
         )}
+        {activePrintView === 'silver' && (
+          <SilverBillPrint 
+            billNo={billNo} billDate={billDate} saleType={saleType}
+            customer={customer} items={items} totals={calculatedTotals}
+            mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+            exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+          />
+        )}
         {activePrintView === 'exchange' && (
           <ExchangePrint 
             voucherNo={voucherNo} date={billDate} customer={customer}
@@ -736,17 +747,36 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       {showPreviewModal && (
         <div className="fixed inset-0 z-[100] bg-charcoal-900/80 backdrop-blur-md flex items-center justify-center p-8 print:hidden">
            <div className="bg-gray-100 w-full max-w-[1000px] h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
-              <div className="bg-charcoal-900 px-8 py-5 flex justify-between items-center text-white shrink-0 shadow-lg">
-                 <div className="flex items-center gap-3">
+              <div className="bg-charcoal-900 px-8 py-4 flex justify-between items-center text-white shrink-0 shadow-lg">
+                 <div className="flex items-center gap-4">
                    <div className="w-10 h-10 rounded-full bg-gold-500 text-charcoal-900 flex items-center justify-center font-bold">
                      <Eye size={20}/>
                    </div>
                    <div>
-                     <h3 className="font-bold text-lg tracking-wide uppercase">Print Preview</h3>
-                     <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Verifying details before final print</p>
+                     <h3 className="font-bold text-base tracking-wide uppercase">Print Format Preview</h3>
+                     <div className="flex gap-2 mt-1">
+                       <button 
+                         onClick={() => setActivePrintView('invoice')} 
+                         className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'invoice' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
+                       >
+                         Tax Invoice
+                       </button>
+                       <button 
+                         onClick={() => setActivePrintView('silver')} 
+                         className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'silver' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
+                       >
+                         Silver Cash Bill
+                       </button>
+                       <button 
+                         onClick={() => setActivePrintView('exchange')} 
+                         className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'exchange' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
+                       >
+                         Exchange Voucher
+                       </button>
+                     </div>
                    </div>
                  </div>
-                 <div className="flex gap-4">
+                 <div className="flex items-center gap-3">
                     <Button 
                        onClick={handleActualPrint} 
                        variant="secondary"
@@ -759,6 +789,30 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                     </button>
                  </div>
               </div>
+
+              {activePrintView === 'silver' && (
+                <div className="bg-white px-8 py-2 border-b border-gray-200 flex items-center gap-6 text-xs font-bold text-charcoal-800">
+                  <div className="flex items-center gap-2">
+                    <label>Exchange Value %:</label>
+                    <input 
+                      type="text" 
+                      value={exchangeValuePct} 
+                      onChange={(e) => setExchangeValuePct(e.target.value)} 
+                      className="w-16 px-2 py-1 border border-gray-300 rounded font-mono text-center"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label>Return Value %:</label>
+                    <input 
+                      type="text" 
+                      value={returnValuePct} 
+                      onChange={(e) => setReturnValuePct(e.target.value)} 
+                      className="w-16 px-2 py-1 border border-gray-300 rounded font-mono text-center"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="flex-1 overflow-auto bg-gray-200 p-8 custom-scrollbar">
                 <div className="scale-90 origin-top">
                   {activePrintView === 'invoice' ? (
@@ -773,6 +827,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                         total: oldGoldExchange.total, purity: oldGoldExchange.purity,
                         description: oldGoldExchange.particulars
                       }}
+                    />
+                  ) : activePrintView === 'silver' ? (
+                    <SilverBillPrint 
+                      isScreenPreview
+                      billNo={billNo} billDate={billDate} saleType={saleType}
+                      customer={customer} items={items} totals={calculatedTotals}
+                      mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+                      exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
                     />
                   ) : (
                     <ExchangePrint 
@@ -1018,9 +1080,10 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
           </div>
         </div>
         <div className="p-6 bg-white border-t border-gray-200 space-y-3">
-           <div className="grid grid-cols-2 gap-2 mb-2">
-              <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('exchange')} className="text-xs border-pink-200 text-pink-600 hover:bg-pink-50"><Eye size={16} className="mr-2"/> Exchange</Button>
-              <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('invoice')} className="text-xs border-gray-200 text-gray-600 hover:bg-gray-50"><Eye size={16} className="mr-2"/> Invoice</Button>
+           <div className="grid grid-cols-3 gap-2 mb-2">
+              <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('silver')} className="text-xs border-gold-500/30 text-gold-700 bg-gold-50/40 hover:bg-gold-100/60"><Eye size={14} className="mr-1"/> Silver Bill</Button>
+              <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('exchange')} className="text-xs border-pink-200 text-pink-600 hover:bg-pink-50"><Eye size={14} className="mr-1"/> Exchange</Button>
+              <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('invoice')} className="text-xs border-gray-200 text-gray-600 hover:bg-gray-50"><Eye size={14} className="mr-1"/> Tax Invoice</Button>
            </div>
            <Button fullWidth onClick={handleSaveBill} className="h-14 text-base shadow-lg" disabled={loading}>
              {loading ? <RefreshCw className="animate-spin mr-2" size={20} /> : <Printer size={20} className="mr-2" />}
