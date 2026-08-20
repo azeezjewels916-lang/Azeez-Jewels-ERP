@@ -290,26 +290,53 @@ export const getItemByBarcode = async (barcode: string) => {
 
 export const deductInventoryStock = async (billItems: any[]) => {
   for (const billItem of billItems) {
-    if (!billItem.barcode) continue;
+    if (!billItem.barcode && !billItem.inventory_item_id) continue;
     
-    // Find matching item in inventory by barcode
-    const { data: matchedItems, error: fetchErr } = await supabase
-      .from('items')
-      .select('*')
-      .eq('barcode', billItem.barcode)
-      .order('created_at', { ascending: false });
+    let targetItem: any = null;
 
-    if (fetchErr || !matchedItems || matchedItems.length === 0) continue;
+    // 1. Priority 1: Match by exact inventory primary key ID
+    if (billItem.inventory_item_id) {
+      const targetId = (typeof billItem.inventory_item_id === 'string' && !isNaN(Number(billItem.inventory_item_id))) 
+        ? Number(billItem.inventory_item_id) 
+        : billItem.inventory_item_id;
 
-    // Pick target item to deduct/remove
-    const targetItem = matchedItems.find(i => (i.quantity || 0) > 0 || i.stock_status !== 'out_of_stock') || matchedItems[0];
-    
+      const { data: byId } = await supabase
+        .from('items')
+        .select('*')
+        .eq('id', targetId)
+        .limit(1);
+
+      if (byId && byId.length > 0) {
+        targetItem = byId[0];
+      }
+    }
+
+    // 2. Priority 2: Match by barcode + category + weight for duplicate barcodes
+    if (!targetItem && billItem.barcode) {
+      const { data: matchedItems } = await supabase
+        .from('items')
+        .select('*')
+        .eq('barcode', billItem.barcode)
+        .order('created_at', { ascending: false });
+
+      if (matchedItems && matchedItems.length > 0) {
+        targetItem = matchedItems.find(i => {
+          const matchCategory = billItem.category && i.category && i.category.toLowerCase().trim() === billItem.category.toLowerCase().trim();
+          const matchWeight = (billItem.net_weight || billItem.weight) && 
+            (Math.abs((i.net_weight || i.weight || 0) - (billItem.net_weight || billItem.weight || 0)) < 0.005);
+          return matchCategory || matchWeight;
+        }) || matchedItems[0];
+      }
+    }
+
+    if (!targetItem) continue;
+
     const soldQty = 1;
     const currentQty = targetItem.quantity !== undefined && targetItem.quantity !== null ? Number(targetItem.quantity) : 1;
     const newQty = Math.max(0, currentQty - soldQty);
 
     if (newQty <= 0) {
-      // Delete sold product from inventory table after sale as requested
+      // Delete sold product from inventory table after sale
       await supabase
         .from('items')
         .delete()

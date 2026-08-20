@@ -36,7 +36,9 @@ export interface InventoryItem {
 
 export interface BillItem {
   id: string;
+  inventory_item_id?: string | number;
   barcode: string;
+  category?: string;
   item_name: string;
   gross_weight: number;
   net_weight: number;

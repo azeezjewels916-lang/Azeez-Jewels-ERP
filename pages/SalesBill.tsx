@@ -198,6 +198,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   const [items, setItems] = useState<BillItem[]>([]);
   const [newItem, setNewItem] = useState({
     barcode: '',
+    inventory_item_id: '',
+    category: '',
     item_name: '',
     huid: '',
     gross_weight: 0,
@@ -339,6 +341,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
     setNewItem(prev => ({
       ...prev,
+      inventory_item_id: item.id,
+      category: item.category || '',
       item_name: item.category ? `${item.item_name} [${item.category}]` : item.item_name,
       huid: item.huid || '',
       gross_weight: item.gross_weight || item.weight || 0,
@@ -567,7 +571,9 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     const lineTotal = (netWeight * finalRate) + making;
     setItems([...items, {
       id: Date.now().toString(),
+      inventory_item_id: newItem.inventory_item_id,
       barcode: newItem.barcode,
+      category: newItem.category,
       item_name: newItem.item_name,
       huid: newItem.huid,
       gross_weight: grossWeight,
@@ -582,7 +588,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     }]);
     
     setNewItem({
-      barcode: '', item_name: '', huid: '', gross_weight: 0, grossWeightInput: '', 
+      barcode: '', inventory_item_id: '', category: '', item_name: '', huid: '', gross_weight: 0, grossWeightInput: '', 
       net_weight: 0, netWeightInput: '', weight: 0, weightInput: '', rate: 0, rateInput: '',
       making_charges: 0, makingChargesInput: '', makingChargesAmount: '',
       makingChargesPercentage: '', purity: '', hsn_code: '711319', metal_type: 'gold'
