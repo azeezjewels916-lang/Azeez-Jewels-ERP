@@ -207,14 +207,37 @@ export const deleteCustomer = async (id: number) => {
 // --- ITEMS (INVENTORY) ---
 
 export const getInventoryItems = async () => {
-  const { data, error } = await supabase
-    .from('items')
-    .select('*')
-    .range(0, 99999) // Fetch all inventory items without capping at default 1,000 limit
-    .order('created_at', { ascending: false });
+  let allItems: any[] = [];
+  let page = 0;
+  const pageSize = 1000;
+  let hasMore = true;
 
-  if (error) throw error;
-  return data;
+  // Loop page-by-page to bypass Supabase PostgREST 1,000 max_rows per-request limit
+  while (hasMore) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error } = await supabase
+      .from('items')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      allItems = [...allItems, ...data];
+      if (data.length < pageSize) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allItems;
 };
 
 export const createInventoryItem = async (itemData: any) => {
