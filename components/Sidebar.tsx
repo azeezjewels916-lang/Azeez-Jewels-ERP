@@ -16,6 +16,9 @@ interface SidebarProps {
   onLogout: () => void;
   activeModule: string;
   setActiveModule: (module: string) => void;
+  userRole?: string;
+  isStaffMode?: boolean;
+  onToggleRole?: () => void;
 }
 
 const NAV_ITEMS = [
@@ -27,7 +30,21 @@ const NAV_ITEMS = [
   { id: 'customers', label: 'Customers', icon: Users },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, setActiveModule }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  onLogout, 
+  activeModule, 
+  setActiveModule,
+  userRole = 'admin',
+  isStaffMode = false,
+  onToggleRole
+}) => {
+  const isStaff = userRole === 'staff' || isStaffMode;
+
+  // Staff users only see Billing POS (Sales Bill)
+  const visibleNavItems = isStaff 
+    ? NAV_ITEMS.filter(item => item.id === 'sales-bill')
+    : NAV_ITEMS;
+
   return (
     <aside className="w-64 h-screen bg-charcoal-900 border-r border-gray-800 flex flex-col fixed left-0 top-0 z-50 text-white print:hidden">
       <div className="h-16 flex items-center px-6 border-b border-gray-800 gap-3">
@@ -36,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, setAct
       </div>
 
       <nav className="flex-1 py-6 space-y-1">
-        {NAV_ITEMS.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = activeModule === item.id;
           const Icon = item.icon;
           
@@ -67,7 +84,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, activeModule, setAct
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-gray-800 space-y-2">
+        {onToggleRole && (
+          <button
+            onClick={onToggleRole}
+            className="w-full text-xs font-bold text-gold-400 hover:text-gold-300 bg-charcoal-800 hover:bg-gray-700 py-1.5 px-3 rounded border border-gold-500/30 flex items-center justify-between transition-all"
+          >
+            <span>Role: {isStaff ? 'Staff (Billing Only)' : 'Admin (Full ERP)'}</span>
+            <span className="underline text-[10px]">Switch</span>
+          </button>
+        )}
         <button 
           onClick={onLogout}
           className="flex items-center text-gray-500 hover:text-red-400 transition-colors duration-200 text-sm w-full px-2 py-2"

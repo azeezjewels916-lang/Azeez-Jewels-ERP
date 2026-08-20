@@ -12,16 +12,27 @@ import { Customers } from './pages/Customers';
 import { GoldExchange } from './pages/GoldExchange';
 import { Users } from './pages/Users';
 
-// Simple Router implementation
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('user'));
   const [activeModule, setActiveModule] = useState('sales-bill');
   const [zoomLevel, setZoomLevel] = useState(0.85); // Default zoomed out for better fit
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
 
+  // User Role State
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const [userRole, setUserRole] = useState<string>(currentUser.role || 'admin');
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     setIsLoggedIn(false);
+  };
+
+  const handleToggleRole = () => {
+    const newRole = userRole === 'admin' ? 'staff' : 'admin';
+    setUserRole(newRole);
+    if (newRole === 'staff') {
+      setActiveModule('sales-bill');
+    }
   };
 
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 0.05, 1.2));
@@ -34,6 +45,10 @@ const App: React.FC = () => {
   };
 
   const navigateToModule = (module: string) => {
+    // If staff role, force sales-bill only
+    if (userRole === 'staff' && module !== 'sales-bill') {
+      return;
+    }
     if (module !== 'sales-bill') {
       setEditingBillId(null);
     }
@@ -41,7 +56,14 @@ const App: React.FC = () => {
   };
 
   if (!isLoggedIn) {
-    return <Login onLogin={() => setIsLoggedIn(true)} />;
+    return <Login onLogin={() => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      setUserRole(user.role || 'admin');
+      if (user.role === 'staff') {
+        setActiveModule('sales-bill');
+      }
+      setIsLoggedIn(true);
+    }} />;
   }
 
   return (
@@ -88,6 +110,8 @@ const App: React.FC = () => {
           onLogout={handleLogout} 
           activeModule={activeModule}
           setActiveModule={navigateToModule}
+          userRole={userRole}
+          onToggleRole={handleToggleRole}
         />
       </div>
       

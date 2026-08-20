@@ -42,7 +42,7 @@ export const LayawayStatementPrint: React.FC<LayawayStatementPrintProps> = ({
   isScreenPreview = false
 }) => {
   return (
-    <div className={`${isScreenPreview ? 'block w-[148mm] mx-auto shadow-2xl p-4 my-8' : 'hidden print:block w-[148mm] h-[210mm] mx-auto p-4'} bg-white text-charcoal-900 font-sans font-bold flex flex-col`}>
+    <div className={`${isScreenPreview ? 'block w-[148mm] mx-auto shadow-2xl p-4 my-8' : 'hidden print:block w-[148mm] h-[210mm] mx-auto p-4'} bg-white text-charcoal-900 font-sans font-bold flex flex-col border-2 border-charcoal-900 box-border`}>
       <style>{`
         @media print {
           @page { margin: 0; size: A5 portrait; }

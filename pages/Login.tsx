@@ -58,6 +58,21 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
   };
 
+  const handleQuickStaffLogin = () => {
+    const staffUser = {
+      id: 'staff-101',
+      username: 'staff',
+      role: 'staff',
+      staff_code: 'STF01',
+      can_edit_bills: false,
+      can_edit_stock: false,
+      can_authorize_nongst: false
+    };
+    localStorage.setItem('user', JSON.stringify(staffUser));
+    toast({ title: 'Staff Billing Login', description: 'Access Granted: Billing POS Only' });
+    onLogin();
+  };
+
   return (
     <div className="min-h-screen bg-app-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white p-12 shadow-soft-gold rounded-sm border-[0.5px] border-gold-500/20 relative overflow-hidden shadow-2xl">
@@ -72,7 +87,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="space-y-6">
             <UnderlineInput 
               label="Username" 
-              placeholder="Enter your ID"
+              placeholder="Enter your ID (e.g. admin / staff)"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
@@ -87,10 +102,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             />
           </div>
 
-          <div className="pt-4">
+          <div className="pt-4 space-y-3">
             <Button type="submit" fullWidth disabled={loading}>
-              {loading ? 'Authenticating...' : 'Enter System'}
+              {loading ? 'Authenticating...' : 'Enter System (Admin / Staff)'}
             </Button>
+            <button
+              type="button"
+              onClick={handleQuickStaffLogin}
+              className="w-full bg-charcoal-100 hover:bg-charcoal-200 text-charcoal-900 border border-charcoal-300 font-bold py-2.5 rounded text-xs transition-all shadow-sm flex items-center justify-center gap-2"
+            >
+              ⚡ Staff Login (Billing POS Only)
+            </button>
             <p className="text-center mt-6 text-xs text-gold-600/60 font-serif italic">
               Restricted Access. Authorized Personnel Only.
             </p>

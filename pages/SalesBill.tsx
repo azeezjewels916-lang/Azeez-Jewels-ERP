@@ -13,7 +13,8 @@ import {
   FileText,
   Eye,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  Tag
 } from 'lucide-react';
 import { Input, Button, Select, Card, toast } from '../components/UIComponents';
 import { BillItem, PaymentRecord, Customer } from '../types';
@@ -216,6 +217,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     metal_type: 'gold',
   });
   const [isLoadingItem, setIsLoadingItem] = useState(false);
+  const [matchedBarcodeItems, setMatchedBarcodeItems] = useState<any[]>([]);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   // --- BILL META STATE ---
   const [billDate, setBillDate] = useState(new Date().toISOString().split('T')[0]);
@@ -330,6 +333,31 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     return () => clearTimeout(timer);
   }, [customerSearch]);
 
+  const populateSelectedItem = (item: any) => {
+    const mType = item.metal_type || 'gold';
+    const applicableRate = allMetalRates[mType] || dailyGoldRate || 0;
+
+    setNewItem(prev => ({
+      ...prev,
+      item_name: item.category ? `${item.item_name} [${item.category}]` : item.item_name,
+      huid: item.huid || '',
+      gross_weight: item.gross_weight || item.weight || 0,
+      grossWeightInput: (item.gross_weight || item.weight)?.toString() || '',
+      net_weight: item.net_weight || item.weight || 0,
+      netWeightInput: (item.net_weight || item.weight)?.toString() || '',
+      weight: item.net_weight || item.weight || 0,
+      weightInput: (item.net_weight || item.weight)?.toString() || '',
+      rate: applicableRate,
+      rateInput: applicableRate > 0 ? applicableRate.toString() : '',
+      making_charges: item.making_charges || 0,
+      makingChargesInput: item.making_charges?.toString() || '',
+      metal_type: mType,
+      hsn_code: item.hsn_code || '711319'
+    }));
+    setIsCategoryModalOpen(false);
+    toast({ title: "Item Selected", description: `${item.item_name} (${item.category || 'General'})` });
+  };
+
   useEffect(() => {
     const barcode = newItem.barcode.trim();
     if (!barcode) return;
@@ -340,33 +368,15 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         const { data } = await supabase
           .from('items')
           .select('*')
-          .eq('barcode', barcode)
-          .limit(1);
+          .eq('barcode', barcode);
 
-        const item = data && data.length > 0 ? data[0] : null;
-
-        if (item) {
-          const mType = item.metal_type || 'gold';
-          const applicableRate = allMetalRates[mType] || dailyGoldRate || 0;
-
-          setNewItem(prev => ({
-            ...prev,
-            item_name: item.item_name || '',
-            huid: item.huid || '',
-            gross_weight: item.gross_weight || item.weight || 0,
-            grossWeightInput: (item.gross_weight || item.weight)?.toString() || '',
-            net_weight: item.net_weight || item.weight || 0,
-            netWeightInput: (item.net_weight || item.weight)?.toString() || '',
-            weight: item.net_weight || item.weight || 0,
-            weightInput: (item.net_weight || item.weight)?.toString() || '',
-            rate: applicableRate,
-            rateInput: applicableRate > 0 ? applicableRate.toString() : '',
-            making_charges: item.making_charges || 0,
-            makingChargesInput: item.making_charges?.toString() || '',
-            metal_type: mType,
-            hsn_code: item.hsn_code || '711319'
-          }));
-          toast({ title: "Item Found", description: item.item_name });
+        if (data && data.length > 0) {
+          if (data.length === 1) {
+            populateSelectedItem(data[0]);
+          } else {
+            setMatchedBarcodeItems(data);
+            setIsCategoryModalOpen(true);
+          }
         }
       } catch (err) {
         console.log("Item not found or error", err);
@@ -1003,8 +1013,66 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
              {loading ? <RefreshCw className="animate-spin mr-2" size={20} /> : <Printer size={20} className="mr-2" />}
              {billId ? 'UPDATE & PRINT' : 'SAVE & PRINT BILL'}
            </Button>
-        </div>
-      </div>
-    </div>
-  );
-};
+         </div>
+       </div>
+
+       {/* CATEGORY SELECTION MODAL FOR DUPLICATE BARCODES */}
+       {isCategoryModalOpen && (
+         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-lg shadow-2xl border border-gold-500/30 w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+             <div className="bg-charcoal-900 text-white px-6 py-4 flex justify-between items-center">
+               <div>
+                  <h3 className="font-bold text-base flex items-center gap-2">
+                    <Tag className="text-gold-500" size={18}/> Select Category for Barcode [{newItem.barcode}]
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Multiple items exist with this barcode. Choose the exact category item to buy:</p>
+               </div>
+               <button onClick={() => setIsCategoryModalOpen(false)} className="text-gray-400 hover:text-white">
+                 <X size={20}/>
+               </button>
+             </div>
+
+             <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+               {matchedBarcodeItems.map((item, idx) => {
+                 const wt = item.net_weight || item.weight || item.gross_weight || 0;
+                 return (
+                   <div 
+                     key={item.id || idx}
+                     onClick={() => populateSelectedItem(item)}
+                     className="p-4 rounded-lg border border-gray-200 hover:border-gold-500 hover:bg-gold-50/50 transition-all cursor-pointer flex items-center justify-between group shadow-sm"
+                   >
+                     <div className="flex items-center gap-4">
+                       <div className="w-10 h-10 rounded-full bg-gold-100 text-gold-700 font-bold flex items-center justify-center text-sm uppercase">
+                         {item.category?.slice(0, 2) || 'IT'}
+                       </div>
+                       <div>
+                         <h4 className="font-bold text-charcoal-900 group-hover:text-gold-700 text-base">{item.item_name}</h4>
+                         <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                           <span className="bg-charcoal-100 text-charcoal-800 font-bold px-2 py-0.5 rounded text-[10px] uppercase">
+                             Category: {item.category || 'General'}
+                           </span>
+                           <span>Purity: <strong className="text-charcoal-900">{item.purity || '22K'}</strong></span>
+                           <span>Weight: <strong className="text-charcoal-900">{wt}g</strong></span>
+                           {item.huid && <span>HUID: <strong className="font-mono">{item.huid}</strong></span>}
+                         </div>
+                       </div>
+                     </div>
+                     <Button size="sm" className="bg-charcoal-900 text-white group-hover:bg-gold-600 group-hover:text-white transition-all">
+                       Select {item.category || 'Item'}
+                     </Button>
+                   </div>
+                 );
+               })}
+             </div>
+
+             <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-end">
+               <Button variant="ghost" size="sm" onClick={() => setIsCategoryModalOpen(false)}>
+                 Cancel
+               </Button>
+             </div>
+           </div>
+         </div>
+       )}
+     </div>
+   );
+ };

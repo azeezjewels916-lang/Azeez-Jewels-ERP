@@ -20,7 +20,8 @@ import {
   Plus,
   RefreshCw,
   Printer,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Wand2
 } from 'lucide-react';
 import { Button, Input, Select, Card, toast } from '../components/UIComponents';
 import { InventoryItem, StockStatus } from '../types';
@@ -243,9 +244,16 @@ export const Inventory: React.FC = () => {
     }
   };
 
+  const generateAutoBarcode = () => {
+    const randomCode = 'MJ' + Math.floor(100000 + Math.random() * 900000).toString();
+    setFormData(prev => ({ ...prev, barcode: randomCode }));
+    toast({ title: 'Barcode Generated', description: `Assigned auto barcode: ${randomCode}` });
+  };
+
   const handleOpenModal = () => {
     setEditingId(null);
-    setFormData(initialFormState);
+    const autoBarcode = 'MJ' + Math.floor(100000 + Math.random() * 900000).toString();
+    setFormData({ ...initialFormState, barcode: autoBarcode, quantity: 1 });
     setIsModalOpen(true);
   };
 
@@ -703,24 +711,36 @@ export const Inventory: React.FC = () => {
                         <ScanLine size={14}/> Identity
                         </h3>
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input 
-                                    ref={barcodeInputRef}
-                                    label="Barcode / SKU" 
-                                    placeholder="Scan..." 
-                                    isMonospaced 
-                                    value={formData.barcode}
-                                    onChange={e => handleInputChange('barcode', e.target.value)}
-                                    icon={<ScanLine size={14}/>}
-                                />
-                                <Input 
-                                    label="HUID Number" 
-                                    placeholder="e.g. H123456" 
-                                    isMonospaced 
-                                    value={formData.huid}
-                                    onChange={e => handleInputChange('huid', e.target.value)}
-                                />
+                            <div className="grid grid-cols-12 gap-3">
+                                <div className="col-span-7 relative">
+                                    <Input 
+                                        ref={barcodeInputRef}
+                                        label="Barcode / SKU" 
+                                        placeholder="Scan..." 
+                                        isMonospaced 
+                                        value={formData.barcode}
+                                        onChange={e => handleInputChange('barcode', e.target.value)}
+                                        icon={<ScanLine size={14}/>}
+                                    />
+                                </div>
+                                <div className="col-span-5 flex items-end">
+                                    <button
+                                        type="button"
+                                        onClick={generateAutoBarcode}
+                                        className="w-full bg-gold-100 hover:bg-gold-200 text-gold-800 border border-gold-300 font-bold px-2 py-2.5 rounded text-xs flex items-center justify-center gap-1 transition-all"
+                                        title="Auto Generate Barcode"
+                                    >
+                                        <Wand2 size={13} /> Auto Gen
+                                    </button>
+                                </div>
                             </div>
+                            <Input 
+                                label="HUID Number" 
+                                placeholder="e.g. H123456" 
+                                isMonospaced 
+                                value={formData.huid}
+                                onChange={e => handleInputChange('huid', e.target.value)}
+                            />
                             <Input 
                                 label="Item Name" 
                                 placeholder="e.g. Diamond Necklace" 
