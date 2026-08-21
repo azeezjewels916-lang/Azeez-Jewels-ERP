@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg-app: #FAF8F5;
+  --bg-surface: #FFFFFF;
+  --bg-card: #F6F3EC;
+  --border-subtle: #E8E2D5;
+  --gold-primary: #C5A059;
+  --gold-dark: #A3803C;
+  --gold-light: #F7F2E8;
+  --charcoal-dark: #12100E;
+  --charcoal-main: #1C1917;
+  --charcoal-subtle: #292524;
+}
+
+body {
+  background-color: var(--bg-app);
+  color: var(--charcoal-main);
+  font-family: 'Inter', 'Outfit', sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Luxury Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D4C3A7;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C5A059;
+}
+
+/* Hide Number Spinners */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Metallic Gold Text Gradient */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #D4AF37 0%, #C5A059 50%, #A3803C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Metallic Gold Button Gradient */
+.btn-gold-gradient {
+  background: linear-gradient(135deg, #C5A059 0%, #B89248 100%);
+  color: #FFFFFF;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 14px 0 rgba(197, 160, 89, 0.35);
+}
+
+.btn-gold-gradient:hover {
+  background: linear-gradient(135deg, #B89248 0%, #A3803C 100%);
+  box-shadow: 0 6px 20px 0 rgba(197, 160, 89, 0.45);
+  transform: translateY(-1px);
+}
+
+/* Glassmorphism Card Utility */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(232, 226, 213, 0.8);
+  box-shadow: 0 10px 30px -5px rgba(28, 25, 23, 0.05);
+}
+
+.glass-card-dark {
+  background: rgba(28, 25, 23, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(197, 160, 89, 0.25);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
+}
+
+/* Interactive Hover Lift */
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -6px rgba(28, 25, 23, 0.08);
+}
+
+/* Print Specific Rules */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .print-hidden {
+    display: none !important;
+  }
+  .print-block {
+    display: block !important;
+  }
+}
+
+@media screen {
+  .print-block {
+    display: none !important;
+  }
+}

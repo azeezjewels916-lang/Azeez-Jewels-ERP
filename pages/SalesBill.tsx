@@ -861,20 +861,21 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       {/* 3. MAIN WORKSPACE */}
       <div className="flex-1 p-6 overflow-y-auto pb-32 space-y-6 print:hidden">
         {/* Metal Rates */}
-        <div className="bg-white px-4 py-3 rounded-lg shadow-sm border border-gray-300 flex justify-between items-center gap-4">
-          <div className="flex items-center gap-2 border-r border-gray-300 pr-4">
-             <span className="text-gold-500 font-bold uppercase text-xs tracking-wider">Today's Rates</span>
+        <div className="bg-white px-5 py-3.5 rounded-xl shadow-sm border border-app-border flex justify-between items-center gap-5 transition-all hover:shadow-luxury">
+          <div className="flex items-center gap-2 border-r border-app-border pr-5 shrink-0">
+             <span className="w-2.5 h-2.5 rounded-full bg-gold-500 animate-pulse"></span>
+             <span className="text-gold-600 font-bold uppercase text-xs tracking-wider">Live Rates (₹/g)</span>
           </div>
-          <div className="flex-1 grid grid-cols-6 gap-4">
+          <div className="flex-1 grid grid-cols-6 gap-3">
             {Object.entries({
               'Gold (Std)': 'gold', 'Gold (22k)': 'gold_916', 'Gold (18k)': 'gold_750',
               'Silver (925)': 'silver_92', 'Silver (70)': 'silver_70', 'Selam': 'selam_silver'
             }).map(([label, key]) => (
-              <div key={key} className="text-center">
-                <label className="block text-[10px] uppercase text-gray-500 font-bold mb-1">{label}</label>
+              <div key={key} className="text-center bg-gold-50/40 rounded-lg p-1.5 border border-gold-500/15">
+                <label className="block text-[10px] uppercase text-charcoal-700 font-bold mb-1 tracking-wider">{label}</label>
                 <input 
                   type="number" 
-                  className="w-full text-center font-mono font-bold text-charcoal-900 bg-gray-50 rounded border-none outline-none focus:bg-white focus:ring-1 focus:ring-gold-500"
+                  className="w-full text-center font-mono font-bold text-charcoal-900 bg-white rounded border border-gold-500/20 outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500/30 py-1 text-xs shadow-sm transition-all"
                   value={allMetalRates[key] || ''}
                   onChange={(e) => handleRateUpdate(key, e.target.value)}
                 />

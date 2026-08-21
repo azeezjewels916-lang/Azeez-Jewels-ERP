@@ -213,7 +213,7 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
 
             <div className="purchase-header-main">
               <div style={{ width: '90px', height: '90px', marginBottom: '2px', marginTop: '-10px' }}>
-                <img src="/logo.png" alt="AZEEZ Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                <img src="/logo without bg.png" alt="AZEEZ Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
               <h1 className="purchase-title">AZEEZ JEWELS</h1>
               <div className="text-center">

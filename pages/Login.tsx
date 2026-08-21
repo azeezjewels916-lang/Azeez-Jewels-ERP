@@ -111,15 +111,18 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-app-bg flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white p-10 rounded-xl border border-app-border relative overflow-hidden shadow-luxury">
-        {/* Decorative corner accent */}
-        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-gold-100/60 to-transparent rounded-bl-full pointer-events-none" />
+    <div className="min-h-screen bg-app-bg flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background ambient lighting */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
+      
+      <div className="w-full max-w-md bg-white p-10 rounded-2xl border border-app-border relative overflow-hidden shadow-luxury transition-all duration-300">
+        {/* Decorative corner gold accent */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-gold-500/15 via-gold-500/5 to-transparent rounded-bl-full pointer-events-none" />
         
         <div className="mb-8 text-center flex flex-col items-center">
-          <Logo className="mb-3" />
-          <h1 className="font-serif text-2xl font-bold text-charcoal-900 tracking-tight">Azeez Jewels</h1>
-          <p className="text-xs text-gold-600 font-medium tracking-wide mt-1">22 Ct 916 KDM Gold & Silver Ornaments</p>
+          <Logo className="mb-4" />
+          <h1 className="font-serif text-3xl font-bold text-charcoal-900 tracking-tight gold-gradient-text">Azeez Jewels</h1>
+          <p className="text-xs text-gold-600 font-bold tracking-widest uppercase mt-1">22 Ct 916 KDM Gold & Silver Ornaments</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -142,18 +145,18 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
 
           <div className="pt-2 space-y-3">
-            <Button type="submit" fullWidth disabled={loading}>
+            <Button type="submit" fullWidth disabled={loading} className="h-12 text-sm shadow-md">
               {loading ? 'Authenticating...' : 'Enter System (Admin / Staff)'}
             </Button>
             <button
               type="button"
               onClick={handleQuickStaffLogin}
-              className="w-full bg-beige-100 hover:bg-beige-200 text-charcoal-900 border border-app-border font-bold py-2.5 rounded-md text-xs transition-all shadow-sm flex items-center justify-center gap-2"
+              className="w-full bg-gold-50/70 hover:bg-gold-100/80 text-gold-700 border border-gold-500/30 font-bold py-3 rounded-lg text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
             >
               ⚡ Staff Quick Login (Billing POS Only)
             </button>
             <p className="text-center mt-4 text-[11px] text-charcoal-500 font-serif italic">
-              Azeez Jewels ERP • Shivajinagar, Bangalore
+              Azeez Jewels ERP • #324 Jumma Masjid Road, Shivajinagar, Bangalore
             </p>
           </div>
         </form>

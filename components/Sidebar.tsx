@@ -50,15 +50,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className="w-64 h-screen bg-charcoal-900 border-r border-charcoal-800 flex flex-col fixed left-0 top-0 z-50 text-white print:hidden shadow-luxury">
-      <div className="h-20 flex items-center px-5 border-b border-charcoal-800 gap-3">
-         <Logo light />
+      <div className="h-24 flex items-center px-6 border-b border-charcoal-800/80 gap-3.5 bg-gradient-to-b from-charcoal-900 to-charcoal-800/40">
+         <Logo light className="scale-90" />
          <div className="flex flex-col">
-           <span className="font-serif text-lg font-bold tracking-tight text-white leading-tight">Azeez Jewels</span>
-           <span className="text-[10px] text-gold-500 font-medium tracking-wide">22 Ct 916 KDM Gold & Silver</span>
+           <span className="font-serif text-xl font-bold tracking-tight text-white leading-tight gold-gradient-text">Azeez Jewels</span>
+           <span className="text-[10px] text-gold-500 font-medium tracking-wider uppercase mt-0.5">22 Ct 916 KDM Gold & Silver</span>
          </div>
       </div>
 
-      <nav className="flex-1 py-6 space-y-1">
+      <nav className="flex-1 py-6 space-y-1.5 px-3">
         {visibleNavItems.map((item) => {
           const isActive = activeModule === item.id;
           const Icon = item.icon;
@@ -68,21 +68,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               key={item.id}
               onClick={() => setActiveModule(item.id)}
               className={`
-                w-full flex items-center px-6 py-3.5 text-sm transition-all duration-200 relative
-                ${isActive ? 'bg-charcoal-800 text-gold-500 font-semibold' : 'text-gray-400 hover:text-white hover:bg-charcoal-800/60'}
+                w-full flex items-center px-4 py-3 text-xs transition-all duration-200 relative rounded-lg cursor-pointer
+                ${isActive ? 'bg-gradient-to-r from-gold-500/20 to-transparent text-gold-500 font-bold border-l-4 border-gold-500 shadow-sm' : 'text-gray-400 hover:text-white hover:bg-charcoal-800/60 font-medium'}
               `}
             >
-              {isActive && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gold-500" />
-              )}
               <Icon 
                 size={18} 
                 className={`
                   mr-3 transition-colors duration-200
-                  ${isActive ? 'text-gold-500' : 'text-gray-400'}
+                  ${isActive ? 'text-gold-500 scale-110' : 'text-gray-400'}
                 `} 
               />
-              <span className={isActive ? 'font-semibold tracking-wide' : 'font-normal'}>
+              <span className={isActive ? 'font-bold tracking-wide text-white' : 'font-medium'}>
                 {item.label}
               </span>
             </button>
@@ -90,21 +87,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      <div className="p-4 border-t border-charcoal-800 space-y-2.5">
+      <div className="p-4 border-t border-charcoal-800/80 space-y-2.5 bg-charcoal-900">
         {onToggleRole && (
           <button
             onClick={onToggleRole}
-            className="w-full text-xs font-bold text-gold-500 hover:text-gold-100 bg-charcoal-800/80 hover:bg-charcoal-800 py-2 px-3 rounded-md border border-gold-500/30 flex items-center justify-between transition-all"
+            className="w-full text-xs font-bold text-gold-500 hover:text-gold-100 bg-charcoal-800/80 hover:bg-charcoal-800 py-2.5 px-3.5 rounded-lg border border-gold-500/30 flex items-center justify-between transition-all cursor-pointer shadow-sm hover:border-gold-500/60"
           >
-            <span>Role: {isStaff ? 'Staff (Billing Only)' : 'Admin (Full ERP)'}</span>
-            <span className="underline text-[10px] text-gold-500">Switch</span>
+            <span className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${isStaff ? 'bg-amber-400' : 'bg-gold-500'}`}></span>
+              Role: {isStaff ? 'Staff' : 'Admin'}
+            </span>
+            <span className="underline text-[10px] text-gold-500 uppercase tracking-wider font-extrabold">Switch</span>
           </button>
         )}
         <button 
           onClick={onLogout}
-          className="flex items-center text-gray-400 hover:text-red-400 transition-colors duration-200 text-sm w-full px-2 py-2 font-medium"
+          className="flex items-center justify-center text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200 text-xs font-bold uppercase tracking-wider w-full px-3 py-2.5 rounded-lg cursor-pointer"
         >
-          <LogOut size={16} className="mr-3" />
+          <LogOut size={16} className="mr-2" />
           Logout System
         </button>
       </div>

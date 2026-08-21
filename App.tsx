@@ -141,29 +141,31 @@ const App: React.FC = () => {
         {/* Top Bar for User Profile/Context - minimalist luxury */}
         <header className="h-16 bg-white border-b border-app-border flex items-center justify-between px-8 shrink-0 print:hidden shadow-sm">
            <div className="flex items-center gap-6">
-             <h1 className="font-serif font-bold text-xl text-charcoal-900 tracking-tight">
-               {activeModule === 'sales-bill' ? 'New Sales Invoice' : 
-                activeModule === 'all-sales' ? 'Sales History' : 
-                activeModule === 'layaway' ? 'Layaway Management' :
-                activeModule === 'advance' ? 'Order Bookings' :
-                activeModule === 'inventory' ? 'Inventory Management' : 
-                activeModule === 'customers' ? 'Client Relationship Management' :
-                activeModule === 'gold-exchange' ? 'Gold Exchange (Buying)' :
-                activeModule === 'users' ? 'User Management' :
-                activeModule.replace('-', ' ').toUpperCase()}
+             <h1 className="font-serif font-bold text-xl text-charcoal-900 tracking-tight flex items-center gap-3">
+               <span>
+                 {activeModule === 'sales-bill' ? 'New Sales Invoice' : 
+                  activeModule === 'all-sales' ? 'Sales History' : 
+                  activeModule === 'layaway' ? 'Layaway Management' :
+                  activeModule === 'advance' ? 'Order Bookings' :
+                  activeModule === 'inventory' ? 'Inventory Management' : 
+                  activeModule === 'customers' ? 'Client Relationship Management' :
+                  activeModule === 'gold-exchange' ? 'Gold Exchange (Buying)' :
+                  activeModule === 'users' ? 'User Management' :
+                  activeModule.replace('-', ' ').toUpperCase()}
+               </span>
              </h1>
 
              {/* Zoom Controls */}
-             <div className="flex items-center bg-beige-100/70 rounded-lg p-1 gap-1 border border-app-border ml-4">
+             <div className="flex items-center bg-gold-50/70 rounded-lg p-1 gap-1 border border-gold-500/20 ml-2">
                 <button 
                   onClick={handleZoomOut}
-                  className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-charcoal-600 hover:text-charcoal-900 transition-all"
+                  className="p-1 hover:bg-white hover:shadow-sm rounded-md text-charcoal-700 hover:text-gold-600 transition-all cursor-pointer"
                   title="Zoom Out"
                 >
                   <ZoomOut size={14} />
                 </button>
                 <div 
-                  className="text-[10px] font-bold text-charcoal-600 px-2 cursor-pointer hover:text-charcoal-900 font-mono"
+                  className="text-[11px] font-bold text-charcoal-700 px-2 cursor-pointer hover:text-gold-600 font-mono"
                   onClick={handleResetZoom}
                   title="Reset Zoom"
                 >
@@ -171,7 +173,7 @@ const App: React.FC = () => {
                 </div>
                 <button 
                   onClick={handleZoomIn}
-                  className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-charcoal-600 hover:text-charcoal-900 transition-all"
+                  className="p-1 hover:bg-white hover:shadow-sm rounded-md text-charcoal-700 hover:text-gold-600 transition-all cursor-pointer"
                   title="Zoom In"
                 >
                   <ZoomIn size={14} />
@@ -180,12 +182,13 @@ const App: React.FC = () => {
            </div>
 
            <div className="flex items-center gap-4">
-             <div className="text-right">
+             <div className="text-right hidden sm:block">
                <p className="text-xs font-bold text-gold-600 uppercase tracking-wider">Azeez Jewels Showroom</p>
-               <p className="text-xs text-charcoal-500 font-mono">{new Date().toLocaleDateString()}</p>
+               <p className="text-[10px] text-charcoal-500 font-mono tracking-wide">#324 Jumma Masjid Road | {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
              </div>
-             <div className="w-8 h-8 rounded-full bg-charcoal-900 text-gold-500 flex items-center justify-center font-bold text-xs shadow-sm border border-gold-500/30">
+             <div className="w-9 h-9 rounded-full bg-charcoal-900 text-gold-500 flex items-center justify-center font-bold text-xs shadow-md border border-gold-500/40 relative">
                AJ
+               <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${userRole === 'admin' ? 'bg-emerald-500' : 'bg-amber-400'}`}></span>
              </div>
            </div>
         </header>
