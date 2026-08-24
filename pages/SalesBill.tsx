@@ -235,6 +235,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   const [billNo, setBillNo] = useState('');
   const [voucherNo, setVoucherNo] = useState('');
   const [saleType, setSaleType] = useState<'GST' | 'NON GST'>('GST');
+  const [billMode, setBillMode] = useState<'gold' | 'silver'>('gold');
   const GST_RATE = 0.03;
 
   // --- GST CONTROL STATE FROM ADMIN ---
@@ -902,6 +903,52 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Billing Format Mode Switcher */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-gray-500">BILLING FORMAT MODE:</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setBillMode('gold');
+                  setActivePrintView('invoice');
+                  setNewItem(prev => ({ ...prev, metal_type: 'gold' }));
+                }}
+                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
+                  billMode === 'gold' 
+                    ? 'bg-gold-500 text-charcoal-950 shadow-md font-extrabold' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Tag size={14} />
+                <span>GOLD TAX INVOICE</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setBillMode('silver');
+                  setActivePrintView('silver');
+                  setNewItem(prev => ({ ...prev, metal_type: 'silver_92', rateInput: (allMetalRates['silver_92'] || 0).toString() }));
+                }}
+                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
+                  billMode === 'silver' 
+                    ? 'bg-charcoal-900 text-white shadow-md font-extrabold' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Tag size={14} />
+                <span>SILVER CASH BILL</span>
+              </button>
+            </div>
+          </div>
+
+          <span className="text-xs font-bold text-gray-500">
+            {billMode === 'silver' ? 'Silver Mode Active (GSTIN: 29BPSPK1616Q1Z2)' : 'Gold Mode Active'}
+          </span>
         </div>
 
         {/* Info Grid */}

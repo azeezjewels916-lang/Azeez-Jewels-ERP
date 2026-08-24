@@ -749,48 +749,77 @@ export const Inventory: React.FC = () => {
                                     </button>
                                  </div>
                               </div>
-                              <Input
-                                 label="HUID Number"
-                                 placeholder="e.g. H123456"
-                                 isMonospaced
-                                 value={formData.huid}
-                                 onChange={e => handleInputChange('huid', e.target.value)}
-                              />
+                              <div className="grid grid-cols-12 gap-3">
+                                 <div className="col-span-7">
+                                    <Input
+                                       label="HUID Number"
+                                       placeholder="e.g. HU916A"
+                                       isMonospaced
+                                       value={formData.huid}
+                                       onChange={e => handleInputChange('huid', e.target.value)}
+                                    />
+                                 </div>
+                                 <div className="col-span-5 flex items-end">
+                                    <button
+                                       type="button"
+                                       onClick={() => {
+                                          const code = 'HU' + Math.floor(1000 + Math.random() * 9000).toString();
+                                          handleInputChange('huid', code);
+                                          toast({ title: 'HUID Generated', description: `Assigned HUID: ${code}` });
+                                       }}
+                                       className="w-full bg-charcoal-100 hover:bg-charcoal-200 text-charcoal-800 border border-gray-300 font-bold px-2 py-2.5 rounded text-xs flex items-center justify-center gap-1 transition-all"
+                                       title="Auto Generate HUID Code"
+                                    >
+                                       <Wand2 size={13} /> Auto HUID
+                                    </button>
+                                 </div>
+                              </div>
                               <Input
                                  label="Item Name"
-                                 placeholder="e.g. Diamond Necklace"
+                                 placeholder="e.g. 22K Gold Bangle"
                                  value={formData.item_name}
                                  onChange={e => handleInputChange('item_name', e.target.value)}
                               />
-                              <div className="grid grid-cols-2 gap-4">
+                              <div>
                                  <Select
                                     label="Category"
                                     value={formData.category}
                                     onChange={e => handleInputChange('category', e.target.value)}
                                     options={[
                                        { value: 'Ring', label: 'Ring' },
+                                       { value: 'Bangle', label: 'Bangle' },
                                        { value: 'Chain', label: 'Chain' },
-                                       { value: 'Haar', label: 'Haar' },
-                                       { value: 'Laccha', label: 'Laccha' },
-                                       { value: 'Choker', label: 'Choker' },
-                                       { value: 'Japka', label: 'Japka' },
-                                       { value: 'Mangtila', label: 'Mangtila' },
-                                       { value: 'Motol', label: 'Motol' },
                                        { value: 'Necklace', label: 'Necklace' },
-                                       { value: 'Tops', label: 'Tops' },
+                                       { value: 'Haar', label: 'Haar' },
+                                       { value: 'Choker', label: 'Choker' },
                                        { value: 'Bracelet', label: 'Bracelet' },
-                                       { value: 'Kada', label: 'Kada' },
-                                       { value: 'Baali', label: 'Baali' },
                                        { value: 'Earring', label: 'Earring' },
-                                       { value: 'Pendent', label: 'Pendent' },
+                                       { value: 'Payal', label: 'Payal' },
+                                       { value: 'Coin', label: 'Coin' },
+                                       { value: 'Silver Article', label: 'Silver Article' },
                                     ]}
                                  />
-                                 <Input
-                                    label="Stone Type"
-                                    placeholder="None"
-                                    value={formData.stone_type}
-                                    onChange={e => handleInputChange('stone_type', e.target.value)}
-                                 />
+
+                                 {/* Quick Category Preset Pills */}
+                                 <div className="flex flex-wrap gap-1 mt-2">
+                                    {['Ring', 'Bangle', 'Chain', 'Necklace', 'Haar', 'Bracelet', 'Earring', 'Payal', 'Coin'].map(cat => (
+                                       <button
+                                          key={cat}
+                                          type="button"
+                                          onClick={() => {
+                                             handleInputChange('category', cat);
+                                             if (!formData.item_name) {
+                                                handleInputChange('item_name', `${formData.purity || '22K'} ${cat}`);
+                                             }
+                                          }}
+                                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all border ${
+                                             formData.category === cat ? 'bg-gold-500 text-white border-gold-600' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                                          }`}
+                                       >
+                                          + {cat}
+                                       </button>
+                                    ))}
+                                 </div>
                               </div>
                            </div>
                         </div>

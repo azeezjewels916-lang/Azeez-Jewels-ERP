@@ -56,7 +56,7 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
   const finalHsnCode = exchangeData.hsn_code || '7113';
 
   return (
-    <div className={`${isScreenPreview ? 'block w-[148mm] mx-auto shadow-2xl p-4 my-8' : 'hidden print:block w-[148mm] h-[210mm] mx-auto p-4'} bg-white border-2 border-black box-border`}>
+    <div className={`${isScreenPreview ? 'block w-[148mm] mx-auto shadow-2xl p-2 my-4' : 'hidden print:block w-[148mm] h-[210mm] mx-auto p-1'} bg-white box-border`}>
       <style>{`
         @media print {
           @page {
@@ -74,7 +74,13 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
           .purchase-bill-print-wrapper {
             display: block !important;
             width: 148mm;
-            height: 210mm;
+            height: 208mm;
+            max-height: 208mm;
+            padding: 2mm;
+            box-sizing: border-box;
+            overflow: hidden;
+            page-break-inside: avoid;
+            page-break-after: avoid;
           }
           
           .no-print {
@@ -86,7 +92,7 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
           width: 100%;
           height: 100%;
           background: #fff;
-          padding: 2mm;
+          padding: 0;
           box-sizing: border-box;
           position: relative;
         }
@@ -96,10 +102,11 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
           border: 2px solid #000;
           width: 100%;
           height: 100%;
-          padding: 4mm;
+          padding: 3mm;
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
+          justify-content: space-between;
         }
 
         .purchase-top-header {

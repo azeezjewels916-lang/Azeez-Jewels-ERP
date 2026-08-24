@@ -412,6 +412,7 @@ export const AdvanceBooking: React.FC = () => {
       const generatedBillNo = await generateBillNo();
       const bill = await createBill({
         bill_no: generatedBillNo,
+        bill_date: new Date().toISOString().split('T')[0],
         customer_id: customerId,
         sale_type: saleType === 'NON GST' ? 'nongst' : 'gst',
         subtotal: itemsTotal,
@@ -435,8 +436,8 @@ export const AdvanceBooking: React.FC = () => {
         const itemsToInsert = items.map(item => ({
           bill_id: bill.id,
           item_name: item.name,
-          metal_type: item.metalType,
-          purity: item.purity,
+          metal_type: item.metalType || 'gold',
+          purity: item.purity || 'Standard',
           weight: item.weight,
           rate: item.rate,
           making_charges: item.makingCharges,
@@ -468,9 +469,11 @@ export const AdvanceBooking: React.FC = () => {
       setManualTotal('');
       setDeliveryDate('');
       setNotes('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating booking:', error);
-      toast({ title: 'Error', description: 'Failed to create booking.', variant: 'destructive' });
+      const errMsg = error?.message || error?.details || 'Failed to create booking.';
+      toast({ title: 'Error Creating Booking', description: errMsg, variant: 'destructive' });
+      alert(`Error: ${errMsg}`);
     } finally {
       setLoading(false);
     }
