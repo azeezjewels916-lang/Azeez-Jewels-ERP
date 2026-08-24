@@ -102,6 +102,24 @@ export const Users: React.FC = () => {
    const [isModalOpen, setIsModalOpen] = useState(false);
    const [editingUser, setEditingUser] = useState<User | null>(null);
 
+   // Admin GST Control State
+   const [isGstEnabled, setIsGstEnabled] = useState<boolean>(() => {
+      const saved = localStorage.getItem('admin_gst_control_enabled');
+      return saved !== null ? JSON.parse(saved) : true;
+   });
+
+   const toggleGstControl = () => {
+      const nextState = !isGstEnabled;
+      setIsGstEnabled(nextState);
+      localStorage.setItem('admin_gst_control_enabled', JSON.stringify(nextState));
+      window.dispatchEvent(new Event('storage'));
+      toast({
+         title: 'Admin GST Control Updated',
+         description: `GST features across POS are now ${nextState ? 'ENABLED (3% GST Allowed)' : 'DISABLED (FORCED NON-GST MODE)'}.`,
+         variant: nextState ? 'default' : 'destructive'
+      });
+   };
+
    // Form State
    const initialForm = {
       username: '',
@@ -198,9 +216,9 @@ export const Users: React.FC = () => {
                   <UserCog size={20} />
                </div>
                <div>
-                  <h2 className="text-xl font-bold text-charcoal-900 tracking-tight leading-none">Security & Access</h2>
+                  <h2 className="text-xl font-bold text-charcoal-900 tracking-tight leading-none">Security & System Control</h2>
                   <p className="text-xs text-gray-500 font-medium mt-1">
-                     Manage Staff Permissions & Roles
+                     Manage Staff Permissions, Roles & Master Admin Controls
                   </p>
                </div>
             </div>
@@ -219,6 +237,51 @@ export const Users: React.FC = () => {
                <Button onClick={handleOpenAdd} className="bg-gradient-to-r from-gold-500 to-gold-600 shadow-lg hover:shadow-gold-500/20 gap-2 px-6">
                   <Plus size={18} /> Add Authorized User
                </Button>
+            </div>
+         </div>
+
+         {/* 2. ADMIN GST CONTROL BANNER CARD */}
+         <div className="px-8 pt-6">
+            <div className={`p-6 rounded-2xl border flex flex-col md:flex-row items-center justify-between gap-6 shadow-luxury transition-all ${
+               isGstEnabled 
+                  ? 'bg-gradient-to-r from-gold-50 to-amber-50/60 border-gold-500/30' 
+                  : 'bg-gradient-to-r from-charcoal-900 to-charcoal-950 text-white border-charcoal-800'
+            }`}>
+               <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-md ${
+                     isGstEnabled ? 'bg-gold-500 text-white border-gold-400' : 'bg-red-500/20 text-red-400 border-red-500/30'
+                  }`}>
+                     <ShieldAlert size={24} />
+                  </div>
+                  <div>
+                     <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-bold uppercase tracking-widest text-gold-600">Master Admin Control</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                           isGstEnabled ? 'bg-gold-500 text-white' : 'bg-red-600 text-white'
+                        }`}>
+                           {isGstEnabled ? 'GST 3% ENABLED' : 'FORCED NON-GST (0%)'}
+                        </span>
+                     </div>
+                     <h3 className="font-serif text-xl font-bold mt-1">Global GST Tax Selection Control</h3>
+                     <p className={`text-xs font-light mt-0.5 ${isGstEnabled ? 'text-charcoal-700' : 'text-gray-300'}`}>
+                        {isGstEnabled 
+                           ? 'GST billing (3%) is active across Sales Bill POS & Order Booking. Staff can switch between GST & Non-GST.' 
+                           : 'GST billing is DISABLED system-wide. All POS sales bills & order bookings are forced into NON-GST (0%) mode.'}
+                     </p>
+                  </div>
+               </div>
+
+               <button
+                  onClick={toggleGstControl}
+                  className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg shrink-0 ${
+                     isGstEnabled 
+                        ? 'bg-charcoal-900 text-white hover:bg-black' 
+                        : 'bg-gold-500 text-charcoal-950 hover:bg-gold-400 shadow-gold-glow'
+                  }`}
+               >
+                  <Lock size={16} />
+                  <span>{isGstEnabled ? 'DISABLE GST SYSTEM-WIDE' : 'ENABLE GST SYSTEM-WIDE'}</span>
+               </button>
             </div>
          </div>
 

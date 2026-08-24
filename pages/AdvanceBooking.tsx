@@ -99,6 +99,24 @@ export const AdvanceBooking: React.FC = () => {
   }, [metalRates, newItem.purity, newItem.rate]);
 
   const [saleType, setSaleType] = useState<'GST' | 'NON GST'>('GST');
+  const [isGstControlEnabled, setIsGstControlEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('admin_gst_control_enabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  useEffect(() => {
+    const syncGstControl = () => {
+      const saved = localStorage.getItem('admin_gst_control_enabled');
+      const enabled = saved !== null ? JSON.parse(saved) : true;
+      setIsGstControlEnabled(enabled);
+      if (!enabled) {
+        setSaleType('NON GST');
+      }
+    };
+    window.addEventListener('storage', syncGstControl);
+    syncGstControl();
+    return () => window.removeEventListener('storage', syncGstControl);
+  }, []);
   const [showOldGold, setShowOldGold] = useState(false);
   const [oldGold, setOldGold] = useState<any>({ particulars: '', weight: 0, rate: 0 });
   const [isPriceLocked, setIsPriceLocked] = useState(false);
@@ -843,20 +861,28 @@ export const AdvanceBooking: React.FC = () => {
                     {/* GST (3%) vs NON-GST TOGGLE */}
                     <div className="flex items-center gap-2 bg-gray-100 p-1.5 rounded-lg border border-gray-200">
                       <span className="text-[10px] font-bold text-gray-500 uppercase px-1">Bill Tax Mode:</span>
-                      <button
-                        type="button"
-                        onClick={() => setSaleType('GST')}
-                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${saleType === 'GST' ? 'bg-gold-500 text-white shadow-md' : 'text-gray-500 hover:text-charcoal-900'}`}
-                      >
-                        GST (3%)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSaleType('NON GST')}
-                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${saleType === 'NON GST' ? 'bg-charcoal-900 text-white shadow-md' : 'text-gray-500 hover:text-charcoal-900'}`}
-                      >
-                        NON-GST (0%)
-                      </button>
+                      {isGstControlEnabled ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setSaleType('GST')}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${saleType === 'GST' ? 'bg-gold-500 text-white shadow-md' : 'text-gray-500 hover:text-charcoal-900'}`}
+                          >
+                            GST (3%)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSaleType('NON GST')}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${saleType === 'NON GST' ? 'bg-charcoal-900 text-white shadow-md' : 'text-gray-500 hover:text-charcoal-900'}`}
+                          >
+                            NON-GST (0%)
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
+                          NON-GST (Disabled by Admin)
+                        </span>
+                      )}
                     </div>
                   </div>
 

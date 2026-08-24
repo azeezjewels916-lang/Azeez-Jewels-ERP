@@ -237,6 +237,26 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   const [saleType, setSaleType] = useState<'GST' | 'NON GST'>('GST');
   const GST_RATE = 0.03;
 
+  // --- GST CONTROL STATE FROM ADMIN ---
+  const [isGstControlEnabled, setIsGstControlEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('admin_gst_control_enabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  useEffect(() => {
+    const syncGstControl = () => {
+      const saved = localStorage.getItem('admin_gst_control_enabled');
+      const enabled = saved !== null ? JSON.parse(saved) : true;
+      setIsGstControlEnabled(enabled);
+      if (!enabled) {
+        setSaleType('NON GST');
+      }
+    };
+    window.addEventListener('storage', syncGstControl);
+    syncGstControl();
+    return () => window.removeEventListener('storage', syncGstControl);
+  }, []);
+
   // --- OLD GOLD STATE ---
   const [isOldGoldOpen, setIsOldGoldOpen] = useState(false);
   const [oldGoldExchange, setOldGoldExchange] = useState({
@@ -941,7 +961,19 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
           <Card className="shadow-sm">
             <div className="flex gap-4">
               <div className="flex-1"><Input type="date" label="Bill Date" value={billDate} isMonospaced onChange={(e) => setBillDate(e.target.value)} /></div>
-              <div className="flex-1"><Select label="Sale Type" value={saleType} onChange={(e) => setSaleType(e.target.value as any)} options={[{ value: 'GST', label: 'GST (3%)' }, { value: 'NON GST', label: 'Non-GST' }]} /></div>
+              <div className="flex-1">
+                <Select 
+                  label="Sale Type" 
+                  value={saleType} 
+                  disabled={!isGstControlEnabled}
+                  onChange={(e) => setSaleType(e.target.value as any)} 
+                  options={
+                    isGstControlEnabled 
+                      ? [{ value: 'GST', label: 'GST (3%)' }, { value: 'NON GST', label: 'Non-GST (0%)' }]
+                      : [{ value: 'NON GST', label: 'Non-GST (Disabled by Admin)' }]
+                  } 
+                />
+              </div>
             </div>
           </Card>
         </div>
