@@ -53,8 +53,9 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
   const [toDate, setToDate] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'GST' | 'NON GST'>('ALL');
 
-  // Select State
+  // Select & Print State
   const [selectedBillIds, setSelectedBillIds] = useState<string[]>([]);
+  const [selectedBillForPrint, setSelectedBillForPrint] = useState<any>(null);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
