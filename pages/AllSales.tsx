@@ -53,8 +53,66 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
   const [toDate, setToDate] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'GST' | 'NON GST'>('ALL');
 
-  // Print State
-  const [selectedBillForPrint, setSelectedBillForPrint] = useState<any>(null);
+  // Select State
+  const [selectedBillIds, setSelectedBillIds] = useState<string[]>([]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = paginatedSales.map(s => s.id.toString());
+      setSelectedBillIds(allIds);
+    } else {
+      setSelectedBillIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedBillIds(prev => [...prev, id]);
+    } else {
+      setSelectedBillIds(prev => prev.filter(item => item !== id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedBillIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedBillIds.length} selected bills?`)) return;
+
+    try {
+      setLoading(true);
+      for (const id of selectedBillIds) {
+        await deleteBill(parseInt(id, 10));
+      }
+      toast({ title: "Bulk Delete Complete", description: `${selectedBillIds.length} bills deleted successfully.` });
+      setSelectedBillIds([]);
+      fetchSales();
+    } catch (error) {
+      console.error('Error during bulk delete:', error);
+      toast({ title: "Error", description: "Failed to delete selected bills.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportSelectedExcel = () => {
+    const selectedSales = sales.filter(s => selectedBillIds.includes(s.id.toString()));
+    if (selectedSales.length === 0) {
+      toast({ title: "No Selection", description: "Please select bills to export.", variant: "destructive" });
+      return;
+    }
+    const exportData = selectedSales.map(s => ({
+      Bill_No: s.bill_no,
+      Bill_Date: formatDate(s.bill_date),
+      Customer_Name: s.customers?.name || 'Walk-in',
+      Customer_Phone: s.customers?.phone || '-',
+      Sale_Type: s.sale_type === 'nongst' ? 'NON GST' : 'GST',
+      Subtotal: s.subtotal || 0,
+      GST_Amount: s.gst_amount || 0,
+      Grand_Total: s.grand_total || 0,
+      Status: s.bill_status
+    }));
+    exportToExcel(exportData, `Selected_Sales_Report_${selectedSales.length}_bills`);
+    toast({ title: "Exported", description: `${selectedSales.length} selected sales exported to Excel.` });
+  };
 
   const fetchSales = async () => {
     setLoading(true);
@@ -306,6 +364,29 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
         </div>
       </div>
 
+      {/* BULK SELECTION ACTION BAR */}
+      {selectedBillIds.length > 0 && (
+        <div className="mx-6 mb-3 p-3 bg-charcoal-900 text-white rounded-lg flex items-center justify-between shadow-lg border border-gold-500/30">
+          <div className="flex items-center gap-3 text-xs font-bold">
+            <span className="bg-gold-500 text-charcoal-900 px-2.5 py-0.5 rounded-full font-mono">
+              {selectedBillIds.length} Selected
+            </span>
+            <span className="text-gray-300">Choose action for selected bills:</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button onClick={handleExportSelectedExcel} size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs gap-1.5">
+              <FileSpreadsheet size={14} /> Export Selected to Excel
+            </Button>
+            <Button onClick={handleBulkDelete} size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs gap-1.5">
+              <Trash2 size={14} /> Delete Selected ({selectedBillIds.length})
+            </Button>
+            <button onClick={() => setSelectedBillIds([])} className="text-xs text-gray-400 hover:text-white underline ml-2">
+              Deselect All
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 3. TABLE AREA */}
       <div className="flex-1 px-6 pb-6 overflow-hidden flex flex-col print:hidden">
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden flex-col flex h-full">
@@ -313,6 +394,14 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
             <table className="w-full text-left text-sm">
               <thead className="bg-gray-50 border-b border-gray-200 text-charcoal-700 font-bold uppercase text-[11px] tracking-wider sticky top-0 z-10">
                 <tr>
+                  <th className="py-3 px-4 text-center w-10">
+                    <input 
+                      type="checkbox"
+                      className="rounded border-gray-300 text-gold-600 focus:ring-gold-500 cursor-pointer"
+                      checked={paginatedSales.length > 0 && paginatedSales.every(s => selectedBillIds.includes(s.id.toString()))}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                    />
+                  </th>
                   <th className="py-3 px-6">Bill No</th>
                   <th className="py-3 px-6">Date</th>
                   <th className="py-3 px-6">Customer Details</th>
@@ -326,7 +415,7 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="py-20 text-center text-gray-400">
+                    <td colSpan={9} className="py-20 text-center text-gray-400">
                       <div className="flex flex-col items-center gap-2">
                         <RefreshCw className="animate-spin text-gold-500" size={24} />
                         <span className="text-xs uppercase font-bold tracking-wide">Retrieving Records...</span>
@@ -335,28 +424,38 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
                   </tr>
                 ) : filteredSales.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-20 text-center text-gray-400">
+                    <td colSpan={9} className="py-20 text-center text-gray-400">
                       No sales records found matching your filters.
                     </td>
                   </tr>
                 ) : (
-                  paginatedSales.map((sale) => (
-                    <tr key={sale.id} className="hover:bg-gray-50 transition-colors group">
-                      <td className="py-4 px-6 font-bold text-charcoal-900 font-mono text-xs">{sale.bill_no}</td>
-                      <td className="py-4 px-6 text-gray-600 text-xs">{formatDate(sale.bill_date)}</td>
-                      <td className="py-4 px-6">
-                        <div className="font-bold text-charcoal-800 text-sm">{sale.customers?.name || 'Walk-in Customer'}</div>
-                        <div className="text-[10px] text-gray-400 font-mono uppercase tracking-wide">{sale.customers?.phone || '-'}</div>
-                      </td>
-                      <td className="py-4 px-6 text-right font-mono text-gray-500 text-xs">
-                        {formatCurrency(sale.subtotal)}
-                      </td>
-                      <td className="py-4 px-6 text-right font-mono text-gray-500 text-xs">
-                        {formatCurrency(sale.gst_amount)}
-                      </td>
-                      <td className="py-4 px-6 text-right font-mono font-bold text-charcoal-900 text-sm">
-                        {formatCurrency(sale.grand_total)}
-                      </td>
+                  paginatedSales.map((sale) => {
+                    const isSelected = selectedBillIds.includes(sale.id.toString());
+                    return (
+                      <tr key={sale.id} className={`hover:bg-gray-50 transition-colors group ${isSelected ? 'bg-gold-50/40' : ''}`}>
+                        <td className="py-4 px-4 text-center">
+                          <input 
+                            type="checkbox"
+                            className="rounded border-gray-300 text-gold-600 focus:ring-gold-500 cursor-pointer"
+                            checked={isSelected}
+                            onChange={(e) => handleSelectOne(sale.id.toString(), e.target.checked)}
+                          />
+                        </td>
+                        <td className="py-4 px-6 font-bold text-charcoal-900 font-mono text-xs">{sale.bill_no}</td>
+                        <td className="py-4 px-6 text-gray-600 text-xs">{formatDate(sale.bill_date)}</td>
+                        <td className="py-4 px-6">
+                          <div className="font-bold text-charcoal-800 text-sm">{sale.customers?.name || 'Walk-in Customer'}</div>
+                          <div className="text-[10px] text-gray-400 font-mono uppercase tracking-wide">{sale.customers?.phone || '-'}</div>
+                        </td>
+                        <td className="py-4 px-6 text-right font-mono text-gray-500 text-xs">
+                          {formatCurrency(sale.subtotal)}
+                        </td>
+                        <td className="py-4 px-6 text-right font-mono text-gray-500 text-xs">
+                          {formatCurrency(sale.gst_amount)}
+                        </td>
+                        <td className="py-4 px-6 text-right font-mono font-bold text-charcoal-900 text-sm">
+                          {formatCurrency(sale.grand_total)}
+                        </td>
                       <td className="py-4 px-6 text-center">
                         <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${sale.sale_type === 'gst'
                           ? 'bg-purple-50 text-purple-700 border-purple-100'
@@ -391,8 +490,9 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
+                  );
+                })
+              )}
               </tbody>
             </table>
           </div>

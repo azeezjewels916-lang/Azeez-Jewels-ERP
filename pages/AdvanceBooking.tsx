@@ -1001,6 +1001,66 @@ export const AdvanceBooking: React.FC = () => {
                       </tbody>
                     </table>
                   </div>
+
+                  {/* URD / OLD GOLD TRADE-IN DEDUCTION SECTION */}
+                  <div className="mt-6 border border-amber-200 rounded-lg bg-amber-50/50 p-4">
+                    <div 
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => setShowOldGold(!showOldGold)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Repeat size={16} className="text-amber-700" />
+                        <span className="font-sans font-bold text-xs uppercase tracking-wider text-amber-900">
+                          URD / Old Gold Scrap Trade-In (Deduction)
+                        </span>
+                        {oldGoldValue > 0 && (
+                          <span className="bg-amber-600 text-white font-mono text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            - ₹ {oldGoldValue.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-bold text-amber-700">{showOldGold ? '▲ Hide' : '▼ Add Trade-In'}</span>
+                    </div>
+
+                    {showOldGold && (
+                      <div className="grid grid-cols-12 gap-3 mt-4 pt-3 border-t border-amber-200/60">
+                        <div className="col-span-5">
+                          <Input 
+                            label="Trade-In Description" 
+                            placeholder="e.g. Old Gold Chain / Scrap" 
+                            value={oldGold.particulars || ''} 
+                            onChange={e => setOldGold({ ...oldGold, particulars: e.target.value })} 
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Input 
+                            label="Weight (g)" 
+                            type="number" 
+                            isMonospaced 
+                            placeholder="0.000" 
+                            value={oldGold.weight || ''} 
+                            onChange={e => setOldGold({ ...oldGold, weight: parseFloat(e.target.value) || 0 })} 
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Input 
+                            label="Rate / g (₹)" 
+                            type="number" 
+                            isMonospaced 
+                            placeholder="Rate" 
+                            value={oldGold.rate || ''} 
+                            onChange={e => setOldGold({ ...oldGold, rate: parseFloat(e.target.value) || 0 })} 
+                          />
+                        </div>
+                        <div className="col-span-3 flex items-end">
+                          <div className="w-full bg-amber-100 p-2 rounded border border-amber-300 text-right">
+                            <span className="text-[10px] text-amber-800 font-bold uppercase block">Deduction Value</span>
+                            <span className="font-mono font-bold text-amber-900 text-sm">- ₹ {oldGoldValue.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </section>
               </div>
 
@@ -1039,8 +1099,8 @@ export const AdvanceBooking: React.FC = () => {
                     )}
 
                     {oldGoldValue > 0 && (
-                      <div className="flex justify-between text-pink-300">
-                        <span>Less: Old Gold Scrap</span>
+                      <div className="flex justify-between text-amber-300">
+                        <span>Less: URD Trade-In</span>
                         <span>- {formatCurrency(oldGoldValue)}</span>
                       </div>
                     )}
@@ -1085,10 +1145,10 @@ export const AdvanceBooking: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Customer Notes / Specific Design Instructions</label>
+                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Customer Notes / Instructions (Optional)</label>
                       <textarea 
                         rows={2} 
-                        placeholder="Specific gold weight constraints or instructions..." 
+                        placeholder="Specific gold weight constraints or design instructions..." 
                         value={notes} 
                         onChange={e => setNotes(e.target.value)} 
                         className="w-full p-2.5 rounded-lg border border-gray-300 text-xs outline-none focus:border-gold-500"

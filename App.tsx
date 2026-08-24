@@ -238,14 +238,14 @@ const App: React.FC = () => {
               <Layaway />
             ) : activeModule === 'advance' ? (
               <AdvanceBooking />
+            ) : (activeModule === 'urd' || activeModule === 'gold-exchange') ? (
+              <GoldExchange />
             ) : activeModule === 'inventory' ? (
               <Inventory />
             ) : activeModule === 'customers' ? (
               <Customers />
             ) : activeModule === 'website' ? (
               <WebsitePage />
-            ) : activeModule === 'gold-exchange' ? (
-              <GoldExchange />
             ) : activeModule === 'users' ? (
               <Users />
             ) : (

@@ -262,7 +262,7 @@ export const GoldExchange: React.FC = () => {
             {/* Card 1: Total Count */}
             <Card className="border-t-4 border-t-[#2D2A26] !p-5 flex items-center justify-between shadow-sm bg-white hover:shadow-md transition-shadow">
                <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total Exchanges</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">URD Purchase Transactions</p>
                   <h3 className="text-3xl font-serif font-bold text-[#2D2A26]">{stats.totalCount}</h3>
                   <p className="text-xs text-gray-400 mt-1">Transactions found</p>
                </div>

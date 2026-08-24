@@ -377,46 +377,55 @@ export const SilverBillPrint: React.FC<SilverBillPrintProps> = ({
           </table>
 
           {/* FOOTER GRID */}
-          <div className="silver-footer-grid">
-            <div className="footer-left-pct">
-              <div className="pct-box">
-                <div className="pct-label">Exchange Value</div>
-                <div className="pct-val">{exchangeValuePct}</div>
-              </div>
-              <div className="pct-box">
-                <div className="pct-label">Return Value</div>
-                <div className="pct-val">{returnValuePct}</div>
-              </div>
-            </div>
-
-            <div className="footer-right-totals">
-              {saleType === 'GST' ? (
-                <>
-                  <div className="totals-row">
-                    <span>SGST @ 1.5%</span>
-                    <span className="font-mono">₹ {halfGst.toFixed(2)}</span>
+          {(() => {
+            const exchVal = Math.round(totals.grandTotal * 0.60); // 40% less
+            const retVal = Math.round(totals.grandTotal * 0.50);  // 50% less
+            return (
+              <div className="silver-footer-grid">
+                <div className="footer-left-pct">
+                  <div className="pct-box">
+                    <div className="pct-label">Exchange Value (40% less)</div>
+                    <div className="pct-val font-mono">₹ {exchVal.toLocaleString()}</div>
                   </div>
-                  <div className="totals-row">
-                    <span>CGST @ 1.5%</span>
-                    <span className="font-mono">₹ {halfGst.toFixed(2)}</span>
+                  <div className="pct-box">
+                    <div className="pct-label">Cash Return Value (50% less)</div>
+                    <div className="pct-val font-mono">₹ {retVal.toLocaleString()}</div>
                   </div>
-                </>
-              ) : (
-                <div className="totals-row">
-                  <span>Subtotal</span>
-                  <span className="font-mono">₹ {totals.itemsSubtotal.toLocaleString()}</span>
                 </div>
-              )}
-              <div className="totals-row total-final">
-                <span>TOTAL</span>
-                <span className="font-mono">₹ {totals.grandTotal.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
 
-          {/* DISCLAIMER */}
-          <div className="silver-disclaimer">
-            If the above goods are returned even immediately after purchase the amount will be refunded at the market value i.e. after deducting the making charges, wastage and Taxes
+                <div className="footer-right-totals">
+                  {saleType === 'GST' ? (
+                    <>
+                      <div className="totals-row">
+                        <span>SGST @ 1.5%</span>
+                        <span className="font-mono">₹ {halfGst.toFixed(2)}</span>
+                      </div>
+                      <div className="totals-row">
+                        <span>CGST @ 1.5%</span>
+                        <span className="font-mono">₹ {halfGst.toFixed(2)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="totals-row">
+                      <span>Subtotal</span>
+                      <span className="font-mono">₹ {totals.itemsSubtotal.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="totals-row total-final">
+                    <span>TOTAL</span>
+                    <span className="font-mono">₹ {totals.grandTotal.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* TERMS & CONDITIONS */}
+          <div className="silver-disclaimer" style={{ fontSize: '7.5px', lineHeight: '1.2' }}>
+            <div className="font-bold uppercase text-[8px] mb-0.5">Terms & Conditions:</div>
+            • Exchange value 40% less per market rate | Cash value 50% less per market rate<br />
+            • No guarantee for colour change | No exchange or return for Silver Nose Pin<br />
+            • Exchange within 3 days of purchase (Non-refundable) | Additional charges for repair & polish
           </div>
 
           {/* SIGNATURES */}

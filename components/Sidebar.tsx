@@ -26,6 +26,7 @@ const NAV_ITEMS = [
   { id: 'sales-bill', label: 'Sales Bill', icon: FileText },
   { id: 'all-sales', label: 'All Sales', icon: ShoppingBag },
   { id: 'advance', label: 'Order Booking', icon: CalendarCheck },
+  { id: 'urd', label: 'URD (Old Gold)', icon: Repeat },
   { id: 'inventory', label: 'Inventory', icon: Package },
   { id: 'customers', label: 'Customers', icon: Users },
   { id: 'users', label: 'User Management', icon: UserCog },
