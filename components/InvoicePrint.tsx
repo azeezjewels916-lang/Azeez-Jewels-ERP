@@ -90,7 +90,7 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({
       <div className="flex flex-col items-center mb-1 border-b-2 border-charcoal-900 pb-1 relative">
         {/* LOGO - LARGER AND CENTERED */}
         <div className="w-28 h-28 relative flex items-center justify-center -mt-6">
-           <img src="/logo without bg.png" alt="Logo" className="w-full h-full object-contain" />
+           <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
         </div>
         
         <div className="text-center w-full -mt-2">
@@ -248,30 +248,22 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({
         </div>
       </div>
 
-      {/* FOOTER: TERMS & WORKING HOURS */}
-      <div className="border-t border-charcoal-900 pt-3">
-          <div className="grid grid-cols-2 gap-4 mb-3">
-             <div className="text-[7px] text-charcoal-900 leading-tight">
-                <p className="font-bold uppercase mb-0.5">Working Hours:</p>
-                <p>Mon - Sat: 11:00 AM to 9:00 PM</p>
-                <p>Sunday: 11:00 AM to 4:00 PM</p>
-             </div>
-             <div className="text-[7px] text-charcoal-900 text-right leading-tight">
-                <p className="font-bold uppercase mb-0.5">Payment Modes:</p>
-                <p>We accept all kinds of Online & Card payments.</p>
-             </div>
-          </div>
-
-          <div className="text-[7px] text-charcoal-900 leading-[1.3] text-justify space-y-0.5 border-t border-charcoal-900 pt-2">
-             <p>• Ornaments once sold can be Returned or Exchanged within one week. Later it will be treated as Old Gold.</p>
-             <p>• Old Gold buy back will be 5% Less as per Market Rate.</p>
-             <p>• Guaranteed Purity: 75% (18ct) & 91.6 (22ct). We are responsible for any purity differences.</p>
-             <p>• We are not responsible for breakage of ornaments. Advance Rate valid for one week only.</p>
+      {/* FOOTER: TERMS & SIGNATURES */}
+      <div className="border-t border-charcoal-900 pt-2">
+          <p className="font-bold text-[8px] uppercase tracking-wider text-center mb-1">TERMS AND CONDITIONS</p>
+          <div className="text-[7.5px] text-charcoal-900 leading-[1.35] text-justify space-y-1 border-t border-b border-charcoal-900 py-1.5 font-medium">
+             <p>• Customers who wish to exchange / return the old jewellery, manufactured / sold under our trade mark / stamped seal along with the proof of purchase. As per our guarantee terms we do not consider the following: like stones, weeds, pearls, making charges, wastage & taxes if any.</p>
+             <p>• The testing differs on different articles. ±2% tolerance is applicable on all articles and the same shall not be taken into consideration in any case.</p>
+             <p>• This guarantee card is valid only if it is filled, stamped with seal and attested by authorised signatory.</p>
+             <p>• Resale price is considered according to the market rate on the date of resale. (3% less for Exchange - 5% less for Sale)</p>
+             <p>• Exchange within 2 Days of purchase.</p>
           </div>
           
+          <p className="text-[8px] font-bold text-center italic mt-1 text-charcoal-900">I agree to the above terms and conditions</p>
+
           <div className="flex justify-between items-end mt-4">
-              <div className="text-center w-32 border-t border-charcoal-900 pt-1">
-                 <p className="text-[8px] uppercase font-bold text-charcoal-900">Customer</p>
+              <div className="text-center w-36 border-t border-charcoal-900 pt-1">
+                 <p className="text-[8.5px] uppercase font-bold text-charcoal-900">Customer's Signature</p>
               </div>
               <div className="text-center w-40 border-t border-charcoal-900 pt-1">
                  <p className="text-[9px] uppercase font-bold text-charcoal-900">For AZEEZ JEWELS</p>
@@ -279,8 +271,8 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({
           </div>
       </div>
       
-      <div className="mt-4 text-center text-[8px] text-gray-300 uppercase tracking-[0.5em] font-light italic">
-         Luxury Redefined • Est 2024
+      <div className="mt-3 text-center text-[8px] text-gray-400 uppercase tracking-[0.4em] font-medium">
+         Azeez Jewels • Shivajinagar, Bangalore
       </div>
     </div>
   );

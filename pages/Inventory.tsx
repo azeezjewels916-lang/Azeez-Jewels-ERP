@@ -26,6 +26,7 @@ import {
 import { Button, Input, Select, Card, toast } from '../components/UIComponents';
 import { InventoryItem, StockStatus } from '../types';
 import { exportToExcel } from '../components/exportUtils';
+import { BarcodePrintModal } from '../components/BarcodePrintModal';
 import { 
   getInventoryItems, 
   createInventoryItem, 
@@ -64,6 +65,10 @@ export const Inventory: React.FC = () => {
     quantity: 1
   };
   const [formData, setFormData] = useState(initialFormState);
+  
+  // Barcode Tag Printing State
+  const [barcodeModalItem, setBarcodeModalItem] = useState<InventoryItem | null>(null);
+  const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState<boolean>(false);
   
   // Refs for shortcuts
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -216,7 +221,7 @@ export const Inventory: React.FC = () => {
         </head>
         <body>
           <div class="header">
-            <img src="/logo without bg.png" class="logo" />
+            <img src="/logo.png" class="logo" />
             <h1 class="shop-name">AZEEZ JEWELS</h1>
             <p class="sub-header">Inventory Record - ${item.barcode}</p>
           </div>
@@ -561,7 +566,17 @@ export const Inventory: React.FC = () => {
                            <td className="py-3 px-6 text-right font-mono text-gray-500">{item.price_per_gram?.toLocaleString() || '0'}</td>
                            <td className="py-3 px-6 text-xs uppercase text-gray-400 font-bold">{item.location}</td>
                            <td className="py-3 px-6 text-center">
-                              <div className="flex items-center justify-center gap-3">
+                              <div className="flex items-center justify-center gap-2">
+                                 <button 
+                                    className="p-1.5 hover:bg-gold-100/80 rounded text-gold-700 bg-gold-50 border border-gold-500/30 transition-colors flex items-center gap-1 text-[11px] font-bold cursor-pointer"
+                                    title="Print Thermal Barcode Tag (TSC TTP-244 Pro)"
+                                    onClick={() => {
+                                       setBarcodeModalItem(item);
+                                       setIsBarcodeModalOpen(true);
+                                    }}
+                                 >
+                                    <Tag size={13} /> Tag
+                                 </button>
                                  <button 
                                     className="p-1.5 hover:bg-gold-50 rounded text-gold-600 transition-colors"
                                     title="Print Details"
@@ -892,6 +907,13 @@ export const Inventory: React.FC = () => {
            </div>
         </div>
       )}
+
+       {/* BARCODE TAG PRINTING MODAL FOR TSC TTP-244 PRO */}
+       <BarcodePrintModal 
+         isOpen={isBarcodeModalOpen} 
+         onClose={() => setIsBarcodeModalOpen(false)} 
+         item={barcodeModalItem} 
+       />
 
     </div>
   );

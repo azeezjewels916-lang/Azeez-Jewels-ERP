@@ -18,8 +18,13 @@ interface AdvanceBookingPrintProps {
   deliveryDate: string;
   customerName: string;
   customerPhone: string;
+  customerAddress?: string;
+  saleType?: string;
+  subtotal?: number;
+  gstAmount?: number;
+  oldGoldAmount?: number;
   items: BookingItem[];
-  itemDescription?: string; // Added to support string descriptions from DB
+  itemDescription?: string;
   totalAmount: number;
   advanceAmount: number;
   balanceDue: number;
@@ -41,6 +46,11 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
   deliveryDate,
   customerName,
   customerPhone,
+  customerAddress,
+  saleType = 'GST',
+  subtotal = 0,
+  gstAmount = 0,
+  oldGoldAmount = 0,
   items,
   itemDescription,
   totalAmount,
@@ -49,6 +59,9 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
   notes,
   isScreenPreview = false
 }) => {
+  const calcSubtotal = subtotal || items.reduce((s, i) => s + (i.lineTotal || 0), 0);
+  const calcGst = gstAmount || (saleType.toUpperCase() === 'GST' ? calcSubtotal * 0.03 : 0);
+
   return (
     <div className={`${isScreenPreview ? 'block w-[148mm] mx-auto shadow-2xl p-4 my-8' : 'hidden print:block w-[148mm] h-[210mm] mx-auto p-4'} bg-white text-charcoal-900 font-sans font-bold flex flex-col border-2 border-charcoal-900 box-border`}>
       <style>{`
@@ -64,7 +77,7 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
       <div className="flex flex-col items-center mb-1 border-b-2 border-charcoal-900 pb-1 relative">
         {/* LOGO - LARGER AND CENTERED */}
         <div className="w-28 h-28 relative flex items-center justify-center -mt-6">
-           <img src="/logo without bg.png" alt="Logo" className="w-full h-full object-contain" />
+           <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
         </div>
         
         <div className="text-center w-full -mt-2">
@@ -86,7 +99,7 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
 
       {/* INFO BAR */}
       <div className="flex justify-between items-center bg-charcoal-900 text-white px-3 py-1 mb-2 rounded-sm">
-         <h3 className="text-xs font-bold tracking-widest uppercase">Order Booking Receipt</h3>
+         <h3 className="text-xs font-bold tracking-widest uppercase">Order Booking Receipt ({saleType.toUpperCase()})</h3>
          <div className="flex gap-4 font-mono text-[10px]">
             <p>NO: {bookingNo}</p>
             <p>DATE: {formatDate(bookingDate)}</p>
@@ -98,8 +111,9 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
         <div className="border-l-2 border-gold-500/20 pl-2 py-0.5">
           <h3 className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.1em] mb-0.5 italic">Customer Details</h3>
           <div className="text-xs">
-            <p className="font-bold font-serif text-charcoal-900 tracking-tight">{customerName}</p>
+            <p className="font-bold font-serif text-charcoal-900 tracking-tight">{customerName || 'Walk-in Customer'}</p>
             <p className="font-mono text-gray-600 text-[9px]">{customerPhone}</p>
+            {customerAddress && <p className="text-[9px] text-gray-600 font-sans truncate">{customerAddress}</p>}
           </div>
         </div>
         
@@ -110,8 +124,8 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
       </div>
 
       {/* ITEMS TABLE */}
-      <div className="flex-1 mb-4">
-        <h3 className="text-[9px] font-bold text-charcoal-900 uppercase tracking-[0.2em] mb-3 border-b border-charcoal-900 pb-1">Order Requirements</h3>
+      <div className="flex-1 mb-3">
+        <h3 className="text-[9px] font-bold text-charcoal-900 uppercase tracking-[0.2em] mb-2 border-b border-charcoal-900 pb-1">Order Requirements</h3>
         {items && items.length > 0 ? (
           <table className="w-full text-left text-[9px] border-collapse border border-charcoal-900">
             <thead>
@@ -120,6 +134,7 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
                 <th className="py-1 px-1 font-bold uppercase tracking-wider text-charcoal-900 border border-charcoal-900">Description</th>
                 <th className="py-1 px-1 font-bold uppercase tracking-wider text-charcoal-900 text-right border border-charcoal-900">Wt(g)</th>
                 <th className="py-1 px-1 font-bold uppercase tracking-wider text-charcoal-900 text-right border border-charcoal-900">Rate</th>
+                <th className="py-1 px-1 font-bold uppercase tracking-wider text-charcoal-900 text-right border border-charcoal-900">MC</th>
                 <th className="py-1 px-1 font-bold uppercase tracking-wider text-charcoal-900 text-right border border-charcoal-900">Total</th>
               </tr>
             </thead>
@@ -128,10 +143,11 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
                 <tr key={item.id}>
                   <td className="py-1 px-1 text-charcoal-900 border border-charcoal-900">{String(idx + 1).padStart(2, '0')}</td>
                   <td className="py-1 px-1 font-sans border border-charcoal-900">
-                    <span className="font-bold text-charcoal-900 block tracking-tight uppercase text-[9px]">{item.name}</span>
+                    <span className="font-bold text-charcoal-900 block tracking-tight uppercase text-[9px]">{item.name} ({item.purity})</span>
                   </td>
                   <td className="py-1 px-1 text-right text-charcoal-900 border border-charcoal-900">{item.weight.toFixed(3)}</td>
                   <td className="py-1 px-1 text-right text-charcoal-900 border border-charcoal-900">{item.rate.toLocaleString()}</td>
+                  <td className="py-1 px-1 text-right text-charcoal-900 border border-charcoal-900">{item.makingCharges ? item.makingCharges.toLocaleString() : '0'}</td>
                   <td className="py-1 px-1 text-right text-charcoal-900 font-bold border border-charcoal-900">{formatCurrency(item.lineTotal)}</td>
                 </tr>
               ))}
@@ -147,18 +163,34 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
       </div>
 
       {/* FINANCIAL SUMMARY */}
-      <div className="grid grid-cols-3 gap-2 mb-6 text-center">
-        <div className="bg-charcoal-900 text-white p-2 rounded-sm">
-          <p className="text-[7px] uppercase font-bold text-gold-500 tracking-widest mb-1">Estimated Total</p>
-          <p className="text-sm font-mono font-bold">{formatCurrency(totalAmount)}</p>
+      <div className="space-y-1 mb-4 text-xs font-mono border-t border-b border-charcoal-900 py-2">
+        <div className="flex justify-between">
+          <span className="font-sans font-bold">Subtotal:</span>
+          <span>₹ {calcSubtotal.toLocaleString()}</span>
         </div>
-        <div className="bg-green-50 border border-green-100 p-2 rounded-sm">
-          <p className="text-[7px] uppercase font-bold text-green-600 tracking-widest mb-1">Advance Paid</p>
-          <p className="text-sm font-mono font-bold text-green-700">{formatCurrency(advanceAmount)}</p>
+        {saleType.toUpperCase() === 'GST' && (
+          <div className="flex justify-between text-gray-700">
+            <span className="font-sans">GST (3%):</span>
+            <span>+ ₹ {calcGst.toLocaleString()}</span>
+          </div>
+        )}
+        {oldGoldAmount > 0 && (
+          <div className="flex justify-between text-rose-700">
+            <span className="font-sans">Less Old Gold:</span>
+            <span>- ₹ {oldGoldAmount.toLocaleString()}</span>
+          </div>
+        )}
+        <div className="flex justify-between font-bold text-charcoal-900 border-t border-gray-300 pt-1">
+          <span className="font-sans uppercase">Total Order Value:</span>
+          <span className="text-sm">₹ {totalAmount.toLocaleString()}</span>
         </div>
-        <div className="bg-red-50 border border-red-100 p-2 rounded-sm border">
-          <p className="text-[7px] uppercase font-bold text-red-600 tracking-widest mb-1">Balance Due</p>
-          <p className="text-sm font-mono font-bold text-red-700">{formatCurrency(balanceDue)}</p>
+        <div className="flex justify-between font-bold text-green-700">
+          <span className="font-sans uppercase">Advance Paid:</span>
+          <span>₹ {advanceAmount.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between font-bold text-rose-700 border-t border-gray-200 pt-1">
+          <span className="font-sans uppercase">Balance Due:</span>
+          <span className="text-sm">₹ {balanceDue.toLocaleString()}</span>
         </div>
       </div>
 

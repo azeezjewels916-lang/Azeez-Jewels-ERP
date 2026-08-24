@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
-import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, Shield } from 'lucide-react';
 import { Login } from './pages/Login';
 import { SalesBill } from './pages/SalesBill';
 import { AllSales } from './pages/AllSales';
@@ -11,6 +10,7 @@ import { Inventory } from './pages/Inventory';
 import { Customers } from './pages/Customers';
 import { GoldExchange } from './pages/GoldExchange';
 import { Users } from './pages/Users';
+import { WebsitePage } from './pages/Website';
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('user'));
@@ -21,6 +21,20 @@ const App: React.FC = () => {
   // User Role State
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const [userRole, setUserRole] = useState<string>(currentUser.role || 'admin');
+
+  // Admin Hidden GST Control State
+  const [isGstFeatureEnabled, setIsGstFeatureEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('admin_gst_control_enabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  const toggleGstControl = () => {
+    if (userRole !== 'admin') return;
+    const nextState = !isGstFeatureEnabled;
+    setIsGstFeatureEnabled(nextState);
+    localStorage.setItem('admin_gst_control_enabled', JSON.stringify(nextState));
+    alert(`Admin GST Control: GST features are now ${nextState ? 'ENABLED' : 'DISABLED / HIDDEN'}.`);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -182,6 +196,22 @@ const App: React.FC = () => {
            </div>
 
            <div className="flex items-center gap-4">
+             {/* Hidden GST Control Button - Visible strictly to Admin only */}
+             {userRole === 'admin' && (
+               <button 
+                 onClick={toggleGstControl}
+                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shadow-sm ${
+                   isGstFeatureEnabled 
+                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100' 
+                     : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
+                 }`}
+                 title="Admin Hidden GST Control (Toggle GST Features)"
+               >
+                 <Shield size={14} />
+                 <span>GST Control: {isGstFeatureEnabled ? 'ON' : 'OFF'}</span>
+               </button>
+             )}
+
              <div className="text-right hidden sm:block">
                <p className="text-xs font-bold text-gold-600 uppercase tracking-wider">Azeez Jewels Showroom</p>
                <p className="text-[10px] text-charcoal-500 font-mono tracking-wide">#324 Jumma Masjid Road | {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
@@ -213,6 +243,8 @@ const App: React.FC = () => {
               <Inventory />
             ) : activeModule === 'customers' ? (
               <Customers />
+            ) : activeModule === 'website' ? (
+              <WebsitePage />
             ) : activeModule === 'gold-exchange' ? (
               <GoldExchange />
             ) : activeModule === 'users' ? (
