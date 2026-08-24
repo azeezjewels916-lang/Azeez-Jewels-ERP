@@ -3,20 +3,20 @@ import { supabase } from './supabaseClient';
 // --- BILLS ---
 
 export const generateBillNo = async () => {
-  // Check both bills and exchanges to find the absolute latest number
+  // Scan bills and exchanges with deeper limit to find the absolute maximum sequence number
   const [{ data: bills }, { data: exchanges }] = await Promise.all([
-    supabase.from('bills').select('bill_no').order('created_at', { ascending: false }).limit(20),
-    supabase.from('gold_exchanges').select('reference_no').order('created_at', { ascending: false }).limit(20)
+    supabase.from('bills').select('bill_no').order('id', { ascending: false }).limit(200),
+    supabase.from('gold_exchanges').select('reference_no').order('id', { ascending: false }).limit(200)
   ]);
 
   let maxNum = 0;
 
   const extractNumber = (str: string) => {
     if (!str) return;
-    const match = str.match(/MJ-(\d+)/);
+    const match = str.match(/MJ-(\d+)/i) || str.match(/(\d+)/);
     if (match) {
-      const num = parseInt(match[1]);
-      if (!isNaN(num) && num > maxNum) maxNum = num;
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > maxNum && num < 1000000) maxNum = num;
     }
   };
 
@@ -24,7 +24,6 @@ export const generateBillNo = async () => {
   exchanges?.forEach(e => extractNumber(e.reference_no));
 
   const nextNum = maxNum + 1;
-  // Pad to 4 digits (0001), but allow it to grow naturally (10000+)
   const padded = nextNum.toString().padStart(Math.max(4, nextNum.toString().length), '0');
   return `MJ-${padded}`;
 };
@@ -175,14 +174,34 @@ export const getCustomerLayaways = async (customerId: number) => {
 };
 
 export const createBill = async (billData: any) => {
-  const { data, error } = await supabase
-    .from('bills')
-    .insert(billData)
-    .select()
-    .single();
+  let attempts = 0;
+  let currentBillData = { ...billData };
 
-  if (error) throw error;
-  return data;
+  while (attempts < 5) {
+    const { data, error } = await supabase
+      .from('bills')
+      .insert(currentBillData)
+      .select()
+      .single();
+
+    if (!error) return data;
+
+    // Detect duplicate key constraint violation on bill_no (code 23505)
+    if (error.code === '23505' || error.message?.includes('bills_bill_no_key') || error.message?.includes('unique constraint')) {
+      attempts++;
+      const freshNo = await generateBillNo();
+      // If generateBillNo returns the same number, force next sequential increment
+      const match = freshNo.match(/MJ-(\d+)/i);
+      const baseSeq = match ? parseInt(match[1], 10) : 1;
+      const forcedSeq = baseSeq + (attempts - 1);
+      const forcedNo = `MJ-${forcedSeq.toString().padStart(4, '0')}`;
+      currentBillData.bill_no = forcedNo;
+    } else {
+      throw error;
+    }
+  }
+
+  throw new Error('Failed to save bill after multiple unique bill number retries.');
 };
 
 export const updateBill = async (id: number, billData: any) => {

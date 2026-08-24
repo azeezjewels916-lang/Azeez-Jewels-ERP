@@ -687,7 +687,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         await supabase.from('bill_items').delete().eq('bill_id', billId);
       } else {
         savedBill = await createBill(billData);
-        setBillNo(billData.bill_no);
+        if (savedBill?.bill_no) setBillNo(savedBill.bill_no);
       }
 
       const billItems = items.map((item, idx) => ({
