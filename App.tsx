@@ -139,94 +139,93 @@ const App: React.FC = () => {
           .no-print-zoom { zoom: 1 !important; transform: none !important; }
         }
       `}</style>
-      
+
       <div className="print:hidden">
-        <Sidebar 
-          onLogout={handleLogout} 
+        <Sidebar
+          onLogout={handleLogout}
           activeModule={activeModule}
           setActiveModule={navigateToModule}
           userRole={userRole}
           onToggleRole={handleToggleRole}
         />
       </div>
-      
+
       {/* Main Content Area */}
       <main className="ml-64 print:ml-0 flex-1 h-screen flex flex-col overflow-hidden">
         {/* Top Bar for User Profile/Context - minimalist luxury */}
         <header className="h-16 bg-white border-b border-app-border flex items-center justify-between px-8 shrink-0 print:hidden shadow-sm">
-           <div className="flex items-center gap-6">
-             <h1 className="font-serif font-bold text-xl text-charcoal-900 tracking-tight flex items-center gap-3">
-               <span>
-                 {activeModule === 'sales-bill' ? 'New Sales Invoice' : 
-                  activeModule === 'all-sales' ? 'Sales History' : 
-                  activeModule === 'layaway' ? 'Layaway Management' :
-                  activeModule === 'advance' ? 'Order Bookings' :
-                  activeModule === 'inventory' ? 'Inventory Management' : 
-                  activeModule === 'customers' ? 'Client Relationship Management' :
-                  activeModule === 'gold-exchange' ? 'Gold Exchange (Buying)' :
-                  activeModule === 'users' ? 'User Management' :
-                  activeModule.replace('-', ' ').toUpperCase()}
-               </span>
-             </h1>
+          <div className="flex items-center gap-6">
+            <h1 className="font-serif font-bold text-xl text-charcoal-900 tracking-tight flex items-center gap-3">
+              <span>
+                {activeModule === 'sales-bill' ? 'New Sales Invoice' :
+                  activeModule === 'all-sales' ? 'Sales History' :
+                    activeModule === 'layaway' ? 'Layaway Management' :
+                      activeModule === 'advance' ? 'Order Bookings' :
+                        activeModule === 'inventory' ? 'Inventory Management' :
+                          activeModule === 'customers' ? 'Client Relationship Management' :
+                            activeModule === 'gold-exchange' ? 'Gold Exchange (Buying)' :
+                              activeModule === 'users' ? 'User Management' :
+                                activeModule.replace('-', ' ').toUpperCase()}
+              </span>
+            </h1>
 
-             {/* Zoom Controls */}
-             <div className="flex items-center bg-gold-50/70 rounded-lg p-1 gap-1 border border-gold-500/20 ml-2">
-                <button 
-                  onClick={handleZoomOut}
-                  className="p-1 hover:bg-white hover:shadow-sm rounded-md text-charcoal-700 hover:text-gold-600 transition-all cursor-pointer"
-                  title="Zoom Out"
-                >
-                  <ZoomOut size={14} />
-                </button>
-                <div 
-                  className="text-[11px] font-bold text-charcoal-700 px-2 cursor-pointer hover:text-gold-600 font-mono"
-                  onClick={handleResetZoom}
-                  title="Reset Zoom"
-                >
-                  {Math.round(zoomLevel * 100)}%
-                </div>
-                <button 
-                  onClick={handleZoomIn}
-                  className="p-1 hover:bg-white hover:shadow-sm rounded-md text-charcoal-700 hover:text-gold-600 transition-all cursor-pointer"
-                  title="Zoom In"
-                >
-                  <ZoomIn size={14} />
-                </button>
-             </div>
-           </div>
+            {/* Zoom Controls */}
+            <div className="flex items-center bg-gold-50/70 rounded-lg p-1 gap-1 border border-gold-500/20 ml-2">
+              <button
+                onClick={handleZoomOut}
+                className="p-1 hover:bg-white hover:shadow-sm rounded-md text-charcoal-700 hover:text-gold-600 transition-all cursor-pointer"
+                title="Zoom Out"
+              >
+                <ZoomOut size={14} />
+              </button>
+              <div
+                className="text-[11px] font-bold text-charcoal-700 px-2 cursor-pointer hover:text-gold-600 font-mono"
+                onClick={handleResetZoom}
+                title="Reset Zoom"
+              >
+                {Math.round(zoomLevel * 100)}%
+              </div>
+              <button
+                onClick={handleZoomIn}
+                className="p-1 hover:bg-white hover:shadow-sm rounded-md text-charcoal-700 hover:text-gold-600 transition-all cursor-pointer"
+                title="Zoom In"
+              >
+                <ZoomIn size={14} />
+              </button>
+            </div>
+          </div>
 
-           <div className="flex items-center gap-4">
-             {/* Hidden GST Control Button - Visible strictly to Admin only */}
-             {userRole === 'admin' && (
-               <button 
-                 onClick={toggleGstControl}
-                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shadow-sm ${
-                   isGstFeatureEnabled 
-                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100' 
-                     : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
-                 }`}
-                 title="Admin Hidden GST Control (Toggle GST Features)"
-               >
-                 <Shield size={14} />
-                 <span>GST Control: {isGstFeatureEnabled ? 'ON' : 'OFF'}</span>
-               </button>
-             )}
+          <div className="flex items-center gap-4">
+            {/* Hidden GST Control Button - Visible strictly to Admin only */}
+            {userRole === 'admin' && (
+              <button
+                onClick={toggleGstControl}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shadow-sm ${isGstFeatureEnabled
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                  : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
+                  }`}
+                title="Admin Hidden GST Control (Toggle GST Features)"
+              >
+                <Shield size={14} />
+                <span>GST Control: {isGstFeatureEnabled ? 'ON' : 'OFF'}</span>
+              </button>
+            )}
 
-             <div className="text-right hidden sm:block">
-               <p className="text-xs font-bold text-gold-600 uppercase tracking-wider">Azeez Jewels Showroom</p>
-               <p className="text-[10px] text-charcoal-500 font-mono tracking-wide">#324 Jumma Masjid Road | {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-             </div>
-             <div className="w-9 h-9 rounded-full bg-charcoal-900 text-gold-500 flex items-center justify-center font-bold text-xs shadow-md border border-gold-500/40 relative">
-               AJ
-               <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${userRole === 'admin' ? 'bg-emerald-500' : 'bg-amber-400'}`}></span>
-             </div>
-           </div>
+            <div className="text-right hidden sm:block">
+              <p className="text-xs font-bold text-gold-600 uppercase tracking-wider">Azeez Jewels Showroom</p>
+              <p className="text-[10px] text-charcoal-500 font-mono tracking-wide">#324 Jumma Masjid Road | {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-charcoal-900 text-gold-500 flex items-center justify-center font-bold text-xs shadow-md border border-gold-500/40 relative">
+              AJ
+              <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${userRole === 'admin' ? 'bg-emerald-500' : 'bg-amber-400'}`}></span>
+            </div>
+          </div>
         </header>
 
         {/* Dynamic Content Container with Zoom */}
-        <div 
+        <div
           className="flex-1 overflow-auto bg-app-bg no-print-zoom"
-          style={{ 
+          style={{
             zoom: zoomLevel,
           } as any}
         >

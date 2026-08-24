@@ -14,21 +14,21 @@ export type TagSize = '81x12' | '100x15' | '100x20';
 // Simple Pure SVG Code 128 Barcode Generator
 const Code128Barcode: React.FC<{ code: string; height?: number }> = ({ code, height = 30 }) => {
   const cleanCode = code || '00000000';
-  
+
   // Simple pseudo barcode pattern generator for visual presentation
   const bars: { x: number; width: number }[] = [];
   let currentX = 0;
-  
+
   // Start pattern
   bars.push({ x: currentX, width: 2 }); currentX += 4;
   bars.push({ x: currentX, width: 1 }); currentX += 2;
-  
+
   for (let i = 0; i < cleanCode.length; i++) {
     const charCode = cleanCode.charCodeAt(i);
     const w1 = (charCode % 3) + 1;
     const w2 = ((charCode * 2) % 3) + 1;
     const w3 = ((charCode * 3) % 3) + 1;
-    
+
     bars.push({ x: currentX, width: w1 }); currentX += w1 + 1;
     bars.push({ x: currentX, width: w2 }); currentX += w2 + 1;
     bars.push({ x: currentX, width: w3 }); currentX += w3 + 1;
@@ -251,11 +251,10 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
                 <button
                   key={size.id}
                   onClick={() => setTagSize(size.id as TagSize)}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                    tagSize === size.id 
-                      ? 'border-gold-500 bg-gold-50/70 shadow-sm ring-1 ring-gold-500' 
-                      : 'border-gray-200 hover:bg-gray-50'
-                  }`}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${tagSize === size.id
+                    ? 'border-gold-500 bg-gold-50/70 shadow-sm ring-1 ring-gold-500'
+                    : 'border-gray-200 hover:bg-gray-50'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-charcoal-900">{size.label}</span>
@@ -276,12 +275,12 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
                   <span className="font-extrabold text-[9px] text-charcoal-900">AZEEZ JEWELS</span>
                   <span className="font-bold text-[8px] text-gold-600">{item.purity || '22K 916'}</span>
                 </div>
-                
+
                 <Code128Barcode code={item.barcode} height={16} />
-                
+
                 <div className="font-mono text-[8px] font-bold text-center tracking-tighter">{item.barcode}</div>
                 <div className="text-[8px] font-bold truncate">{item.item_name}</div>
-                
+
                 <div className="flex justify-between text-[7.5px] font-mono font-bold text-gray-600">
                   <span>Gr: {(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
                   <span>Net: ${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
@@ -297,31 +296,31 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
           <div className="grid grid-cols-3 gap-4 items-center">
             <div>
               <label className="block text-xs font-bold text-charcoal-800 uppercase mb-1">Copies</label>
-              <input 
-                type="number" 
-                min={1} 
+              <input
+                type="number"
+                min={1}
                 max={50}
-                value={printQuantity} 
+                value={printQuantity}
                 onChange={(e) => setPrintQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-mono font-bold"
               />
             </div>
             <div className="flex items-center gap-2 pt-5">
-              <input 
-                type="checkbox" 
-                id="showHuidOpt" 
-                checked={showHUID} 
-                onChange={(e) => setShowHUID(e.target.checked)} 
+              <input
+                type="checkbox"
+                id="showHuidOpt"
+                checked={showHUID}
+                onChange={(e) => setShowHUID(e.target.checked)}
                 className="w-4 h-4 accent-gold-500 rounded cursor-pointer"
               />
               <label htmlFor="showHuidOpt" className="text-xs font-bold text-charcoal-800 cursor-pointer">Include HUID</label>
             </div>
             <div className="flex items-center gap-2 pt-5">
-              <input 
-                type="checkbox" 
-                id="showPriceOpt" 
-                checked={showPrice} 
-                onChange={(e) => setShowPrice(e.target.checked)} 
+              <input
+                type="checkbox"
+                id="showPriceOpt"
+                checked={showPrice}
+                onChange={(e) => setShowPrice(e.target.checked)}
                 className="w-4 h-4 accent-gold-500 rounded cursor-pointer"
               />
               <label htmlFor="showPriceOpt" className="text-xs font-bold text-charcoal-800 cursor-pointer">Include Selling Price</label>

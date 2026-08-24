@@ -76,8 +76,8 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
       {/* HEADER - CENTERED */}
       <div className="flex flex-col items-center mb-1 border-b-2 border-charcoal-900 pb-1 relative">
         {/* LOGO - LARGER AND CENTERED */}
-        <div className="w-28 h-28 relative flex items-center justify-center -mt-6">
-           <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+        <div className="w-24 h-24 relative flex items-center justify-center -mt-4">
+           <img src="/logowithoutbg.png" alt="Logo" className="w-full h-full object-contain" />
         </div>
         
         <div className="text-center w-full -mt-2">

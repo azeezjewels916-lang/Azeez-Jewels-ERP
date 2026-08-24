@@ -43,13 +43,16 @@ import {
 import { supabase } from '../supabaseClient';
 import { AdvanceBooking as AdvanceBookingType, Customer, BillItem } from '../types';
 import { AdvanceBookingPrint } from '../components/AdvanceBookingPrint';
+
 // --- HELPERS ---
 const formatCurrency = (val: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(val);
+
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
+
 // --- COMPONENT ---
 export const AdvanceBooking: React.FC = () => {
   // --- STATE ---
@@ -60,6 +63,7 @@ export const AdvanceBooking: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'delivered' | 'cancelled' | 'completed'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBookingId, setEditingBookingId] = useState<number | null>(null);
+
   // --- FORM STATE ---
   const [customerSearch, setCustomerSearch] = useState('');
   const [foundCustomers, setFoundCustomers] = useState<Customer[]>([]);
@@ -101,9 +105,11 @@ export const AdvanceBooking: React.FC = () => {
   const [manualTotal, setManualTotal] = useState<string>('');
   const [advanceInput, setAdvanceInput] = useState<string>('');
   const [notes, setNotes] = useState('');
+
   // --- PRINT STATE ---
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [selectedBookingForPrint, setSelectedBookingForPrint] = useState<any>(null);
+
   // --- FETCH DATA ---
   const fetchData = async () => {
     setLoading(true);
@@ -121,6 +127,7 @@ export const AdvanceBooking: React.FC = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -153,6 +160,7 @@ export const AdvanceBooking: React.FC = () => {
   const calculatedGrandTotal = Math.max(0, itemsTotal + gstAmount - oldGoldValue);
   const finalTotal = isPriceLocked ? (parseFloat(manualTotal) || 0) : calculatedGrandTotal;
   const balanceDue = finalTotal - (parseFloat(advanceInput) || 0);
+
   const filteredBookings = useMemo(() => {
     return bookings.filter(b => {
       const customerName = b.bills?.customers?.name || '';
@@ -165,6 +173,7 @@ export const AdvanceBooking: React.FC = () => {
       return matchesSearch && matchesStatus;
     });
   }, [bookings, searchTerm, statusFilter]);
+
   const kpiStats = useMemo(() => {
     const totalBookings = bookings.length;
     const totalAdvance = bookings.reduce((sum, b) => sum + (b.advance_amount || 0), 0);
@@ -172,6 +181,7 @@ export const AdvanceBooking: React.FC = () => {
     const avgAdvance = totalBookings > 0 ? (totalAdvance / (totalAdvance + totalDue)) * 100 : 0;
     return { totalBookings, totalAdvance, totalDue, avgAdvance };
   }, [bookings]);
+
   // --- HANDLERS ---
   const handleCustomerSearch = async () => {
     if (!customerSearch) return;
@@ -189,12 +199,34 @@ export const AdvanceBooking: React.FC = () => {
       toast({ title: 'Error', description: 'Search failed.', variant: 'destructive' });
     }
   };
+
+  const handlePhoneInputChange = async (phoneVal: string) => {
+    setCustomerSearch(phoneVal);
+    if (isAddingCustomer) {
+      setNewCustomerDetails(prev => ({ ...prev, phone: phoneVal }));
+    }
+    if (phoneVal.trim().length >= 3) {
+      try {
+        const results = await searchCustomers(phoneVal);
+        setFoundCustomers(results || []);
+        if (results && results.length === 1 && !selectedCustomer) {
+          setSelectedCustomer(results[0]);
+          setFoundCustomers([]);
+          setIsAddingCustomer(false);
+        }
+      } catch (err) {
+        console.error('Customer search error:', err);
+      }
+    } else {
+      setFoundCustomers([]);
+    }
+  };
+
   const handleConfirmNewCustomer = () => {
     if (!newCustomerDetails.name || !newCustomerDetails.phone) {
       toast({ title: 'Incomplete Details', description: 'Name and Phone are required.', variant: 'destructive' });
       return;
     }
-    // We will create the customer during booking submission
     setSelectedCustomer({
       id: 'new',
       name: newCustomerDetails.name,
@@ -203,6 +235,24 @@ export const AdvanceBooking: React.FC = () => {
     } as any);
     setIsAddingCustomer(false);
   };
+
+  // Preview MC and line total for item input
+  const previewNewItemMC = useMemo(() => {
+    const w = Number(newItem.weight) || 0;
+    const r = Number(newItem.rate) || 0;
+    const mcInput = parseFloat(newItem.makingChargesInput) || 0;
+    if (newItem.makingChargesType === 'pct') {
+      return (w * r) * (mcInput / 100);
+    }
+    return mcInput;
+  }, [newItem.weight, newItem.rate, newItem.makingChargesInput, newItem.makingChargesType]);
+
+  const previewNewItemLineTotal = useMemo(() => {
+    const w = Number(newItem.weight) || 0;
+    const r = Number(newItem.rate) || 0;
+    return (w * r) + previewNewItemMC;
+  }, [newItem.weight, newItem.rate, previewNewItemMC]);
+
   const handleAddItem = () => {
     if (!newItem.name || !newItem.weight) {
       toast({ title: 'Missing Details', description: 'Item name and weight are required.', variant: 'destructive' });
@@ -246,15 +296,15 @@ export const AdvanceBooking: React.FC = () => {
       metalType: 'gold'
     });
   };
+
   const handleEditBooking = (booking: any) => {
     setEditingBookingId(booking.id);
     setSelectedCustomer(booking.bills?.customers || null);
     setDeliveryDate(booking.delivery_date);
     setAdvanceInput(booking.advance_amount.toString());
     setNotes(booking.customer_notes || '');
+    setSaleType(booking.bills?.sale_type === 'nongst' ? 'NON GST' : 'GST');
 
-    // Process items if they are stored in item_description or if we had a structured way.
-    // Since structured items aren't in the main booking table, we might need to fetch bill_items.
     const fetchItems = async () => {
       const { data: billItems, error } = await supabase
         .from('bill_items')
@@ -269,6 +319,8 @@ export const AdvanceBooking: React.FC = () => {
           weight: bi.weight,
           rate: bi.rate,
           makingCharges: bi.making_charges,
+          makingChargesType: 'amt',
+          makingChargesInput: bi.making_charges ? bi.making_charges.toString() : '0',
           purity: bi.purity,
           lineTotal: bi.line_total
         })));
@@ -290,7 +342,6 @@ export const AdvanceBooking: React.FC = () => {
     setLoading(true);
     try {
       if (editingBookingId) {
-        // Update existing booking
         await updateAdvanceBooking(editingBookingId, {
           delivery_date: deliveryDate,
           advance_amount: parseFloat(advanceInput) || 0,
@@ -299,17 +350,17 @@ export const AdvanceBooking: React.FC = () => {
           customer_notes: notes
         });
 
-        // Update bill subtotal/total
         const booking = bookings.find(b => b.id === editingBookingId);
         if (booking && booking.bill_id) {
           await supabase.from('bills').update({
-            subtotal: finalTotal,
+            sale_type: saleType === 'NON GST' ? 'nongst' : 'gst',
+            subtotal: itemsTotal,
+            gst_amount: gstAmount,
             grand_total: finalTotal,
             advance_amount: parseFloat(advanceInput) || 0,
             remaining_amount: balanceDue
           }).eq('id', booking.bill_id);
 
-          // Update items - for simplicity delete and recreate
           await supabase.from('bill_items').delete().eq('bill_id', booking.bill_id);
           const itemsToInsert = items.map(item => ({
             bill_id: booking.bill_id,
@@ -331,7 +382,6 @@ export const AdvanceBooking: React.FC = () => {
         return;
       }
 
-      // 1. Create/Identify Customer
       let customerId: any = selectedCustomer.id;
       if (customerId === 'new') {
         const newCust = await createCustomer({
@@ -341,7 +391,6 @@ export const AdvanceBooking: React.FC = () => {
         });
         customerId = newCust.id;
       }
-      // 2. Create Bill - Mapping to the provided schema
       const generatedBillNo = await generateBillNo();
       const bill = await createBill({
         bill_no: generatedBillNo,
@@ -354,7 +403,6 @@ export const AdvanceBooking: React.FC = () => {
         remaining_amount: balanceDue,
         bill_status: 'draft'
       });
-      // 3. Create Order Booking record
       const newBookingRecord = await createAdvanceBooking({
         bill_id: bill.id,
         delivery_date: deliveryDate,
@@ -365,12 +413,11 @@ export const AdvanceBooking: React.FC = () => {
         booking_status: 'active'
       });
 
-      // Save item records into bill_items
       if (items.length > 0) {
         const itemsToInsert = items.map(item => ({
           bill_id: bill.id,
           item_name: item.name,
-          metal_type: item.metalType || 'gold',
+          metal_type: item.metalType,
           purity: item.purity,
           weight: item.weight,
           rate: item.rate,
@@ -383,7 +430,7 @@ export const AdvanceBooking: React.FC = () => {
       toast({ title: 'Success', description: 'Booking created successfully.' });
       setIsModalOpen(false);
       fetchData();
-      // Open Print Preview automatically for the new booking
+
       const printObj = {
         ...newBookingRecord,
         bills: {
@@ -397,7 +444,6 @@ export const AdvanceBooking: React.FC = () => {
         oldGoldAmount: oldGoldValue
       };
       handleOpenPrintPreview(printObj, items);
-      // Reset
       setSelectedCustomer(null);
       setItems([]);
       setAdvanceInput('');
@@ -411,6 +457,7 @@ export const AdvanceBooking: React.FC = () => {
       setLoading(false);
     }
   };
+
   const handleUpdateStatus = async (id: number, status: string) => {
     try {
       await updateAdvanceBooking(id, { booking_status: status });
@@ -421,13 +468,32 @@ export const AdvanceBooking: React.FC = () => {
       toast({ title: 'Error', description: 'Update failed.' });
     }
   };
-  const handleOpenPrintPreview = (booking: any, structuredItems: any[] = []) => {
-    setSelectedBookingForPrint({ ...booking, structuredItems });
+
+  const handleOpenPrintPreview = async (booking: any, structuredItems: any[] = []) => {
+    let finalItems = structuredItems;
+    if ((!finalItems || finalItems.length === 0) && booking.bill_id) {
+      const { data: bItems } = await supabase.from('bill_items').select('*').eq('bill_id', booking.bill_id);
+      if (bItems) {
+        finalItems = bItems.map(bi => ({
+          id: bi.id.toString(),
+          name: bi.item_name,
+          metalType: bi.metal_type,
+          weight: bi.weight,
+          rate: bi.rate,
+          makingCharges: bi.making_charges,
+          purity: bi.purity,
+          lineTotal: bi.line_total
+        }));
+      }
+    }
+    setSelectedBookingForPrint({ ...booking, structuredItems: finalItems });
     setShowPrintPreview(true);
   };
+
   const handleActualPrint = () => {
     window.print();
   };
+
   const handleDeleteBooking = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this booking?')) return;
     try {
@@ -439,69 +505,69 @@ export const AdvanceBooking: React.FC = () => {
       toast({ title: 'Error', description: 'Delete failed.' });
     }
   };
-  // --- RENDER ---
+
   return (
     <div className="h-full flex flex-col bg-[#FDFBF7] relative overflow-hidden font-sans text-[#2D2A26]">
       <div className="flex-1 flex flex-col overflow-hidden print-hidden print:hidden">
-        {/* 1. KPI SECTION */}
+        {/* KPI SECTION */}
         <div className="p-6 pb-2 grid grid-cols-4 gap-6 print:hidden">
           <Card className="border-t-4 border-t-gold-500 !p-4 flex flex-col justify-between shadow-sm bg-white">
             <div className="flex justify-between items-start">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active Bookings</p>
-              <div className="p-1.5 bg-gold-100 rounded text-gold-600"><ShoppingBag size={16} /></div>
+              <div className="p-1.5 bg-gold-50 text-gold-600 rounded"><ShoppingBag size={14} /></div>
             </div>
-            <h3 className="text-2xl font-bold mt-2 font-mono">{kpiStats.totalBookings}</h3>
+            <h3 className="text-2xl font-bold font-serif text-[#2D2A26] mt-2">{kpiStats.totalBookings}</h3>
           </Card>
           <Card className="border-t-4 border-t-green-500 !p-4 flex flex-col justify-between shadow-sm bg-white">
             <div className="flex justify-between items-start">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Advance Recv.</p>
-              <div className="p-1.5 bg-green-50 rounded text-green-600"><DollarSign size={16} /></div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Advance Collected</p>
+              <div className="p-1.5 bg-green-50 text-green-600 rounded"><CreditCard size={14} /></div>
             </div>
-            <h3 className="text-2xl font-bold mt-2 font-mono">{formatCurrency(kpiStats.totalAdvance)}</h3>
+            <h3 className="text-2xl font-bold font-mono text-[#2D2A26] mt-2">{formatCurrency(kpiStats.totalAdvance)}</h3>
           </Card>
           <Card className="border-t-4 border-t-red-500 !p-4 flex flex-col justify-between shadow-sm bg-white">
             <div className="flex justify-between items-start">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Amount Due</p>
-              <div className="p-1.5 bg-red-50 rounded text-red-600"><CreditCard size={16} /></div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Pending Balance</p>
+              <div className="p-1.5 bg-red-50 text-red-600 rounded"><DollarSign size={14} /></div>
             </div>
-            <h3 className="text-2xl font-bold mt-2 font-mono">{formatCurrency(kpiStats.totalDue)}</h3>
+            <h3 className="text-2xl font-bold font-mono text-[#2D2A26] mt-2">{formatCurrency(kpiStats.totalDue)}</h3>
           </Card>
-          <Card className="border-t-4 border-t-charcoal-700 !p-4 flex flex-col justify-between shadow-sm bg-white">
+          <Card className="border-t-4 border-t-blue-500 !p-4 flex flex-col justify-between shadow-sm bg-white">
             <div className="flex justify-between items-start">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Avg. Advance</p>
-              <div className="p-1.5 bg-gray-100 rounded text-charcoal-700"><TrendingUp size={16} /></div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Advance Coverage Ratio</p>
+              <div className="p-1.5 bg-blue-50 text-blue-600 rounded"><TrendingUp size={14} /></div>
             </div>
-            <h3 className="text-2xl font-bold mt-2 font-mono">{kpiStats.avgAdvance.toFixed(1)}%</h3>
+            <h3 className="text-2xl font-bold font-mono text-[#2D2A26] mt-2">{kpiStats.avgAdvance.toFixed(1)}%</h3>
           </Card>
         </div>
-        {/* 2. CONTROL BAR */}
-        <div className="px-6 py-4 flex flex-col gap-4 border-b border-gray-200 bg-white/50 backdrop-blur-sm sticky top-0 z-20 print:hidden">
-          {/* Row 1: Search & Create */}
+
+        {/* HEADER & ACTION BAR */}
+        <div className="px-6 pt-4 pb-2 border-b border-gray-200 flex flex-col gap-4 bg-white print:hidden">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4 bg-white p-1 rounded-md border border-gray-300 shadow-sm w-96">
-              <Search className="text-gray-400 ml-2" size={18} />
-              <input
-                type="text"
-                placeholder="Phone, Name, or Booking ID..."
-                className="flex-1 outline-none text-sm py-1 placeholder-gray-400 bg-transparent text-[#2D2A26]"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
+            <div className="flex items-center gap-4">
+              <h2 className="font-serif text-2xl font-bold text-[#2D2A26]">Order Advance Booking</h2>
+              <span className="text-xs bg-gold-100 text-gold-800 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-gold-300">
+                Rate Lock Management
+              </span>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleExportExcel}
-                className="bg-green-700 hover:bg-green-800 text-white px-3 py-2 rounded-md text-xs font-bold tracking-wide flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-                title="Export Bookings to Excel / CSV"
-              >
-                <FileSpreadsheet size={14} className="text-white" /> Export Excel
-              </button>
-              <Button onClick={() => setIsModalOpen(true)} className="shadow-md">
+            <div className="flex items-center gap-3">
+              <Button variant="secondary" onClick={handleExportExcel} className="border border-green-600 text-green-700 hover:bg-green-50 font-bold text-xs">
+                <FileSpreadsheet size={16} className="mr-1.5" /> Export Excel
+              </Button>
+              <div className="relative w-64">
+                <Input
+                  placeholder="Search Booking # / Client..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  icon={<Search size={16} />}
+                />
+              </div>
+              <Button onClick={() => { setIsModalOpen(true); setEditingBookingId(null); setSelectedCustomer(null); setItems([]); setAdvanceInput(''); setManualTotal(''); setDeliveryDate(''); setNotes(''); setSaleType('GST'); }}>
                 <Plus size={18} className="mr-2" /> New Order Booking
               </Button>
             </div>
           </div>
-          {/* Row 2: Tabs & Filters */}
+
           <div className="flex justify-between items-end">
             <div className="flex gap-8">
               <button
@@ -524,8 +590,8 @@ export const AdvanceBooking: React.FC = () => {
                     key={status}
                     onClick={() => setStatusFilter(status)}
                     className={`px-3 py-1 text-xs font-bold rounded-full border transition-all uppercase tracking-wider ${statusFilter === status
-                        ? 'bg-[#2D2A26] text-white border-[#2D2A26]'
-                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                      ? 'bg-[#2D2A26] text-white border-[#2D2A26]'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
                       }`}
                   >
                     {status}
@@ -535,7 +601,8 @@ export const AdvanceBooking: React.FC = () => {
             )}
           </div>
         </div>
-        {/* 3. MAIN CONTENT */}
+
+        {/* MAIN CONTENT TABLE */}
         <div className="flex-1 overflow-auto p-6 print:hidden">
           {activeTab === 'bookings' ? (
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
@@ -556,14 +623,14 @@ export const AdvanceBooking: React.FC = () => {
                 <tbody className="divide-y divide-gray-100">
                   {loading ? (
                     <tr>
-                      <td colSpan={8} className="py-20 text-center text-gray-400">
+                      <td colSpan={9} className="py-20 text-center text-gray-400">
                         <RefreshCw className="animate-spin mx-auto mb-2" size={24} />
                         <span className="text-xs font-bold uppercase tracking-widest">Loading Bookings...</span>
                       </td>
                     </tr>
                   ) : filteredBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-20 text-center text-gray-400">
+                      <td colSpan={9} className="py-20 text-center text-gray-400">
                         <AlertCircle className="mx-auto mb-2 opacity-20" size={32} />
                         <span className="text-sm italic">No bookings found.</span>
                       </td>
@@ -649,15 +716,15 @@ export const AdvanceBooking: React.FC = () => {
                     <th className="py-3 px-6 text-right">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {bookings.slice(0, 10).map(b => (
+                <tbody className="divide-y divide-gray-100 font-mono text-xs">
+                  {bookings.map((b) => (
                     <tr key={b.id} className="hover:bg-gray-50">
-                      <td className="py-3 px-6 font-mono text-xs text-gray-400">{b.id}</td>
-                      <td className="py-3 px-6 text-xs">{formatDate(b.booking_date)}</td>
-                      <td className="py-3 px-6 font-mono text-xs font-bold text-gold-600">{b.bills?.bill_no}</td>
-                      <td className="py-3 px-6 text-sm">Order Booking</td>
-                      <td className="py-3 px-6 text-sm">{b.booking_status}</td>
-                      <td className="py-3 px-6 text-right font-mono font-bold text-green-700">{formatCurrency(b.advance_amount)}</td>
+                      <td className="py-3 px-6 font-bold text-gray-500">TRN-{b.id}</td>
+                      <td className="py-3 px-6">{formatDate(b.booking_date)}</td>
+                      <td className="py-3 px-6 text-gold-600 font-bold">{b.bills?.bill_no}</td>
+                      <td className="py-3 px-6"><span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-bold uppercase text-[10px]">ADVANCE DEPOSIT</span></td>
+                      <td className="py-3 px-6 uppercase font-bold text-gray-600">CASH / UPI</td>
+                      <td className="py-3 px-6 text-right font-bold text-green-700">{formatCurrency(b.advance_amount)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -666,7 +733,8 @@ export const AdvanceBooking: React.FC = () => {
           )}
         </div>
       </div>
-      {/* 4. MODAL: CREATE BOOKING */}
+
+      {/* MODAL: CREATE / EDIT BOOKING */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-[#2D2A26]/80 backdrop-blur-sm flex items-center justify-center p-4 print-hidden print:hidden">
           <div className="bg-white w-full max-w-[95vw] h-[90vh] rounded-lg shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
@@ -677,25 +745,40 @@ export const AdvanceBooking: React.FC = () => {
                 </div>
                 <h3 className="font-serif text-lg tracking-wide">{editingBookingId ? 'Edit Order Booking' : 'New Order Booking'}</h3>
               </div>
-              <button onClick={() => { setIsModalOpen(false); setEditingBookingId(null); setSelectedCustomer(null); setItems([]); setAdvanceInput(''); setManualTotal(''); setDeliveryDate(''); setNotes(''); }} className="text-gray-400 hover:text-white"><XCircle size={24} /></button>
+              <button onClick={() => { setIsModalOpen(false); setEditingBookingId(null); setSelectedCustomer(null); setItems([]); setAdvanceInput(''); setManualTotal(''); setDeliveryDate(''); setNotes(''); setSaleType('GST'); }} className="text-gray-400 hover:text-white"><XCircle size={24} /></button>
             </div>
+            
             <div className="flex-1 overflow-auto p-8 grid grid-cols-12 gap-8 bg-gray-50/50">
               <div className="col-span-8 flex flex-col gap-6">
+                {/* CUSTOMER & DELIVERY SECTION */}
                 <section className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2"><User size={14} /> Customer & Delivery</h4>
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2"><User size={14} /> Customer Details & Delivery</h4>
+                  
                   <div className="grid grid-cols-2 gap-8">
                     <div className="relative">
                       {!selectedCustomer && !isAddingCustomer ? (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <div className="flex gap-2">
-                            <Input placeholder="Search by Phone..." value={customerSearch} onChange={e => { setCustomerSearch(e.target.value); if (e.target.value.length === 0) setFoundCustomers([]); }} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCustomerSearch(); } }} icon={<Search size={16} />} />
-                            <Button size="sm" onClick={handleCustomerSearch}>Find</Button>
+                            <Input 
+                              label="Customer Phone Number *" 
+                              placeholder="Type Phone to Search / Auto-fill..." 
+                              value={customerSearch} 
+                              onChange={e => handlePhoneInputChange(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCustomerSearch(); } }} 
+                              icon={<Search size={16} />} 
+                            />
+                            <Button size="sm" className="mt-6" onClick={handleCustomerSearch}>Search</Button>
                           </div>
+
                           {foundCustomers.length > 0 && (
-                            <div className="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1">
+                            <div className="absolute z-30 w-full bg-white border border-gray-200 rounded-md shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1">
                               <div className="max-h-48 overflow-y-auto">
                                 {foundCustomers.map(cust => (
-                                  <div key={cust.id} onClick={() => { setSelectedCustomer(cust); setFoundCustomers([]); setCustomerSearch(''); }} className="p-3 hover:bg-gold-50 cursor-pointer border-b border-gray-100 last:border-0 transition-colors">
+                                  <div 
+                                    key={cust.id} 
+                                    onClick={() => { setSelectedCustomer(cust); setFoundCustomers([]); setCustomerSearch(''); }} 
+                                    className="p-3 hover:bg-gold-50 cursor-pointer border-b border-gray-100 last:border-0 transition-colors"
+                                  >
                                     <div className="flex justify-between items-center">
                                       <span className="font-bold text-charcoal-900">{cust.name}</span>
                                       <span className="text-xs font-mono text-gray-400">{cust.phone}</span>
@@ -704,86 +787,118 @@ export const AdvanceBooking: React.FC = () => {
                                   </div>
                                 ))}
                               </div>
-                              <div className="bg-gray-50 p-2 text-center border-t border-gray-100" onClick={() => { setIsAddingCustomer(true); setNewCustomerDetails({ name: '', phone: customerSearch, address: '' }); setFoundCustomers([]); }}>
-                                <button className="text-[10px] font-bold text-gold-600 hover:text-gold-700 uppercase tracking-widest">+ Add New Instead</button>
+                              <div 
+                                className="bg-gray-50 p-2 text-center border-t border-gray-100 cursor-pointer" 
+                                onClick={() => { setIsAddingCustomer(true); setNewCustomerDetails({ name: '', phone: customerSearch, address: '' }); setFoundCustomers([]); }}
+                              >
+                                <button className="text-[10px] font-bold text-gold-600 hover:text-gold-700 uppercase tracking-widest">+ Add New Customer Direct</button>
                               </div>
                             </div>
                           )}
+
+                          <button
+                            type="button"
+                            onClick={() => { setIsAddingCustomer(true); setNewCustomerDetails({ name: '', phone: customerSearch, address: '' }); }}
+                            className="text-[11px] font-bold text-gold-600 hover:underline uppercase tracking-wider flex items-center gap-1"
+                          >
+                            + Enter New Customer Details
+                          </button>
                         </div>
                       ) : isAddingCustomer ? (
-                        <div className="bg-gold-50/50 p-3 rounded border border-gold-200 space-y-3 animate-in fade-in slide-in-from-top-2">
-                          <p className="text-xs font-bold text-gold-700 flex items-center gap-2"><UserPlus size={14} /> New Customer</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            <Input placeholder="Full Name" value={newCustomerDetails.name} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, name: e.target.value })} />
-                            <Input placeholder="Phone Number" value={newCustomerDetails.phone} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, phone: e.target.value })} />
-                            <div className="col-span-2">
-                              <Input placeholder="Address (Optional)" value={newCustomerDetails.address} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, address: e.target.value })} />
-                            </div>
+                        <div className="bg-gold-50/50 p-4 rounded-lg border border-gold-200 space-y-3 animate-in fade-in slide-in-from-top-2">
+                          <p className="text-xs font-bold text-gold-700 flex items-center gap-2"><UserPlus size={14} /> New Customer Entry</p>
+                          <div className="space-y-3">
+                            <Input label="Full Name *" placeholder="Customer Name" value={newCustomerDetails.name} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, name: e.target.value })} />
+                            <Input label="Phone Number *" placeholder="Phone Number" value={newCustomerDetails.phone} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, phone: e.target.value })} />
+                            <Input label="Showroom / City Address" placeholder="Address (Optional)" value={newCustomerDetails.address} onChange={e => setNewCustomerDetails({ ...newCustomerDetails, address: e.target.value })} />
                           </div>
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-2 pt-2">
                             <Button size="sm" variant="ghost" onClick={() => setIsAddingCustomer(false)}>Cancel</Button>
-                            <Button size="sm" onClick={handleConfirmNewCustomer}>Confirm & Link</Button>
+                            <Button size="sm" onClick={handleConfirmNewCustomer}>Confirm & Link Customer</Button>
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-0 p-3 bg-[#2D2A26] text-white rounded text-sm flex justify-between items-center shadow-lg">
+                        <div className="p-4 bg-[#2D2A26] text-white rounded-lg text-sm flex justify-between items-center shadow-lg">
                           <div>
-                            <p className="font-bold">{selectedCustomer?.name}</p>
-                            <p className="text-xs opacity-70 font-mono">{selectedCustomer?.phone}</p>
-                            {selectedCustomer?.address && <p className="text-xs opacity-50 italic mt-0.5">{selectedCustomer.address}</p>}
+                            <p className="font-bold text-base text-gold-400">{selectedCustomer?.name}</p>
+                            <p className="text-xs opacity-80 font-mono">📱 {selectedCustomer?.phone}</p>
+                            {selectedCustomer?.address && <p className="text-xs opacity-60 italic mt-1">📍 {selectedCustomer.address}</p>}
                           </div>
-                          <button onClick={() => setSelectedCustomer(null)} className="text-xs text-gray-400 hover:text-white underline">Change</button>
+                          <button onClick={() => setSelectedCustomer(null)} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded text-white font-bold transition-all">Change</button>
                         </div>
                       )}
                     </div>
-                    <div><Input label="Expected Delivery" type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} /></div>
+                    
+                    <div>
+                      <Input label="Expected Delivery Date *" type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
+                    </div>
                   </div>
                 </section>
+
+                {/* ORDER REQUIREMENTS & ITEMS */}
                 <section className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex-1 flex flex-col">
                   <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2"><ShoppingBag size={14} /> Order Requirements</h4>
-                    <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-md border border-gray-200">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase px-1">Bill Type:</span>
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2"><ShoppingBag size={14} /> Order Requirements & Tax Mode</h4>
+                    
+                    {/* GST (3%) vs NON-GST TOGGLE */}
+                    <div className="flex items-center gap-2 bg-gray-100 p-1.5 rounded-lg border border-gray-200">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase px-1">Bill Tax Mode:</span>
                       <button
+                        type="button"
                         onClick={() => setSaleType('GST')}
-                        className={`px-2.5 py-1 text-xs font-bold rounded transition-colors ${saleType === 'GST' ? 'bg-gold-500 text-white shadow-sm' : 'text-gray-500 hover:text-charcoal-900'}`}
+                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${saleType === 'GST' ? 'bg-gold-500 text-white shadow-md' : 'text-gray-500 hover:text-charcoal-900'}`}
                       >
                         GST (3%)
                       </button>
                       <button
+                        type="button"
                         onClick={() => setSaleType('NON GST')}
-                        className={`px-2.5 py-1 text-xs font-bold rounded transition-colors ${saleType === 'NON GST' ? 'bg-charcoal-900 text-white shadow-sm' : 'text-gray-500 hover:text-charcoal-900'}`}
+                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${saleType === 'NON GST' ? 'bg-charcoal-900 text-white shadow-md' : 'text-gray-500 hover:text-charcoal-900'}`}
                       >
-                        NON-GST
+                        NON-GST (0%)
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-12 gap-3 mb-4 items-end bg-gray-50 p-3 rounded border border-gray-100">
-                    <div className="col-span-3"><Input label="Item Name" placeholder="e.g. Ring / Bangle" value={newItem.name || ''} onChange={e => setNewItem({ ...newItem, name: e.target.value })} /></div>
-                    <div className="col-span-2"><Select label="Purity" options={[
-                      { value: '24K (Pure)', label: '24K (Pure)' },
-                      { value: '22K (916)', label: '22K (916)' },
-                      { value: '18K (750)', label: '18K (750)' },
-                      { value: '14K (585)', label: '14K (585)' },
-                      { value: 'Silver (925)', label: 'Silver (925)' },
-                      { value: 'Silver (70)', label: 'Silver (70)' },
-                      { value: 'Selam', label: 'Selam' }
-                    ]} value={newItem.purity} onChange={e => {
-                      const newPurity = e.target.value;
-                      let newRate = 0;
-                      if (metalRates) {
-                        if (newPurity.includes('22K') || newPurity.includes('916')) newRate = metalRates.gold22k;
-                        else if (newPurity.includes('18K') || newPurity.includes('750')) newRate = metalRates.gold18k;
-                        else if (newPurity.includes('24K') || newPurity.includes('Pure')) newRate = metalRates.goldStd;
-                      }
-                      setNewItem({ ...newItem, purity: newPurity, rate: newRate || newItem.rate });
-                    }} /></div>
-                    <div className="col-span-2"><Input label="Wt (g)" type="number" isMonospaced value={newItem.weight || ''} onChange={e => setNewItem({ ...newItem, weight: parseFloat(e.target.value) })} /></div>
-                    <div className="col-span-2"><Input label="Rate/g" type="number" isMonospaced value={newItem.rate || ''} onChange={e => setNewItem({ ...newItem, rate: parseFloat(e.target.value) })} /></div>
-                    <div className="col-span-2 flex items-end gap-1">
+
+                  {/* ADD ITEM INPUT ROW */}
+                  <div className="grid grid-cols-12 gap-3 mb-4 items-end bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="col-span-3">
+                      <Input label="Item Name *" placeholder="e.g. Ring / Bangle" value={newItem.name || ''} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <Select label="Purity" options={[
+                        { value: '24K (Pure)', label: '24K (Pure)' },
+                        { value: '22K (916)', label: '22K (916)' },
+                        { value: '18K (750)', label: '18K (750)' },
+                        { value: '14K (585)', label: '14K (585)' },
+                        { value: 'Silver (925)', label: 'Silver (925)' },
+                        { value: 'Silver (70)', label: 'Silver (70)' },
+                        { value: 'Selam', label: 'Selam' }
+                      ]} value={newItem.purity} onChange={e => {
+                        const newPurity = e.target.value;
+                        let newRate = 0;
+                        if (metalRates) {
+                          if (newPurity.includes('22K') || newPurity.includes('916')) newRate = metalRates.gold22k;
+                          else if (newPurity.includes('18K') || newPurity.includes('750')) newRate = metalRates.gold18k;
+                          else if (newPurity.includes('24K') || newPurity.includes('Pure')) newRate = metalRates.goldStd;
+                        }
+                        setNewItem({ ...newItem, purity: newPurity, rate: newRate || newItem.rate });
+                      }} />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <Input label="Weight (g) *" type="number" isMonospaced value={newItem.weight || ''} onChange={e => setNewItem({ ...newItem, weight: parseFloat(e.target.value) || 0 })} />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <Input label="Rate / g *" type="number" isMonospaced value={newItem.rate || ''} onChange={e => setNewItem({ ...newItem, rate: parseFloat(e.target.value) || 0 })} />
+                    </div>
+                    
+                    <div className="col-span-3 flex items-end gap-1">
                       <div className="flex-1">
                         <Input
-                          label={`MC (${newItem.makingChargesType === 'pct' ? '%' : '₹'})`}
+                          label={`Making Charges (${newItem.makingChargesType === 'pct' ? '%' : '₹'})`}
                           type="number"
                           isMonospaced
                           placeholder={newItem.makingChargesType === 'pct' ? '12' : '500'}
@@ -791,99 +906,174 @@ export const AdvanceBooking: React.FC = () => {
                           onChange={e => setNewItem({ ...newItem, makingChargesInput: e.target.value })}
                         />
                       </div>
+                      
                       <select
                         value={newItem.makingChargesType || 'amt'}
                         onChange={e => setNewItem({ ...newItem, makingChargesType: e.target.value as 'amt' | 'pct' })}
-                        className="bg-white border border-gray-300 text-[11px] font-bold rounded px-1.5 py-2.5 outline-none cursor-pointer text-charcoal-900 shadow-sm"
+                        className="bg-white border border-gray-300 text-[11px] font-bold rounded-lg px-2 py-2.5 outline-none cursor-pointer text-charcoal-900 shadow-sm"
                       >
-                        <option value="amt">₹</option>
-                        <option value="pct">%</option>
+                        <option value="amt">₹ (Amt)</option>
+                        <option value="pct">% (Pct)</option>
                       </select>
+
+                      <Button size="sm" onClick={handleAddItem} className="h-10 px-3 shrink-0">
+                        <Plus size={16} />
+                      </Button>
                     </div>
-                    <div className="col-span-1"><Button onClick={handleAddItem} className="w-full !px-0 bg-gold-500 hover:bg-gold-600"><Plus size={20} /></Button></div>
                   </div>
-                  <div className="border border-gray-200 rounded overflow-hidden flex-1 overflow-auto min-h-[200px]">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-gray-100 font-bold text-gray-600 uppercase sticky top-0">
-                        <tr><th className="p-3">Item</th><th className="p-3 text-right">Wt</th><th className="p-3 text-right">Rate</th><th className="p-3 text-right">MC</th><th className="p-3 text-right">Total</th><th className="p-3"></th></tr>
+
+                  {/* LIVE COMPUTED PREVIEW ROW */}
+                  {(newItem.weight > 0 && newItem.rate > 0) && (
+                    <div className="mb-4 p-2 bg-gold-50 border border-gold-200 rounded flex justify-between items-center text-xs font-mono">
+                      <span>Base Value: <strong>{formatCurrency(newItem.weight * newItem.rate)}</strong></span>
+                      <span>Making Charges ({newItem.makingChargesType === 'pct' ? `${newItem.makingChargesInput}%` : '₹'}): <strong>{formatCurrency(previewNewItemMC)}</strong></span>
+                      <span className="text-gold-700 font-bold text-sm">Line Total: {formatCurrency(previewNewItemLineTotal)}</span>
+                    </div>
+                  )}
+
+                  {/* ITEMS TABLE */}
+                  <div className="flex-1 overflow-auto border border-gray-200 rounded-lg">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-gray-100 text-gray-600 font-bold uppercase text-[10px] tracking-wider sticky top-0">
+                        <tr>
+                          <th className="py-2.5 px-3">Item Description</th>
+                          <th className="py-2.5 px-3">Purity</th>
+                          <th className="py-2.5 px-3 text-right">Weight (g)</th>
+                          <th className="py-2.5 px-3 text-right">Rate / g</th>
+                          <th className="py-2.5 px-3 text-right">Making Charges</th>
+                          <th className="py-2.5 px-3 text-right">Total Amount</th>
+                          <th className="py-2.5 px-3 text-center w-10"></th>
+                        </tr>
                       </thead>
-                      <tbody>
-                        {items.map(item => (
-                          <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50">
-                            <td className="p-3 font-medium">{item.name} <span className="text-gray-400">({item.purity})</span></td>
-                            <td className="p-3 text-right font-mono">{item.weight}g</td>
-                            <td className="p-3 text-right font-mono">{item.rate}</td>
-                            <td className="p-3 text-right font-mono text-gray-500">{item.makingCharges || 0}</td>
-                            <td className="p-3 text-right font-mono font-bold">{formatCurrency(item.lineTotal)}</td>
-                            <td className="p-3 text-center text-red-400 cursor-pointer hover:text-red-600">
-                              <button onClick={() => setItems(items.filter(i => i.id !== item.id))}><Trash2 size={14} /></button>
+                      <tbody className="divide-y divide-gray-100 font-mono">
+                        {items.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="py-12 text-center text-gray-400 font-sans italic text-xs">
+                              No items added to this order booking yet. Add items above.
                             </td>
                           </tr>
-                        ))}
-                        {items.length === 0 && (
-                          <tr><td colSpan={6} className="p-12 text-center text-gray-400 italic"><div className="flex flex-col items-center gap-2"><ShoppingBag size={24} className="opacity-20" /><span>List is empty. Add items above.</span></div></td></tr>
+                        ) : (
+                          items.map((item, idx) => (
+                            <tr key={item.id} className="hover:bg-gray-50">
+                              <td className="py-2.5 px-3 font-sans font-bold text-charcoal-900">{item.name}</td>
+                              <td className="py-2.5 px-3 font-sans font-medium text-gold-700">{item.purity}</td>
+                              <td className="py-2.5 px-3 text-right">{item.weight.toFixed(3)} g</td>
+                              <td className="py-2.5 px-3 text-right">₹ {item.rate.toLocaleString()}</td>
+                              <td className="py-2.5 px-3 text-right text-gray-600">
+                                {item.makingChargesType === 'pct' ? `${item.makingChargesInput}% (` : ''}₹ {item.makingCharges.toLocaleString()}{item.makingChargesType === 'pct' ? ')' : ''}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-bold text-charcoal-900">{formatCurrency(item.lineTotal)}</td>
+                              <td className="py-2.5 px-3 text-center">
+                                <button onClick={() => setItems(items.filter(i => i.id !== item.id))} className="text-gray-400 hover:text-red-600"><X size={14} /></button>
+                              </td>
+                            </tr>
+                          ))
                         )}
                       </tbody>
                     </table>
                   </div>
                 </section>
-                <section className={`border rounded-lg overflow-hidden transition-all shrink-0 ${showOldGold ? 'border-pink-200 bg-[#FFF5F5]' : 'border-gray-200 bg-white'}`}>
-                  <div className="px-5 py-3 flex justify-between items-center cursor-pointer" onClick={() => setShowOldGold(!showOldGold)}>
-                    <h4 className="text-xs font-bold text-pink-700 uppercase tracking-wide flex items-center gap-2"><CreditCard size={14} /> Old Gold Exchange (Pink Slip)</h4>
-                    {showOldGold ? <ChevronUp size={16} className="text-pink-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-                  </div>
-                  {showOldGold && (
-                    <div className="p-5 grid grid-cols-4 gap-4 animate-in slide-in-from-top-2">
-                      <div className="col-span-2"><Input label="Particulars" value={oldGold.particulars} onChange={e => setOldGold({ ...oldGold, particulars: e.target.value })} /></div>
-                      <div className="col-span-1"><Input label="Wt (g)" type="number" isMonospaced value={oldGold.weight || ''} onChange={e => setOldGold({ ...oldGold, weight: parseFloat(e.target.value) })} /></div>
-                      <div className="col-span-1"><Input label="Rate" type="number" isMonospaced value={oldGold.rate || ''} onChange={e => setOldGold({ ...oldGold, rate: parseFloat(e.target.value) })} /></div>
-                      <div className="col-span-4 text-right pt-2 border-t border-pink-100"><span className="text-xs font-bold text-pink-600 uppercase mr-2">Exchange Value:</span><span className="font-mono font-bold text-pink-800 text-lg">{formatCurrency(oldGoldValue)}</span></div>
-                    </div>
-                  )}
-                </section>
-                <section className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm shrink-0">
-                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2"><AlertCircle size={14} /> Additional Notes</h4>
-                  <textarea className="w-full bg-gray-50 border border-gray-200 rounded-md p-3 text-sm focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none resize-none" rows={2} placeholder="Special instructions, design details, etc." value={notes} onChange={e => setNotes(e.target.value)} />
-                </section>
               </div>
-              <div className="col-span-4 flex flex-col h-full sticky top-0">
+
+              {/* FINANCIAL SUMMARY & ADVANCE PAYMENT PANEL */}
+              <div className="col-span-4 flex flex-col gap-6">
                 <div className="bg-[#2D2A26] p-6 rounded-t-lg text-white shadow-xl">
                   <h4 className="text-xs font-bold text-gold-500 uppercase tracking-widest mb-4">Financial Summary</h4>
+                  
                   <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-700">
-                    <span className="text-sm font-medium">Price Lock</span>
-                    <button onClick={() => setIsPriceLocked(!isPriceLocked)} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${isPriceLocked ? 'bg-gold-500 text-white' : 'bg-gray-700 text-gray-400'}`}>{isPriceLocked ? <Lock size={12} /> : <Unlock size={12} />}{isPriceLocked ? 'LOCKED' : 'ESTIMATE'}</button>
+                    <span className="text-sm font-medium">Price Lock Mode</span>
+                    <button 
+                      onClick={() => setIsPriceLocked(!isPriceLocked)} 
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${isPriceLocked ? 'bg-gold-500 text-white' : 'bg-gray-700 text-gray-400'}`}
+                    >
+                      {isPriceLocked ? <Lock size={12} /> : <Unlock size={12} />}
+                      {isPriceLocked ? 'LOCKED' : 'ESTIMATE'}
+                    </button>
                   </div>
+
                   <div className="space-y-3 font-mono text-sm">
-                    <div className="flex justify-between text-gray-400"><span>Items Subtotal</span><span>{formatCurrency(itemsTotal)}</span></div>
-                    {saleType === 'GST' && (<div className="flex justify-between text-gold-400"><span>GST (3%)</span><span>+ {formatCurrency(gstAmount)}</span></div>)}
-                    {oldGoldValue > 0 && (<div className="flex justify-between text-pink-300"><span>Less: Old Gold</span><span>- {formatCurrency(oldGoldValue)}</span></div>)}
-                    <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-700">
+                    <div className="flex justify-between text-gray-400">
+                      <span>Items Subtotal</span>
+                      <span>{formatCurrency(itemsTotal)}</span>
+                    </div>
+
+                    {saleType === 'GST' ? (
+                      <div className="flex justify-between text-gold-400">
+                        <span>GST (3%)</span>
+                        <span>+ {formatCurrency(gstAmount)}</span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between text-gray-400 text-xs italic">
+                        <span>Tax Mode</span>
+                        <span className="text-gray-500">NON-GST (0%)</span>
+                      </div>
+                    )}
+
+                    {oldGoldValue > 0 && (
+                      <div className="flex justify-between text-pink-300">
+                        <span>Less: Old Gold Scrap</span>
+                        <span>- {formatCurrency(oldGoldValue)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center pt-3 mt-2 border-t border-gray-700">
                       <span className="font-sans font-bold text-white">Grand Total</span>
                       {isPriceLocked ? (
-                        <div className="w-32"><input type="number" className="w-full bg-gray-800 border border-gold-500/50 rounded px-2 py-1 text-right text-gold-400 font-bold focus:outline-none focus:border-gold-500 text-lg" value={manualTotal} onChange={e => setManualTotal(e.target.value)} /></div>
-                      ) : (<span className="text-2xl font-bold text-gold-400">{formatCurrency(calculatedGrandTotal)}</span>)}
+                        <div className="w-36">
+                          <input 
+                            type="number" 
+                            className="w-full bg-gray-800 border border-gold-500/50 rounded px-2 py-1 text-right text-gold-400 font-bold focus:outline-none focus:border-gold-500 text-lg" 
+                            value={manualTotal} 
+                            onChange={e => setManualTotal(e.target.value)} 
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-2xl font-bold text-gold-400">{formatCurrency(calculatedGrandTotal)}</span>
+                      )}
                     </div>
                   </div>
                 </div>
+
                 <div className="bg-gray-100 p-6 rounded-b-lg border border-gray-200 border-t-0 flex-1 flex flex-col shadow-lg">
                   <div className="space-y-6 mb-8">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Advance Payment</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Advance Deposit Received *</label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">₹</span>
-                        <input type="number" className="w-full pl-10 pr-4 py-4 rounded-lg border border-gray-300 font-mono font-bold text-2xl text-green-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none shadow-inner" placeholder="0.00" value={advanceInput} onChange={e => setAdvanceInput(e.target.value)} />
+                        <input 
+                          type="number" 
+                          className="w-full pl-10 pr-4 py-4 rounded-lg border border-gray-300 font-mono font-bold text-2xl text-green-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none shadow-inner" 
+                          placeholder="0.00" 
+                          value={advanceInput} 
+                          onChange={e => setAdvanceInput(e.target.value)} 
+                        />
                       </div>
                     </div>
+
                     <div className="flex justify-between items-center p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-                      <span className="text-xs font-bold text-red-500 uppercase">Balance Due</span>
+                      <span className="text-xs font-bold text-red-500 uppercase">Remaining Balance Due</span>
                       <span className="font-mono font-bold text-xl text-red-600">{formatCurrency(balanceDue)}</span>
                     </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Customer Notes / Specific Design Instructions</label>
+                      <textarea 
+                        rows={2} 
+                        placeholder="Specific gold weight constraints or instructions..." 
+                        value={notes} 
+                        onChange={e => setNotes(e.target.value)} 
+                        className="w-full p-2.5 rounded-lg border border-gray-300 text-xs outline-none focus:border-gold-500"
+                      />
+                    </div>
                   </div>
+
                   <div className="mt-auto">
                     <Button fullWidth onClick={handleCreateBooking} className="h-14 text-lg shadow-xl hover:translate-y-[-2px] transition-transform">
-                      {editingBookingId ? 'Update Booking' : 'Confirm Booking'}
+                      {editingBookingId ? 'Update Order Booking' : 'Confirm Order Booking'}
                     </Button>
-                    <p className="text-center text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1"><AlertCircle size={12} /> Invoice will be generated upon delivery</p>
+                    <p className="text-center text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1">
+                      <AlertCircle size={12} /> Printable A5 receipt generated on confirmation
+                    </p>
                   </div>
                 </div>
               </div>
@@ -891,7 +1081,8 @@ export const AdvanceBooking: React.FC = () => {
           </div>
         </div>
       )}
-      {/* 5. PRINT COMPONENTS (STRICTLY FOR PRINTER) */}
+
+      {/* PRINT COMPONENTS (STRICTLY FOR PRINTER) */}
       <div className="hidden print:block print-block">
         {selectedBookingForPrint && (
           <AdvanceBookingPrint
@@ -914,7 +1105,8 @@ export const AdvanceBooking: React.FC = () => {
           />
         )}
       </div>
-      {/* 6. ON-SCREEN PREVIEW MODAL */}
+
+      {/* ON-SCREEN PREVIEW MODAL */}
       {showPrintPreview && selectedBookingForPrint && (
         <div className="fixed inset-0 z-[100] bg-charcoal-900/80 backdrop-blur-md flex items-center justify-center p-8 print-hidden print:hidden">
           <div className="bg-gray-100 w-full max-w-[1000px] h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
@@ -923,7 +1115,7 @@ export const AdvanceBooking: React.FC = () => {
                 <div className="w-10 h-10 rounded-full bg-gold-500 text-charcoal-900 flex items-center justify-center font-bold"><Eye size={20} /></div>
                 <div>
                   <h3 className="font-bold text-lg tracking-wide uppercase">Order Preview</h3>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Verifying order booking before printing</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Verifying order booking receipt before printing</p>
                 </div>
               </div>
               <div className="flex gap-4">

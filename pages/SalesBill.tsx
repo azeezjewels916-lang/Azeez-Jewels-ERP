@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Plus, 
-  Trash2, 
-  Search, 
-  ScanLine, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  Plus,
+  Trash2,
+  Search,
+  ScanLine,
+  ChevronDown,
+  ChevronUp,
   CreditCard,
   Printer,
   X,
@@ -26,12 +26,12 @@ import { SilverBillPrint } from '../components/SilverBillPrint';
 
 // --- HELPERS ---
 
-const formatCurrency = (amount: number) => 
+const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(amount);
 
 const numberToWords = (num: number): string => {
   if (num === 0) return "Zero Rupees Only";
-  return `Rupees ${num.toFixed(0)} Only`; 
+  return `Rupees ${num.toFixed(0)} Only`;
 };
 
 const roundToWhole = (num: number) => Math.round(num);
@@ -87,7 +87,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         }
         return;
       }
-      
+
       try {
         setLoading(true);
         // Load bill
@@ -96,7 +96,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
           .select('*, customers(*)')
           .eq('id', billId)
           .single();
-        
+
         if (billError) throw billError;
 
         // Load items
@@ -111,14 +111,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         // Set state
         setBillNo(bill.bill_no);
         setBillDate(bill.bill_date);
-        
+
         // Normalize sale type for UI compatibility
         const rawType = (bill.sale_type || '').toUpperCase();
         const normalizedType = (rawType === 'NOGST' || rawType === 'NONGST' || rawType === 'NON_GST') ? 'NON GST' : rawType;
         setSaleType(normalizedType as 'GST' | 'NON GST');
 
         setCustomer(bill.customers as Customer);
-        
+
         // Handle items
         const formattedItems: BillItem[] = (billItems || [])
           .filter(item => item.item_name !== 'Value Added / MC')
@@ -236,7 +236,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   const [voucherNo, setVoucherNo] = useState('');
   const [saleType, setSaleType] = useState<'GST' | 'NON GST'>('GST');
   const GST_RATE = 0.03;
-  
+
   // --- OLD GOLD STATE ---
   const [isOldGoldOpen, setIsOldGoldOpen] = useState(false);
   const [oldGoldExchange, setOldGoldExchange] = useState({
@@ -252,21 +252,21 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
   // --- VALUE ADDED / MC STATE ---
   const [mcValueAdded, setMcValueAdded] = useState({
-    weight: 0, 
+    weight: 0,
     weightInput: '',
-    rate: 0, 
+    rate: 0,
     rateInput: '',
     total: 0
   });
 
   // --- PAYMENT STATE ---
   const [paymentMethods, setPaymentMethods] = useState<PaymentRecord[]>([]);
-  const [currentPayment, setCurrentPayment] = useState<{type: string, amount: string, reference: string}>({
+  const [currentPayment, setCurrentPayment] = useState<{ type: string, amount: string, reference: string }>({
     type: 'cash', amount: '', reference: ''
   });
 
   // --- TOTALS STATE ---
-  const [amountPayableInput, setAmountPayableInput] = useState<string>(''); 
+  const [amountPayableInput, setAmountPayableInput] = useState<string>('');
   const [calculatedTotals, setCalculatedTotals] = useState({
     goldSubtotal: 0,
     silverSubtotal: 0,
@@ -279,7 +279,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   const isReverseCalculating = useRef(false);
 
   // --- EFFECTS ---
-  
+
   // 1. Sync initial rate when rates are loaded or item is reset
   useEffect(() => {
     const currentTypeRate = allMetalRates[newItem.metal_type] || 0;
@@ -300,9 +300,9 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
           .select('*')
           .eq('effective_date', billDate);
 
-        const ratesMap: Record<string, number> = { 
-          gold: 0, gold_916: 0, gold_750: 0, 
-          silver_92: 0, silver_70: 0, selam_silver: 0 
+        const ratesMap: Record<string, number> = {
+          gold: 0, gold_916: 0, gold_750: 0,
+          silver_92: 0, silver_70: 0, selam_silver: 0
         };
 
         if (data && data.length > 0) {
@@ -403,7 +403,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     const weight = parseFloat(oldGoldExchange.weightInput) || 0;
     const rate = parseFloat(oldGoldExchange.rateInput) || (dailyGoldRate || 0);
     const total = weight * rate;
-    
+
     if (weight > 0 && !oldGoldExchange.rateInput && dailyGoldRate > 0) {
       setOldGoldExchange(prev => ({ ...prev, weight, rate, rateInput: dailyGoldRate.toString(), total }));
     } else {
@@ -425,26 +425,26 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
     const oldGoldValue = oldGoldExchange.total || 0;
     const valueAddedMC = mcValueAdded.total || 0;
-    
+
     const baseTaxableWithoutMc = itemsSubtotal - oldGoldValue;
     const preGstTotal = baseTaxableWithoutMc + valueAddedMC;
 
     const gstRaw = saleType === 'GST' ? preGstTotal * GST_RATE : 0;
     const gstAmount = roundToWhole(gstRaw);
-    
+
     const grandTotal = saleType === 'GST' ? preGstTotal + gstAmount : preGstTotal;
 
     setCalculatedTotals({
       goldSubtotal,
       silverSubtotal,
       itemsSubtotal,
-      baseTaxable: preGstTotal, 
+      baseTaxable: preGstTotal,
       gstAmount,
       grandTotal
     });
 
     if (Math.abs(grandTotal - (parseFloat(amountPayableInput) || 0)) > 1) {
-       setAmountPayableInput(grandTotal > 0 ? grandTotal.toFixed(0) : '');
+      setAmountPayableInput(grandTotal > 0 ? grandTotal.toFixed(0) : '');
     }
 
   }, [items, oldGoldExchange.total, mcValueAdded.total, saleType]);
@@ -454,7 +454,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     const targetAmount = parseFloat(val);
 
     if (isNaN(targetAmount) || targetAmount < 0) return;
-    
+
     isReverseCalculating.current = true;
 
     const itemsSubtotal = items.reduce((sum, item) => sum + item.line_total, 0);
@@ -465,7 +465,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     const requiredMcTotal = targetTaxable - baseTaxableWithoutMc;
 
     let newMcState = { ...mcValueAdded, total: 0 };
-    
+
     if (requiredMcTotal > 0) {
       newMcState.total = roundToWhole(requiredMcTotal);
       const currentWeight = parseFloat(mcValueAdded.weightInput) || 0;
@@ -487,12 +487,12 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     const preGstTotal = baseTaxableWithoutMc + newMcState.total;
     const gstRaw = saleType === 'GST' ? preGstTotal * GST_RATE : 0;
     const gstAmount = roundToWhole(gstRaw);
-    
+
     setCalculatedTotals(prev => ({
-       ...prev,
-       baseTaxable: preGstTotal,
-       gstAmount,
-       grandTotal: targetAmount 
+      ...prev,
+      baseTaxable: preGstTotal,
+      gstAmount,
+      grandTotal: targetAmount
     }));
 
     setTimeout(() => {
@@ -527,7 +527,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     // 1. Update UI
     const numValue = parseFloat(value);
     const rate = isNaN(numValue) ? 0 : numValue;
-    
+
     setAllMetalRates(prev => ({ ...prev, [metalKey]: rate }));
     if (metalKey === 'gold') setDailyGoldRate(rate);
 
@@ -561,8 +561,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     const finalRate = customRate > 0 ? customRate : (defaultRate > 0 ? defaultRate : newItem.rate);
 
     if (finalRate <= 0) {
-       toast({ title: "Rate Missing", description: "Please enter a rate", variant: 'destructive' });
-       return;
+      toast({ title: "Rate Missing", description: "Please enter a rate", variant: 'destructive' });
+      return;
     }
 
     let making = 0;
@@ -571,7 +571,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     } else if (newItem.makingChargesPercentage) {
       making = (netWeight * finalRate) * (parseFloat(newItem.makingChargesPercentage) / 100);
     } else if (newItem.makingChargesInput) {
-      making = newItem.makingChargesInput.includes('%') 
+      making = newItem.makingChargesInput.includes('%')
         ? (netWeight * finalRate) * (parseFloat(newItem.makingChargesInput.replace('%', '')) / 100)
         : parseFloat(newItem.makingChargesInput) || 0;
     }
@@ -594,9 +594,9 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       hsn_code: newItem.hsn_code,
       purity: newItem.purity || 'Standard'
     }]);
-    
+
     setNewItem({
-      barcode: '', inventory_item_id: '', category: '', item_name: '', huid: '', gross_weight: 0, grossWeightInput: '', 
+      barcode: '', inventory_item_id: '', category: '', item_name: '', huid: '', gross_weight: 0, grossWeightInput: '',
       net_weight: 0, netWeightInput: '', weight: 0, weightInput: '', rate: 0, rateInput: '',
       making_charges: 0, makingChargesInput: '', makingChargesAmount: '',
       makingChargesPercentage: '', purity: '', hsn_code: '711319', metal_type: 'gold'
@@ -636,10 +636,10 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
   const handleSaveBill = async () => {
     if (!customer || items.length === 0 || !staffId) {
-      toast({ 
-        title: "Error", 
-        description: !staffId ? "Session expired. Please re-login." : "Please check items and customer details.", 
-        variant: 'destructive' 
+      toast({
+        title: "Error",
+        description: !staffId ? "Session expired. Please re-login." : "Please check items and customer details.",
+        variant: 'destructive'
       });
       return;
     }
@@ -668,12 +668,12 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         savedBill = await createBill(billData);
         setBillNo(billData.bill_no);
       }
-      
+
       const billItems = items.map((item, idx) => ({
-        bill_id: savedBill.id, 
+        bill_id: savedBill.id,
         inventory_item_id: item.inventory_item_id || null,
         category: item.category || null,
-        barcode: item.barcode || null, 
+        barcode: item.barcode || null,
         item_name: item.item_name,
         huid: item.huid || null,
         gross_weight: item.gross_weight,
@@ -683,13 +683,13 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       }));
 
       if (mcValueAdded.total > 0) {
-         billItems.push({
-           bill_id: savedBill.id, 
-           barcode: null, 
-           item_name: 'Value Added / MC',
-           weight: parseFloat(mcValueAdded.weightInput) || 0, rate: parseFloat(mcValueAdded.rateInput) || 0,
-           making_charges: 0, line_total: mcValueAdded.total, sl_no: billItems.length + 1, metal_type: 'service'
-         });
+        billItems.push({
+          bill_id: savedBill.id,
+          barcode: null,
+          item_name: 'Value Added / MC',
+          weight: parseFloat(mcValueAdded.weightInput) || 0, rate: parseFloat(mcValueAdded.rateInput) || 0,
+          making_charges: 0, line_total: mcValueAdded.total, sl_no: billItems.length + 1, metal_type: 'service'
+        });
       }
       await createBillItems(savedBill.id, billItems);
       await deductInventoryStock(billItems);
@@ -707,24 +707,24 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
   return (
     <div className="flex h-full bg-app-bg relative">
-      
+
       {/* 1. PRINT COMPONENTS (STRICTLY FOR PRINTER) */}
       <div className="print-block">
         {activePrintView === 'invoice' && (
-          <InvoicePrint 
+          <InvoicePrint
             billNo={billNo} billDate={billDate} saleType={saleType}
             customer={customer} items={items} allMetalRates={allMetalRates}
             totals={calculatedTotals} mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
             oldGold={{
-               weight: parseFloat(oldGoldExchange.weightInput) || 0,
-               rate: parseFloat(oldGoldExchange.rateInput) || 0,
-               total: oldGoldExchange.total, purity: oldGoldExchange.purity,
-               description: oldGoldExchange.particulars
+              weight: parseFloat(oldGoldExchange.weightInput) || 0,
+              rate: parseFloat(oldGoldExchange.rateInput) || 0,
+              total: oldGoldExchange.total, purity: oldGoldExchange.purity,
+              description: oldGoldExchange.particulars
             }}
           />
         )}
         {activePrintView === 'silver' && (
-          <SilverBillPrint 
+          <SilverBillPrint
             billNo={billNo} billDate={billDate} saleType={saleType}
             customer={customer} items={items} totals={calculatedTotals}
             mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
@@ -732,12 +732,12 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
           />
         )}
         {activePrintView === 'exchange' && (
-          <ExchangePrint 
+          <ExchangePrint
             voucherNo={voucherNo} date={billDate} customer={customer}
             exchangeData={{
-               particulars: oldGoldExchange.particulars, weight: parseFloat(oldGoldExchange.weightInput) || 0,
-               rate: parseFloat(oldGoldExchange.rateInput) || 0, purity: oldGoldExchange.purity,
-               hsn_code: oldGoldExchange.hsn_code, total: oldGoldExchange.total
+              particulars: oldGoldExchange.particulars, weight: parseFloat(oldGoldExchange.weightInput) || 0,
+              rate: parseFloat(oldGoldExchange.rateInput) || 0, purity: oldGoldExchange.purity,
+              hsn_code: oldGoldExchange.hsn_code, total: oldGoldExchange.total
             }}
           />
         )}
@@ -746,125 +746,125 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       {/* 2. ON-SCREEN PREVIEW MODAL */}
       {showPreviewModal && (
         <div className="fixed inset-0 z-[100] bg-charcoal-900/80 backdrop-blur-md flex items-center justify-center p-8 print:hidden">
-           <div className="bg-gray-100 w-full max-w-[1000px] h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
-              <div className="bg-charcoal-900 px-8 py-4 flex justify-between items-center text-white shrink-0 shadow-lg">
-                 <div className="flex items-center gap-4">
-                   <div className="w-10 h-10 rounded-full bg-gold-500 text-charcoal-900 flex items-center justify-center font-bold">
-                     <Eye size={20}/>
-                   </div>
-                   <div>
-                     <h3 className="font-bold text-base tracking-wide uppercase">Print Format Preview</h3>
-                     <div className="flex gap-2 mt-1">
-                       <button 
-                         onClick={() => setActivePrintView('invoice')} 
-                         className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'invoice' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
-                       >
-                         Tax Invoice
-                       </button>
-                       <button 
-                         onClick={() => setActivePrintView('silver')} 
-                         className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'silver' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
-                       >
-                         Silver Cash Bill
-                       </button>
-                       <button 
-                         onClick={() => setActivePrintView('exchange')} 
-                         className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'exchange' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
-                       >
-                         Exchange Voucher
-                       </button>
-                     </div>
-                   </div>
-                 </div>
-                 <div className="flex items-center gap-3">
-                    <Button 
-                       onClick={handleActualPrint} 
-                       variant="secondary"
-                       className="bg-gold-500 text-charcoal-900 border-none hover:bg-gold-600 shadow-xl"
+          <div className="bg-gray-100 w-full max-w-[1000px] h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+            <div className="bg-charcoal-900 px-8 py-4 flex justify-between items-center text-white shrink-0 shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-gold-500 text-charcoal-900 flex items-center justify-center font-bold">
+                  <Eye size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base tracking-wide uppercase">Print Format Preview</h3>
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      onClick={() => setActivePrintView('invoice')}
+                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'invoice' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
                     >
-                       <Printer size={18} className="mr-2"/> Send to Printer
-                    </Button>
-                    <button onClick={() => setShowPreviewModal(false)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/10 rounded-full">
-                       <X size={24}/>
+                      Tax Invoice
                     </button>
-                 </div>
-              </div>
-
-              {activePrintView === 'silver' && (
-                <div className="bg-white px-8 py-2 border-b border-gray-200 flex items-center gap-6 text-xs font-bold text-charcoal-800">
-                  <div className="flex items-center gap-2">
-                    <label>Exchange Value %:</label>
-                    <input 
-                      type="text" 
-                      value={exchangeValuePct} 
-                      onChange={(e) => setExchangeValuePct(e.target.value)} 
-                      className="w-16 px-2 py-1 border border-gray-300 rounded font-mono text-center"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label>Return Value %:</label>
-                    <input 
-                      type="text" 
-                      value={returnValuePct} 
-                      onChange={(e) => setReturnValuePct(e.target.value)} 
-                      className="w-16 px-2 py-1 border border-gray-300 rounded font-mono text-center"
-                    />
+                    <button
+                      onClick={() => setActivePrintView('silver')}
+                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'silver' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
+                    >
+                      Silver Cash Bill
+                    </button>
+                    <button
+                      onClick={() => setActivePrintView('exchange')}
+                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'exchange' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
+                    >
+                      Exchange Voucher
+                    </button>
                   </div>
                 </div>
-              )}
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={handleActualPrint}
+                  variant="secondary"
+                  className="bg-gold-500 text-charcoal-900 border-none hover:bg-gold-600 shadow-xl"
+                >
+                  <Printer size={18} className="mr-2" /> Send to Printer
+                </Button>
+                <button onClick={() => setShowPreviewModal(false)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/10 rounded-full">
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
 
-              <div className="flex-1 overflow-auto bg-gray-200 p-8 custom-scrollbar">
-                <div className="scale-90 origin-top">
-                  {activePrintView === 'invoice' ? (
-                    <InvoicePrint 
-                      isScreenPreview
-                      billNo={billNo} billDate={billDate} saleType={saleType}
-                      customer={customer} items={items} allMetalRates={allMetalRates}
-                      totals={calculatedTotals} mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
-                      oldGold={{
-                        weight: parseFloat(oldGoldExchange.weightInput) || 0,
-                        rate: parseFloat(oldGoldExchange.rateInput) || 0,
-                        total: oldGoldExchange.total, purity: oldGoldExchange.purity,
-                        description: oldGoldExchange.particulars
-                      }}
-                    />
-                  ) : activePrintView === 'silver' ? (
-                    <SilverBillPrint 
-                      isScreenPreview
-                      billNo={billNo} billDate={billDate} saleType={saleType}
-                      customer={customer} items={items} totals={calculatedTotals}
-                      mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
-                      exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
-                    />
-                  ) : (
-                    <ExchangePrint 
-                      isScreenPreview
-                      voucherNo={voucherNo} date={billDate} customer={customer}
-                      exchangeData={{
-                        particulars: oldGoldExchange.particulars, weight: parseFloat(oldGoldExchange.weightInput) || 0,
-                        rate: parseFloat(oldGoldExchange.rateInput) || 0, purity: oldGoldExchange.purity,
-                        hsn_code: oldGoldExchange.hsn_code, total: oldGoldExchange.total
-                      }}
-                    />
-                  )}
+            {activePrintView === 'silver' && (
+              <div className="bg-white px-8 py-2 border-b border-gray-200 flex items-center gap-6 text-xs font-bold text-charcoal-800">
+                <div className="flex items-center gap-2">
+                  <label>Exchange Value %:</label>
+                  <input
+                    type="text"
+                    value={exchangeValuePct}
+                    onChange={(e) => setExchangeValuePct(e.target.value)}
+                    className="w-16 px-2 py-1 border border-gray-300 rounded font-mono text-center"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label>Return Value %:</label>
+                  <input
+                    type="text"
+                    value={returnValuePct}
+                    onChange={(e) => setReturnValuePct(e.target.value)}
+                    className="w-16 px-2 py-1 border border-gray-300 rounded font-mono text-center"
+                  />
                 </div>
               </div>
-              <div className="p-4 bg-white border-t border-gray-200 text-center">
-                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2">
-                    <CheckCircle size={12} className="text-green-500"/> Final verification check required before sealing the bill
-                 </p>
+            )}
+
+            <div className="flex-1 overflow-auto bg-gray-200 p-8 custom-scrollbar">
+              <div className="scale-90 origin-top">
+                {activePrintView === 'invoice' ? (
+                  <InvoicePrint
+                    isScreenPreview
+                    billNo={billNo} billDate={billDate} saleType={saleType}
+                    customer={customer} items={items} allMetalRates={allMetalRates}
+                    totals={calculatedTotals} mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+                    oldGold={{
+                      weight: parseFloat(oldGoldExchange.weightInput) || 0,
+                      rate: parseFloat(oldGoldExchange.rateInput) || 0,
+                      total: oldGoldExchange.total, purity: oldGoldExchange.purity,
+                      description: oldGoldExchange.particulars
+                    }}
+                  />
+                ) : activePrintView === 'silver' ? (
+                  <SilverBillPrint
+                    isScreenPreview
+                    billNo={billNo} billDate={billDate} saleType={saleType}
+                    customer={customer} items={items} totals={calculatedTotals}
+                    mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+                    exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+                  />
+                ) : (
+                  <ExchangePrint
+                    isScreenPreview
+                    voucherNo={voucherNo} date={billDate} customer={customer}
+                    exchangeData={{
+                      particulars: oldGoldExchange.particulars, weight: parseFloat(oldGoldExchange.weightInput) || 0,
+                      rate: parseFloat(oldGoldExchange.rateInput) || 0, purity: oldGoldExchange.purity,
+                      hsn_code: oldGoldExchange.hsn_code, total: oldGoldExchange.total
+                    }}
+                  />
+                )}
               </div>
-           </div>
+            </div>
+            <div className="p-4 bg-white border-t border-gray-200 text-center">
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2">
+                <CheckCircle size={12} className="text-green-500" /> Final verification check required before sealing the bill
+              </p>
+            </div>
+          </div>
         </div>
       )}
-      
+
       {/* 3. MAIN WORKSPACE */}
       <div className="flex-1 p-6 overflow-y-auto pb-32 space-y-6 print:hidden">
         {/* Metal Rates */}
         <div className="bg-white px-5 py-3.5 rounded-xl shadow-sm border border-app-border flex justify-between items-center gap-5 transition-all hover:shadow-luxury">
           <div className="flex items-center gap-2 border-r border-app-border pr-5 shrink-0">
-             <span className="w-2.5 h-2.5 rounded-full bg-gold-500 animate-pulse"></span>
-             <span className="text-gold-600 font-bold uppercase text-xs tracking-wider">Live Rates (₹/g)</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-gold-500 animate-pulse"></span>
+            <span className="text-gold-600 font-bold uppercase text-xs tracking-wider">Live Rates (₹/g)</span>
           </div>
           <div className="flex-1 grid grid-cols-6 gap-3">
             {Object.entries({
@@ -873,8 +873,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             }).map(([label, key]) => (
               <div key={key} className="text-center bg-gold-50/40 rounded-lg p-1.5 border border-gold-500/15">
                 <label className="block text-[10px] uppercase text-charcoal-700 font-bold mb-1 tracking-wider">{label}</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   className="w-full text-center font-mono font-bold text-charcoal-900 bg-white rounded border border-gold-500/20 outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500/30 py-1 text-xs shadow-sm transition-all"
                   value={allMetalRates[key] || ''}
                   onChange={(e) => handleRateUpdate(key, e.target.value)}
@@ -887,82 +887,82 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         {/* Info Grid */}
         <div className="grid grid-cols-2 gap-6">
           <Card className="shadow-sm">
-             {!showAddCustomerForm ? (
-               <div className="flex items-end gap-3 relative">
-                  <div className="flex-1 relative">
-                    <Input 
-                      label="Search Customer" 
-                      icon={isSearching ? <div className="animate-spin w-4 h-4 border-2 border-gold-500 rounded-full border-t-transparent"/> : <Search size={16} />} 
-                      placeholder="Phone or Name..."
-                      value={customerSearch}
-                      onChange={(e) => setCustomerSearch(e.target.value)}
-                      onFocus={() => setShowCustomerDropdown(true)}
-                    />
-                    {showCustomerDropdown && customerMatches.length > 0 && (
-                      <div className="absolute top-full left-0 w-full bg-white border border-gray-200 shadow-lg rounded-md mt-1 z-50 max-h-48 overflow-auto">
-                        {customerMatches.map(cust => (
-                          <div key={cust.id} className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0" onClick={() => handleSelectCustomer(cust)}>
-                            <div className="flex justify-between items-center">
-                              <p className="font-bold text-sm text-charcoal-900">{cust.name}</p>
-                              {cust.customer_code && <span className="text-[10px] bg-charcoal-900 text-gold-500 px-1.5 py-0.5 rounded font-bold">{cust.customer_code}</span>}
-                            </div>
-                            <p className="text-xs text-gray-500">{cust.phone}</p>
+            {!showAddCustomerForm ? (
+              <div className="flex items-end gap-3 relative">
+                <div className="flex-1 relative">
+                  <Input
+                    label="Search Customer"
+                    icon={isSearching ? <div className="animate-spin w-4 h-4 border-2 border-gold-500 rounded-full border-t-transparent" /> : <Search size={16} />}
+                    placeholder="Phone or Name..."
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    onFocus={() => setShowCustomerDropdown(true)}
+                  />
+                  {showCustomerDropdown && customerMatches.length > 0 && (
+                    <div className="absolute top-full left-0 w-full bg-white border border-gray-200 shadow-lg rounded-md mt-1 z-50 max-h-48 overflow-auto">
+                      {customerMatches.map(cust => (
+                        <div key={cust.id} className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0" onClick={() => handleSelectCustomer(cust)}>
+                          <div className="flex justify-between items-center">
+                            <p className="font-bold text-sm text-charcoal-900">{cust.name}</p>
+                            {cust.customer_code && <span className="text-[10px] bg-charcoal-900 text-gold-500 px-1.5 py-0.5 rounded font-bold">{cust.customer_code}</span>}
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <Button variant="secondary" onClick={() => setShowAddCustomerForm(true)} className="mb-[1px]">+ New</Button>
-               </div>
-             ) : (
-               <div className="space-y-3 p-1">
-                 <h4 className="text-xs font-bold uppercase text-gold-600">Add New Customer</h4>
-                 <div className="flex gap-2">
-                   <Input placeholder="Name" value={newCustomerData.name} onChange={e => setNewCustomerData({...newCustomerData, name: e.target.value})} />
-                   <Input placeholder="Phone" value={newCustomerData.phone} onChange={e => setNewCustomerData({...newCustomerData, phone: e.target.value})} />
-                 </div>
-                 <Input placeholder="Address (Optional)" value={newCustomerData.address} onChange={e => setNewCustomerData({...newCustomerData, address: e.target.value})} />
-                 <div className="flex gap-2">
-                   <Button size="sm" onClick={handleAddNewCustomer}>Save</Button>
-                   <Button size="sm" variant="ghost" onClick={() => setShowAddCustomerForm(false)}>Cancel</Button>
-                 </div>
-               </div>
-             )}
-             {customer && !showAddCustomerForm && (
-               <div className="mt-3 p-3 bg-gold-100/50 rounded border border-gold-500/20 flex justify-between items-center">
-                 <div>
-                   <p className="font-bold text-charcoal-900">{customer.name}</p>
-                   <p className="text-xs text-gray-600 font-mono">{customer.phone}</p>
-                 </div>
-                 <button onClick={() => setCustomer(null)} className="text-xs text-red-500 hover:underline">Change</button>
-               </div>
-             )}
+                          <p className="text-xs text-gray-500">{cust.phone}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button variant="secondary" onClick={() => setShowAddCustomerForm(true)} className="mb-[1px]">+ New</Button>
+              </div>
+            ) : (
+              <div className="space-y-3 p-1">
+                <h4 className="text-xs font-bold uppercase text-gold-600">Add New Customer</h4>
+                <div className="flex gap-2">
+                  <Input placeholder="Name" value={newCustomerData.name} onChange={e => setNewCustomerData({ ...newCustomerData, name: e.target.value })} />
+                  <Input placeholder="Phone" value={newCustomerData.phone} onChange={e => setNewCustomerData({ ...newCustomerData, phone: e.target.value })} />
+                </div>
+                <Input placeholder="Address (Optional)" value={newCustomerData.address} onChange={e => setNewCustomerData({ ...newCustomerData, address: e.target.value })} />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleAddNewCustomer}>Save</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowAddCustomerForm(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+            {customer && !showAddCustomerForm && (
+              <div className="mt-3 p-3 bg-gold-100/50 rounded border border-gold-500/20 flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-charcoal-900">{customer.name}</p>
+                  <p className="text-xs text-gray-600 font-mono">{customer.phone}</p>
+                </div>
+                <button onClick={() => setCustomer(null)} className="text-xs text-red-500 hover:underline">Change</button>
+              </div>
+            )}
           </Card>
           <Card className="shadow-sm">
-              <div className="flex gap-4">
-                <div className="flex-1"><Input type="date" label="Bill Date" value={billDate} isMonospaced onChange={(e) => setBillDate(e.target.value)} /></div>
-                <div className="flex-1"><Select label="Sale Type" value={saleType} onChange={(e) => setSaleType(e.target.value as any)} options={[{ value: 'GST', label: 'GST (3%)' }, { value: 'NON GST', label: 'Non-GST' }]} /></div>
-              </div>
+            <div className="flex gap-4">
+              <div className="flex-1"><Input type="date" label="Bill Date" value={billDate} isMonospaced onChange={(e) => setBillDate(e.target.value)} /></div>
+              <div className="flex-1"><Select label="Sale Type" value={saleType} onChange={(e) => setSaleType(e.target.value as any)} options={[{ value: 'GST', label: 'GST (3%)' }, { value: 'NON GST', label: 'Non-GST' }]} /></div>
+            </div>
           </Card>
         </div>
 
         {/* Add Items */}
         <Card title="Add New Item">
           <div className="grid grid-cols-12 gap-3 items-end mb-6">
-            <div className="col-span-2"><Input label="Barcode" icon={isLoadingItem ? <div className="animate-spin w-3 h-3 border border-gray-400 rounded-full"/> : <ScanLine size={16} />} isMonospaced value={newItem.barcode} onChange={(e) => setNewItem({...newItem, barcode: e.target.value})} /></div>
-            <div className="col-span-2"><Input label="Item Name" value={newItem.item_name} onChange={(e) => setNewItem({...newItem, item_name: e.target.value})} /></div>
-            <div className="col-span-1"><Input label="HUID" isMonospaced value={newItem.huid} onChange={(e) => setNewItem({...newItem, huid: e.target.value})} /></div>
-            <div className="col-span-1"><Input label="Gross Wt" type="number" isMonospaced value={newItem.grossWeightInput} onChange={(e) => setNewItem({...newItem, grossWeightInput: e.target.value})} /></div>
-            <div className="col-span-1"><Input label="Net Wt" type="number" isMonospaced value={newItem.netWeightInput} onChange={(e) => setNewItem({...newItem, netWeightInput: e.target.value})} /></div>
+            <div className="col-span-2"><Input label="Barcode" icon={isLoadingItem ? <div className="animate-spin w-3 h-3 border border-gray-400 rounded-full" /> : <ScanLine size={16} />} isMonospaced value={newItem.barcode} onChange={(e) => setNewItem({ ...newItem, barcode: e.target.value })} /></div>
+            <div className="col-span-2"><Input label="Item Name" value={newItem.item_name} onChange={(e) => setNewItem({ ...newItem, item_name: e.target.value })} /></div>
+            <div className="col-span-1"><Input label="HUID" isMonospaced value={newItem.huid} onChange={(e) => setNewItem({ ...newItem, huid: e.target.value })} /></div>
+            <div className="col-span-1"><Input label="Gross Wt" type="number" isMonospaced value={newItem.grossWeightInput} onChange={(e) => setNewItem({ ...newItem, grossWeightInput: e.target.value })} /></div>
+            <div className="col-span-1"><Input label="Net Wt" type="number" isMonospaced value={newItem.netWeightInput} onChange={(e) => setNewItem({ ...newItem, netWeightInput: e.target.value })} /></div>
             <div className="col-span-1">
-               <Select label="Metal Type" value={newItem.metal_type} options={[{ value: 'gold', label: 'Gold (Std)' }, { value: 'gold_916', label: 'Gold (22k)' }, { value: 'gold_750', label: 'Gold (18k)' }, { value: 'silver_92', label: 'Silver (92.5)' }, { value: 'silver_70', label: 'Silver (70)' }, { value: 'selam_silver', label: 'Selam' }]} onChange={e => setNewItem({...newItem, metal_type: e.target.value, rateInput: (allMetalRates[e.target.value]||0).toString()})}/>
+              <Select label="Metal Type" value={newItem.metal_type} options={[{ value: 'gold', label: 'Gold (Std)' }, { value: 'gold_916', label: 'Gold (22k)' }, { value: 'gold_750', label: 'Gold (18k)' }, { value: 'silver_92', label: 'Silver (92.5)' }, { value: 'silver_70', label: 'Silver (70)' }, { value: 'selam_silver', label: 'Selam' }]} onChange={e => setNewItem({ ...newItem, metal_type: e.target.value, rateInput: (allMetalRates[e.target.value] || 0).toString() })} />
             </div>
-            <div className="col-span-2"><Input label="Rate/Gm" type="number" isMonospaced placeholder={dailyGoldRate.toString()} value={newItem.rateInput} onChange={(e) => setNewItem({...newItem, rateInput: e.target.value})} /></div>
+            <div className="col-span-2"><Input label="Rate/Gm" type="number" isMonospaced placeholder={dailyGoldRate.toString()} value={newItem.rateInput} onChange={(e) => setNewItem({ ...newItem, rateInput: e.target.value })} /></div>
             <div className="col-span-1">
               <label className="block text-xs font-bold text-charcoal-700 mb-1.5 uppercase">MC</label>
               <div className="flex gap-1">
-                 <input type="number" placeholder="Amt" className="w-1/2 bg-white border border-gray-300 rounded focus:border-gold-500 outline-none p-2 text-sm" value={newItem.makingChargesAmount} onChange={e => setNewItem({...newItem, makingChargesAmount: e.target.value, makingChargesPercentage: ''})} />
-                 <input type="number" placeholder="%" className="w-1/2 bg-white border border-gray-300 rounded focus:border-gold-500 outline-none p-2 text-sm" value={newItem.makingChargesPercentage} onChange={e => setNewItem({...newItem, makingChargesPercentage: e.target.value, makingChargesAmount: ''})} />
+                <input type="number" placeholder="Amt" className="w-1/2 bg-white border border-gray-300 rounded focus:border-gold-500 outline-none p-2 text-sm" value={newItem.makingChargesAmount} onChange={e => setNewItem({ ...newItem, makingChargesAmount: e.target.value, makingChargesPercentage: '' })} />
+                <input type="number" placeholder="%" className="w-1/2 bg-white border border-gray-300 rounded focus:border-gold-500 outline-none p-2 text-sm" value={newItem.makingChargesPercentage} onChange={e => setNewItem({ ...newItem, makingChargesPercentage: e.target.value, makingChargesAmount: '' })} />
               </div>
             </div>
             <div className="col-span-1 flex justify-end"><Button onClick={handleAddItem} className="!px-3 bg-charcoal-900 text-white hover:bg-black"><Plus size={20} /></Button></div>
@@ -1001,27 +1001,27 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
         {/* Old Gold Section */}
         <div className={`rounded-lg border transition-all duration-200 overflow-hidden ${isOldGoldOpen ? 'border-pink-300 ring-1 ring-pink-200' : 'border-gray-300'}`}>
-           <div onClick={() => setIsOldGoldOpen(!isOldGoldOpen)} className={`flex items-center justify-between p-4 cursor-pointer ${isOldGoldOpen ? 'bg-pink-50' : 'bg-white hover:bg-gray-50'}`}>
-             <div className="flex items-center gap-4">
-                <h3 className={`font-bold uppercase tracking-wide text-sm ${isOldGoldOpen ? 'text-pink-700' : 'text-charcoal-700'}`}>Old Gold Exchange (Deduction)</h3>
-                {oldGoldExchange.total > 0 && (
-                  <button onClick={(e) => { e.stopPropagation(); handleOpenPreview('exchange'); }} className="flex items-center gap-1.5 px-3 py-1 bg-pink-600 text-white text-[10px] font-bold uppercase rounded-full shadow-sm hover:bg-pink-700 transition-colors">
-                      <Eye size={12} /> Preview Exchange
-                  </button>
-                )}
-             </div>
-             {isOldGoldOpen ? <ChevronUp size={20} className="text-pink-600"/> : <ChevronDown size={20} className="text-gray-500"/>}
-           </div>
-           {isOldGoldOpen && (
-             <div className="p-5 bg-white border-t border-pink-100 grid grid-cols-12 gap-4">
-                <div className="col-span-4"><Input label="Particulars" value={oldGoldExchange.particulars} onChange={e => setOldGoldExchange({...oldGoldExchange, particulars: e.target.value})} /></div>
-                <div className="col-span-2"><Input label="HSN" value={oldGoldExchange.hsn_code} isMonospaced onChange={e => setOldGoldExchange({...oldGoldExchange, hsn_code: e.target.value})} /></div>
-                <div className="col-span-2"><Input label="Wt (g)" type="number" isMonospaced value={oldGoldExchange.weightInput} onChange={e => setOldGoldExchange({...oldGoldExchange, weightInput: e.target.value})} /></div>
-                <div className="col-span-2"><Input label="Purity %" type="number" isMonospaced value={oldGoldExchange.purity} onChange={e => setOldGoldExchange({...oldGoldExchange, purity: parseFloat(e.target.value)||0})} /></div>
-                <div className="col-span-2"><Input label="Rate" type="number" isMonospaced value={oldGoldExchange.rateInput} onChange={e => setOldGoldExchange({...oldGoldExchange, rateInput: e.target.value})} /></div>
-                <div className="col-span-12 flex justify-end mt-2"><div className="bg-pink-50 px-4 py-2 rounded text-pink-700 font-bold border border-pink-200">Value: - {formatCurrency(oldGoldExchange.total)}</div></div>
-             </div>
-           )}
+          <div onClick={() => setIsOldGoldOpen(!isOldGoldOpen)} className={`flex items-center justify-between p-4 cursor-pointer ${isOldGoldOpen ? 'bg-pink-50' : 'bg-white hover:bg-gray-50'}`}>
+            <div className="flex items-center gap-4">
+              <h3 className={`font-bold uppercase tracking-wide text-sm ${isOldGoldOpen ? 'text-pink-700' : 'text-charcoal-700'}`}>Old Gold Exchange (Deduction)</h3>
+              {oldGoldExchange.total > 0 && (
+                <button onClick={(e) => { e.stopPropagation(); handleOpenPreview('exchange'); }} className="flex items-center gap-1.5 px-3 py-1 bg-pink-600 text-white text-[10px] font-bold uppercase rounded-full shadow-sm hover:bg-pink-700 transition-colors">
+                  <Eye size={12} /> Preview Exchange
+                </button>
+              )}
+            </div>
+            {isOldGoldOpen ? <ChevronUp size={20} className="text-pink-600" /> : <ChevronDown size={20} className="text-gray-500" />}
+          </div>
+          {isOldGoldOpen && (
+            <div className="p-5 bg-white border-t border-pink-100 grid grid-cols-12 gap-4">
+              <div className="col-span-4"><Input label="Particulars" value={oldGoldExchange.particulars} onChange={e => setOldGoldExchange({ ...oldGoldExchange, particulars: e.target.value })} /></div>
+              <div className="col-span-2"><Input label="HSN" value={oldGoldExchange.hsn_code} isMonospaced onChange={e => setOldGoldExchange({ ...oldGoldExchange, hsn_code: e.target.value })} /></div>
+              <div className="col-span-2"><Input label="Wt (g)" type="number" isMonospaced value={oldGoldExchange.weightInput} onChange={e => setOldGoldExchange({ ...oldGoldExchange, weightInput: e.target.value })} /></div>
+              <div className="col-span-2"><Input label="Purity %" type="number" isMonospaced value={oldGoldExchange.purity} onChange={e => setOldGoldExchange({ ...oldGoldExchange, purity: parseFloat(e.target.value) || 0 })} /></div>
+              <div className="col-span-2"><Input label="Rate" type="number" isMonospaced value={oldGoldExchange.rateInput} onChange={e => setOldGoldExchange({ ...oldGoldExchange, rateInput: e.target.value })} /></div>
+              <div className="col-span-12 flex justify-end mt-2"><div className="bg-pink-50 px-4 py-2 rounded text-pink-700 font-bold border border-pink-200">Value: - {formatCurrency(oldGoldExchange.total)}</div></div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1030,7 +1030,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         <div className="p-5 border-b border-gray-200 bg-charcoal-900 text-white font-bold uppercase tracking-wider text-sm flex justify-between items-center">
           <span>{billId ? `Editing Bill: ${billNo}` : 'Summary'}</span>
           {billId && (
-            <button 
+            <button
               onClick={onClearEdit}
               className="text-[10px] bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded transition-colors"
             >
@@ -1043,113 +1043,113 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Subtotal</span><span className="font-mono font-bold">{formatCurrency(calculatedTotals.itemsSubtotal)}</span></div>
             {oldGoldExchange.total > 0 && <div className="flex justify-between items-center py-2 bg-pink-50 px-2 rounded -mx-2 font-bold text-pink-700"><span>Less: Old Gold</span><span className="font-mono">- {formatCurrency(oldGoldExchange.total)}</span></div>}
             <div className="bg-gold-50/50 border border-gold-100 rounded p-3 my-2">
-               <span className="text-[10px] font-bold text-gold-600 uppercase mb-2 block">Value Added (MC)</span>
-               <div className="grid grid-cols-3 gap-2">
-                 <Input placeholder="Wt" isMonospaced className="!py-1 text-xs" value={mcValueAdded.weightInput} onChange={e => setMcValueAdded({...mcValueAdded, weightInput: e.target.value, weight: parseFloat(e.target.value)||0, total: roundToWhole((parseFloat(e.target.value)||0) * (mcValueAdded.rate))})}/>
-                 <Input placeholder="Rate" isMonospaced className="!py-1 text-xs" value={mcValueAdded.rateInput} onChange={e => setMcValueAdded({...mcValueAdded, rateInput: e.target.value, rate: parseFloat(e.target.value)||0, total: roundToWhole((mcValueAdded.weight) * (parseFloat(e.target.value)||0))})}/>
-                 <div className="flex items-center justify-end font-mono font-bold text-sm">{formatCurrency(mcValueAdded.total)}</div>
-               </div>
+              <span className="text-[10px] font-bold text-gold-600 uppercase mb-2 block">Value Added (MC)</span>
+              <div className="grid grid-cols-3 gap-2">
+                <Input placeholder="Wt" isMonospaced className="!py-1 text-xs" value={mcValueAdded.weightInput} onChange={e => setMcValueAdded({ ...mcValueAdded, weightInput: e.target.value, weight: parseFloat(e.target.value) || 0, total: roundToWhole((parseFloat(e.target.value) || 0) * (mcValueAdded.rate)) })} />
+                <Input placeholder="Rate" isMonospaced className="!py-1 text-xs" value={mcValueAdded.rateInput} onChange={e => setMcValueAdded({ ...mcValueAdded, rateInput: e.target.value, rate: parseFloat(e.target.value) || 0, total: roundToWhole((mcValueAdded.weight) * (parseFloat(e.target.value) || 0)) })} />
+                <div className="flex items-center justify-end font-mono font-bold text-sm">{formatCurrency(mcValueAdded.total)}</div>
+              </div>
             </div>
             <div className="border-t border-dashed border-gray-300 pt-2 mt-2">
-               <div className="flex justify-between items-center text-xs text-gray-400"><span>Taxable</span><span className="font-mono">{formatCurrency(calculatedTotals.baseTaxable)}</span></div>
-               <div className="flex justify-between items-center font-bold"><span>GST ({saleType==='GST'?'3%':'0%'})</span><span className="font-mono">{formatCurrency(calculatedTotals.gstAmount)}</span></div>
+              <div className="flex justify-between items-center text-xs text-gray-400"><span>Taxable</span><span className="font-mono">{formatCurrency(calculatedTotals.baseTaxable)}</span></div>
+              <div className="flex justify-between items-center font-bold"><span>GST ({saleType === 'GST' ? '3%' : '0%'})</span><span className="font-mono">{formatCurrency(calculatedTotals.gstAmount)}</span></div>
             </div>
           </div>
           <div className="bg-charcoal-900 rounded p-6 text-center shadow-md">
             <p className="text-xs text-gold-500 font-bold uppercase mb-4">Net Payable</p>
-            <div className="inline-flex items-center border-b border-gray-700 pb-2 px-4 gap-3"><span className="text-2xl text-gold-500 opacity-60">₹</span><input type="number" className="bg-transparent text-center text-4xl text-white font-bold outline-none w-64" value={amountPayableInput} onChange={e => handleAmountPayableChange(e.target.value)}/></div>
+            <div className="inline-flex items-center border-b border-gray-700 pb-2 px-4 gap-3"><span className="text-2xl text-gold-500 opacity-60">₹</span><input type="number" className="bg-transparent text-center text-4xl text-white font-bold outline-none w-64" value={amountPayableInput} onChange={e => handleAmountPayableChange(e.target.value)} /></div>
             <p className="text-[10px] text-gray-400 mt-4 uppercase">{numberToWords(calculatedTotals.grandTotal)}</p>
           </div>
           <div className="bg-gray-50 p-4 rounded border border-gray-200">
-             <h4 className="text-xs font-bold uppercase mb-3 flex items-center gap-2"><CreditCard size={14}/> Add Payment</h4>
-             <div className="grid grid-cols-2 gap-3 mb-3">
-               <Select value={currentPayment.type} onChange={e => setCurrentPayment({...currentPayment, type: e.target.value})} options={[{ value: 'cash', label: 'Cash' }, { value: 'upi', label: 'UPI' }, { value: 'card', label: 'Card' }]} />
-               <Input type="number" placeholder="Amount" value={currentPayment.amount} onChange={e => setCurrentPayment({...currentPayment, amount: e.target.value})} />
-             </div>
-             <Button onClick={handleAddPayment} className="w-full bg-gold-500 text-white shadow-md">Add Payment</Button>
+            <h4 className="text-xs font-bold uppercase mb-3 flex items-center gap-2"><CreditCard size={14} /> Add Payment</h4>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <Select value={currentPayment.type} onChange={e => setCurrentPayment({ ...currentPayment, type: e.target.value })} options={[{ value: 'cash', label: 'Cash' }, { value: 'upi', label: 'UPI' }, { value: 'card', label: 'Card' }]} />
+              <Input type="number" placeholder="Amount" value={currentPayment.amount} onChange={e => setCurrentPayment({ ...currentPayment, amount: e.target.value })} />
+            </div>
+            <Button onClick={handleAddPayment} className="w-full bg-gold-500 text-white shadow-md">Add Payment</Button>
           </div>
           {paymentMethods.length > 0 && (
             <div className="border border-gray-200 rounded overflow-hidden">
-               <table className="w-full text-xs divide-y divide-gray-100">
-                 {paymentMethods.map(p => (<tr key={p.id} className="bg-white"><td className="p-2 font-bold uppercase">{p.type}</td><td className="p-2 text-right font-mono font-bold">{formatCurrency(parseFloat(p.amount))}</td><td className="p-2 text-center w-8"><button onClick={() => handleRemovePayment(p.id)} className="text-gray-400 hover:text-red-500"><X size={14}/></button></td></tr>))}
-                 <tr className="bg-gray-50 font-bold border-t"> <td className="p-2">Paid:</td><td className="p-2 text-right">{formatCurrency(totalPaid)}</td><td></td></tr>
-               </table>
+              <table className="w-full text-xs divide-y divide-gray-100">
+                {paymentMethods.map(p => (<tr key={p.id} className="bg-white"><td className="p-2 font-bold uppercase">{p.type}</td><td className="p-2 text-right font-mono font-bold">{formatCurrency(parseFloat(p.amount))}</td><td className="p-2 text-center w-8"><button onClick={() => handleRemovePayment(p.id)} className="text-gray-400 hover:text-red-500"><X size={14} /></button></td></tr>))}
+                <tr className="bg-gray-50 font-bold border-t"> <td className="p-2">Paid:</td><td className="p-2 text-right">{formatCurrency(totalPaid)}</td><td></td></tr>
+              </table>
             </div>
           )}
           <div className={`p-3 rounded border flex justify-between items-center font-bold uppercase text-xs ${balanceDue > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-             <span>{balanceDue > 0.9 ? 'Balance' : 'Complete'}</span><span className="font-mono text-sm">{formatCurrency(Math.max(0, balanceDue))}</span>
+            <span>{balanceDue > 0.9 ? 'Balance' : 'Complete'}</span><span className="font-mono text-sm">{formatCurrency(Math.max(0, balanceDue))}</span>
           </div>
         </div>
         <div className="p-6 bg-white border-t border-gray-200 space-y-3">
-           <div className="grid grid-cols-3 gap-2 mb-2">
-              <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('silver')} className="text-xs border-gold-500/30 text-gold-700 bg-gold-50/40 hover:bg-gold-100/60"><Eye size={14} className="mr-1"/> Silver Bill</Button>
-              <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('exchange')} className="text-xs border-pink-200 text-pink-600 hover:bg-pink-50"><Eye size={14} className="mr-1"/> Exchange</Button>
-              <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('invoice')} className="text-xs border-gray-200 text-gray-600 hover:bg-gray-50"><Eye size={14} className="mr-1"/> Tax Invoice</Button>
-           </div>
-           <Button fullWidth onClick={handleSaveBill} className="h-14 text-base shadow-lg" disabled={loading}>
-             {loading ? <RefreshCw className="animate-spin mr-2" size={20} /> : <Printer size={20} className="mr-2" />}
-             {billId ? 'UPDATE & PRINT' : 'SAVE & PRINT BILL'}
-           </Button>
-         </div>
-       </div>
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('silver')} className="text-xs border-gold-500/30 text-gold-700 bg-gold-50/40 hover:bg-gold-100/60"><Eye size={14} className="mr-1" /> Silver Bill</Button>
+            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('exchange')} className="text-xs border-pink-200 text-pink-600 hover:bg-pink-50"><Eye size={14} className="mr-1" /> Exchange</Button>
+            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('invoice')} className="text-xs border-gray-200 text-gray-600 hover:bg-gray-50"><Eye size={14} className="mr-1" /> Tax Invoice</Button>
+          </div>
+          <Button fullWidth onClick={handleSaveBill} className="h-14 text-base shadow-lg" disabled={loading}>
+            {loading ? <RefreshCw className="animate-spin mr-2" size={20} /> : <Printer size={20} className="mr-2" />}
+            {billId ? 'UPDATE & PRINT' : 'SAVE & PRINT BILL'}
+          </Button>
+        </div>
+      </div>
 
-       {/* CATEGORY SELECTION MODAL FOR DUPLICATE BARCODES */}
-       {isCategoryModalOpen && (
-         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-lg shadow-2xl border border-gold-500/30 w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
-             <div className="bg-charcoal-900 text-white px-6 py-4 flex justify-between items-center">
-               <div>
-                  <h3 className="font-bold text-base flex items-center gap-2">
-                    <Tag className="text-gold-500" size={18}/> Select Category for Barcode [{newItem.barcode}]
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Multiple items exist with this barcode. Choose the exact category item to buy:</p>
-               </div>
-               <button onClick={() => setIsCategoryModalOpen(false)} className="text-gray-400 hover:text-white">
-                 <X size={20}/>
-               </button>
-             </div>
+      {/* CATEGORY SELECTION MODAL FOR DUPLICATE BARCODES */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-2xl border border-gold-500/30 w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="bg-charcoal-900 text-white px-6 py-4 flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-base flex items-center gap-2">
+                  <Tag className="text-gold-500" size={18} /> Select Category for Barcode [{newItem.barcode}]
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">Multiple items exist with this barcode. Choose the exact category item to buy:</p>
+              </div>
+              <button onClick={() => setIsCategoryModalOpen(false)} className="text-gray-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
 
-             <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
-               {matchedBarcodeItems.map((item, idx) => {
-                 const wt = item.net_weight || item.weight || item.gross_weight || 0;
-                 return (
-                   <div 
-                     key={item.id || idx}
-                     onClick={() => populateSelectedItem(item)}
-                     className="p-4 rounded-lg border border-gray-200 hover:border-gold-500 hover:bg-gold-50/50 transition-all cursor-pointer flex items-center justify-between group shadow-sm"
-                   >
-                     <div className="flex items-center gap-4">
-                       <div className="w-10 h-10 rounded-full bg-gold-100 text-gold-700 font-bold flex items-center justify-center text-sm uppercase">
-                         {item.category?.slice(0, 2) || 'IT'}
-                       </div>
-                       <div>
-                         <h4 className="font-bold text-charcoal-900 group-hover:text-gold-700 text-base">{item.item_name}</h4>
-                         <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                           <span className="bg-charcoal-100 text-charcoal-800 font-bold px-2 py-0.5 rounded text-[10px] uppercase">
-                             Category: {item.category || 'General'}
-                           </span>
-                           <span>Purity: <strong className="text-charcoal-900">{item.purity || '22K'}</strong></span>
-                           <span>Weight: <strong className="text-charcoal-900">{wt}g</strong></span>
-                           {item.huid && <span>HUID: <strong className="font-mono">{item.huid}</strong></span>}
-                         </div>
-                       </div>
-                     </div>
-                     <Button size="sm" className="bg-charcoal-900 text-white group-hover:bg-gold-600 group-hover:text-white transition-all">
-                       Select {item.category || 'Item'}
-                     </Button>
-                   </div>
-                 );
-               })}
-             </div>
+            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+              {matchedBarcodeItems.map((item, idx) => {
+                const wt = item.net_weight || item.weight || item.gross_weight || 0;
+                return (
+                  <div
+                    key={item.id || idx}
+                    onClick={() => populateSelectedItem(item)}
+                    className="p-4 rounded-lg border border-gray-200 hover:border-gold-500 hover:bg-gold-50/50 transition-all cursor-pointer flex items-center justify-between group shadow-sm"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-gold-100 text-gold-700 font-bold flex items-center justify-center text-sm uppercase">
+                        {item.category?.slice(0, 2) || 'IT'}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-charcoal-900 group-hover:text-gold-700 text-base">{item.item_name}</h4>
+                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                          <span className="bg-charcoal-100 text-charcoal-800 font-bold px-2 py-0.5 rounded text-[10px] uppercase">
+                            Category: {item.category || 'General'}
+                          </span>
+                          <span>Purity: <strong className="text-charcoal-900">{item.purity || '22K'}</strong></span>
+                          <span>Weight: <strong className="text-charcoal-900">{wt}g</strong></span>
+                          {item.huid && <span>HUID: <strong className="font-mono">{item.huid}</strong></span>}
+                        </div>
+                      </div>
+                    </div>
+                    <Button size="sm" className="bg-charcoal-900 text-white group-hover:bg-gold-600 group-hover:text-white transition-all">
+                      Select {item.category || 'Item'}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
 
-             <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-end">
-               <Button variant="ghost" size="sm" onClick={() => setIsCategoryModalOpen(false)}>
-                 Cancel
-               </Button>
-             </div>
-           </div>
-         </div>
-       )}
-     </div>
-   );
- };
+            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-end">
+              <Button variant="ghost" size="sm" onClick={() => setIsCategoryModalOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

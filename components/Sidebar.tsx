@@ -28,11 +28,10 @@ const NAV_ITEMS = [
   { id: 'advance', label: 'Order Booking', icon: CalendarCheck },
   { id: 'customers', label: 'Customers', icon: Users },
   { id: 'inventory', label: 'Inventory', icon: Package },
-  { id: 'website', label: 'Brand Website', icon: Globe },
   { id: 'users', label: 'User Management', icon: UserCog },
 ];
 
-const STAFF_ALLOWED_MODULES = ['sales-bill', 'all-sales', 'advance', 'customers', 'website'];
+const STAFF_ALLOWED_MODULES = ['sales-bill'];
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
   onLogout, 
@@ -44,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const isStaff = userRole === 'staff' || isStaffMode;
 
-  // Staff users have access to 5 modules: Sales Bill, All Sales, Layaway, Order Booking, Customers
+  // Staff users have access to Sales Bill only
   const visibleNavItems = isStaff 
     ? NAV_ITEMS.filter(item => STAFF_ALLOWED_MODULES.includes(item.id))
     : NAV_ITEMS;
@@ -88,19 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      <div className="p-4 border-t border-charcoal-800/80 space-y-2.5 bg-charcoal-900">
-        {onToggleRole && (
-          <button
-            onClick={onToggleRole}
-            className="w-full text-xs font-bold text-gold-500 hover:text-gold-100 bg-charcoal-800/80 hover:bg-charcoal-800 py-2.5 px-3.5 rounded-lg border border-gold-500/30 flex items-center justify-between transition-all cursor-pointer shadow-sm hover:border-gold-500/60"
-          >
-            <span className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${isStaff ? 'bg-amber-400' : 'bg-gold-500'}`}></span>
-              Role: {isStaff ? 'Staff' : 'Admin'}
-            </span>
-            <span className="underline text-[10px] text-gold-500 uppercase tracking-wider font-extrabold">Switch</span>
-          </button>
-        )}
+      <div className="p-4 border-t border-charcoal-800/80 bg-charcoal-900">
         <button 
           onClick={onLogout}
           className="flex items-center justify-center text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-200 text-xs font-bold uppercase tracking-wider w-full px-3 py-2.5 rounded-lg cursor-pointer"

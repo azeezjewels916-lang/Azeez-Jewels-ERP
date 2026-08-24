@@ -301,7 +301,7 @@ export const SilverBillPrint: React.FC<SilverBillPrintProps> = ({
           {/* BRAND HEAD */}
           <div className="silver-brand-section">
             <div className="ahs-badge-wrap">
-              <img src="/logo.png" alt="AHS Logo" className="w-full h-full object-contain" />
+              <img src="/logowithoutbg.png" alt="AHS Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="silver-title">Azeez Jewels</h1>
             <div className="silver-subtitle">Gold and Silver Ornaments</div>

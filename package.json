@@ -1,10 +1,11 @@
 {
-  "name": "maison-joaillerie-erp",
+  "name": "azeez-jewels-erp",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "website:dev": "vite --config website/vite.config.ts",
     "build": "vite build",
     "preview": "vite preview"
   },

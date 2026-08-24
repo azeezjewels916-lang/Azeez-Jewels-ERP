@@ -49,12 +49,14 @@ input[type=number]::-webkit-outer-spin-button {
 }
 input[type=number] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Metallic Gold Text Gradient */
 .gold-gradient-text {
   background: linear-gradient(135deg, #D4AF37 0%, #C5A059 50%, #A3803C 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 

@@ -1,8 +1,8 @@
-# Azeez Jewels ERP
+# 💎 Azeez Jewels ERP
 
 A specialized, full-featured retail **Point-of-Sale (POS)** and **Enterprise Resource Planning (ERP)** software designed specifically for **Azeez Jewels** (#324, Jumma Masjid Road, OPH Road, Shivajinagar, Bangalore - 560051). 
 
-It handles gold/silver trade dynamics, daily multi-purity metal pricing, BIS HUID hallmarking, making charges, old gold scrap exchange/buying, GST taxation, layaway installment plans, advance order bookings, automated stock restoration, and print-ready A5 tax invoice generation—wrapped in a luxury minimalist beige and off-white aesthetic.
+It handles gold/silver trade dynamics, daily multi-purity metal pricing, BIS HUID hallmarking, making charges, old gold scrap exchange/buying, GST taxation, layaway installment plans, advance order bookings, automated stock restoration, thermal barcode tag printing, and print-ready A5 tax invoice generation—wrapped in a luxury minimalist champagne gold aesthetic.
 
 ---
 
@@ -11,8 +11,10 @@ It handles gold/silver trade dynamics, daily multi-purity metal pricing, BIS HUI
 - **Store Name**: Azeez Jewels
 - **Proprietor**: Azmathulla Khan
 - **Contact**: +91 9916667573
-- **Specialization**: Dealers in 22 Ct. 916 KDM Gold & Silver Ornaments
+- **Tagline**: Dealers in 22 Ct. 916 KDM Gold & Silver Ornaments
 - **Address**: #324, Jumma Masjid Road (OPH Road), Shivajinagar, Bangalore - 560051
+- **GSTIN Numbers**: `29BBGPM2303C1Z4` / `29BPSPK1616Q1Z2`
+- **Domain**: `azeezjewels.com`
 
 ---
 
@@ -21,29 +23,26 @@ It handles gold/silver trade dynamics, daily multi-purity metal pricing, BIS HUI
 ### 🛍️ Sales Bill (POS Invoicing Engine)
 - **Automatic Reference Generation**: Collision-free bill sequence numbers (`MJ-0001`, `MJ-0002`...).
 - **Multi-Metal Dynamic Pricing**: Live daily market rates for Gold 24K, 22K (916), 18K (750), Silver 925, Silver 70, and Selam Silver.
-- **Precision Weight & Charges**: Gross Weight vs. Net Weight calculation, making charges (flat amount or percentage).
+- **Precision Weight & Charges**: Gross Weight vs. Net Weight calculation, making charges (flat ₹ amount or % percentage).
 - **Taxation Engine**: 3% GST split into CGST (1.5%) and SGST (1.5%), or Non-GST billing mode.
 - **Old Gold Deduction**: Subtract scrap gold/silver value directly from subtotal.
+- **Silver Cash Bill**: Dedicated silver billing engine with `GSTIN: 29BPSPK1616Q1Z2`, auto **40% Exchange Value** & **50% Return Value** calculation.
 - **Multi-Payment Split**: Cash, Card, UPI, Cheque, Bank Transfer.
-- **A5 Printable Invoices**: Instant modal preview and print rendering with official Azeez Jewels header.
+- **High-Definition A5 Print Invoices**: Clean rendering using `/logowithoutbg.png` with official guarantee terms & conditions.
 
 ### 📊 Sales History & Analytics
 - **Dashboard KPIs**: Real-time revenue metrics, total bills generated, and average bill value.
 - **Filtering & Search**: Search by Bill Number, Customer Name/Phone; filter by Date Range or Tax Type.
 - **Full Sales Operations**: View, Edit bill (re-populates POS), Delete bill (with automated stock restoration), and Re-print invoice.
 
-### 📦 Inventory & Hallmarking
+### 📦 Inventory Management & TSC Barcode Printing
 - **BIS HUID & Barcode Tracking**: SKU scanning and Hallmark Unique Identification.
+- **TSC TTP-244 Pro Barcode Generator**: Built-in thermal tag generator supporting `81x12mm`, `100x15mm`, and `100x20mm` tail tags.
 - **16 Standard Jewellery Categories**: Ring, Bangle, Chain, Haar, Laccha, Choker, Japka, Mangtila, Motol, Necklace, Tops, Bracelet, Kada, Baali, Earring, Pendent.
-- **3-Tier Match & Delete Engine**:
-  1. *Priority 1*: Exact inventory database primary key (`inventory_item_id`).
-  2. *Priority 2*: Barcode + Category + Weight match.
-  3. *Priority 3*: Barcode fallback.
 - **Stock Restoration Engine**: Upon bill deletion, sold items are automatically restored to stock inventory (`quantity + 1` or re-creating deleted items).
-- **Single Total Weight Standard**: Unified weight tracking using Total Weight (g) across item forms, stock tables, breakdown metrics, and printable receipts.
 - **Excel / CSV Export**: Instant 1-click Excel export across Inventory, Sales History, Order Bookings, Customers, and Layaway modules.
 
-### 🔄 Gold Exchange / Buying
+### 🔄 Gold Exchange / Scrap Purchasing
 - **Scrap Purchasing**: Buy old gold and silver directly from walk-in clients.
 - **Vouchers**: Generates reference vouchers (`MJ-EX...`) with HSN code tagging and printable receipts.
 
@@ -52,80 +51,62 @@ It handles gold/silver trade dynamics, daily multi-purity metal pricing, BIS HUI
 - **Ledger Tracking**: Active vs. Closed schemes, payment history, and printable A5 statements.
 
 ### 📅 Order Advance Booking
-- **Bespoke Manufacturing**: Custom order booking system with optional metal price locking.
-- **Financial Breakdown**: Tracks Advance Paid vs. Remaining Balance Due.
+- **Bespoke Manufacturing**: Custom order booking system supporting Making Charges in **₹ (Amount)** or **% (Percentage)**.
+- **Financial Breakdown**: Tracks Subtotal, GST 3% / Non-GST, Old Gold deduction, Advance Paid, and Remaining Balance Due on screen and A5 print receipts.
 
 ### 👥 Customer Relationship Management (CRM)
-- **Client Directory**: Customer master profiles with phone, email, address, and notes.
+- **Client Directory**: Customer master profiles with instant phone search, auto-fill, and inline creation.
 - **Customer History View**: Consolidated transaction history across all sales, layaways, and advance bookings per customer.
 
-### 🔐 User Management & Access Control
-- **Role-Based Access Control (RBAC)**: Admin vs. Staff mode.
-- **Staff Access (5 Modules Enabled)**: Sales Bill (`sales-bill`), All Sales / Sales History (`all-sales`), Layaway (`layaway`), Order Booking (`advance`), and Customers / CRM (`customers`).
-- **Restricted for Staff**: Inventory Management (`inventory`) and User Management / Admin Settings (`users`) remain restricted to Admin role only.
+### 🔐 Streamlined Authentication & Role Access
+- **Single-Button Login**: One clean **`SIGN IN TO SYSTEM`** button.
+  - **Admin Login**: Entering Admin credentials (`admin` / `admin123` or DB Admin) unlocks **Full ERP Access**.
+  - **Staff POS Mode**: Submitting without credentials automatically opens **Staff Sales Bill POS Mode**.
+- **Role Access Control**: Staff access is strictly restricted to **Sales Bill (`sales-bill`) ONLY** as requested by store management. Admin users maintain full access to all modules, inventory, and hidden GST controls.
 
 ---
 
-## 🎨 Luxury Minimalist Theme
+## 🛠️ Architecture & Setup
+
+### 📁 Independent Directory Structure
+```
+azeez-jewels/
+├── erp/                       # Full ERP Application (Port 5173)
+│   ├── App.tsx
+│   ├── pages/                 # SalesBill, AllSales, AdvanceBooking, Customers, Inventory...
+│   ├── components/            # UIComponents, InvoicePrint, SilverBillPrint, BarcodePrintModal...
+│   └── package.json
+└── website/                   # Standalone Brand Website (Port 5174)
+    ├── App.tsx
+    ├── components/            # Navbar, Hero, Collections, AboutSection, ContactSection
+    └── package.json
+```
+
+### 🚀 Running the Applications
+
+#### **1. Azeez Jewels ERP Application (Port 5173)**
+```bash
+cd erp
+npm run dev
+```
+➜ Open **[http://localhost:5173](http://localhost:5173)** in your browser.
+
+#### **2. Standalone Brand Website (Port 5174)**
+```bash
+cd website
+npm run dev
+```
+➜ Open **[http://localhost:5174](http://localhost:5174)** in your browser.
+
+---
+
+## 🎨 Luxury Minimalist Palette
 
 - **Background**: Soft Warm Off-White / Alabaster (`#FAF8F5`)
 - **Cards & Surfaces**: Clean White (`#FFFFFF`) & Warm Sand Beige (`#F5F2EC`)
 - **Accents**: Refined Champagne Gold (`#C5A059`) & Antique Bronze Gold (`#A3803C`)
-- **Borders**: Subtle Linen Neutral (`#E8E3D9`)
-- **Typography**: Playfair Display, Cormorant Garamond, Inter, and JetBrains Mono
-
----
-
-## 🛠️ Tech Stack
-
-- **Frontend**: React 19, TypeScript 5.8, Vite 6, Tailwind CSS
-- **Icons**: Lucide React
-- **Database & Backend**: Supabase (`@supabase/supabase-js`)
-- **Print Engine**: Custom `@media print` CSS for A5 size formatting
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- **Node.js** (v18 or higher)
-- **npm** (v9 or higher)
-
-### Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd azeez-jewels
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Set up Environment Variables**:
-   Create a `.env` or `.env.local` file in the root directory:
-   ```env
-   VITE_SUPABASE_URL=https://your-supabase-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-   ```
-
-4. **Run the Development Server**:
-   ```bash
-   npm run dev
-   ```
-   > 💡 **Access URL**: Open **[http://localhost:5173](http://localhost:5173)** in your browser. (Port `5173` avoids conflicts with other Node/Next.js apps running on port `3000`).
-
-5. **Build for Production**:
-   ```bash
-   npm run build
-   ```
-
-6. **Preview Production Build**:
-   ```bash
-   npm run preview
-   ```
+- **Obsidian Dark Mode**: Deep Warm Charcoal (`#1C1917`) & (`#12100E`)
+- **Typography**: Cormorant Garamond, Playfair Display, Outfit, Inter, and JetBrains Mono
 
 ---
 

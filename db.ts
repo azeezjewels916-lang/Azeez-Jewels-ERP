@@ -66,7 +66,7 @@ export const restoreInventoryStock = async (billItems: any[]) => {
       if (byBarcode && byBarcode.length > 0) {
         existingItem = byBarcode.find(i => {
           const matchCat = item.category && i.category && i.category.toLowerCase().trim() === item.category.toLowerCase().trim();
-          const matchWt = (item.net_weight || item.weight) && 
+          const matchWt = (item.net_weight || item.weight) &&
             (Math.abs((i.net_weight || i.weight || 0) - (item.net_weight || item.weight || 0)) < 0.005);
           return matchCat || matchWt;
         }) || byBarcode[0];
@@ -130,7 +130,7 @@ export const deleteBill = async (id: number) => {
     .from('bill_items')
     .delete()
     .eq('bill_id', id);
-  
+
   if (itemsError) throw itemsError;
 
   const { error } = await supabase
@@ -212,7 +212,7 @@ export const getBillById = async (id: number) => {
 
 export const createBillItems = async (billId: number, items: any[]) => {
   const itemsWithBillId = items.map(item => ({ ...item, bill_id: billId }));
-  
+
   const { data, error } = await supabase
     .from('bill_items')
     .insert(itemsWithBillId)
@@ -387,13 +387,13 @@ export const deductInventoryStock = async (billItems: any[]) => {
   for (const billItem of billItems) {
     if (!billItem.barcode && !billItem.inventory_item_id) continue;
     if (billItem.item_name === 'Value Added / MC') continue;
-    
+
     let targetItem: any = null;
 
     // 1. Priority 1 (Exact Match): Match by unique database inventory_item_id
     if (billItem.inventory_item_id) {
-      const targetId = (typeof billItem.inventory_item_id === 'string' && !isNaN(Number(billItem.inventory_item_id))) 
-        ? Number(billItem.inventory_item_id) 
+      const targetId = (typeof billItem.inventory_item_id === 'string' && !isNaN(Number(billItem.inventory_item_id)))
+        ? Number(billItem.inventory_item_id)
         : billItem.inventory_item_id;
 
       const { data: byId } = await supabase
@@ -423,11 +423,11 @@ export const deductInventoryStock = async (billItems: any[]) => {
           const billWt = billItem.net_weight || billItem.weight || 0;
           const matchWeight = billWt > 0 && Math.abs(itemWt - billWt) < 0.005;
           return matchCategory && matchWeight;
-        }) 
-        // Category Match
-        || matchedItems.find(i => billItem.category && i.category && i.category.toLowerCase().trim() === billItem.category.toLowerCase().trim())
-        // Priority 3 (Fallback): Barcode fallback
-        || matchedItems[0];
+        })
+          // Category Match
+          || matchedItems.find(i => billItem.category && i.category && i.category.toLowerCase().trim() === billItem.category.toLowerCase().trim())
+          // Priority 3 (Fallback): Barcode fallback
+          || matchedItems[0];
       }
     }
 
@@ -447,9 +447,9 @@ export const deductInventoryStock = async (billItems: any[]) => {
       // Reduce quantity if item had multiple pcs stored
       await supabase
         .from('items')
-        .update({ 
-          quantity: newQty, 
-          stock_status: 'in_stock' 
+        .update({
+          quantity: newQty,
+          stock_status: 'in_stock'
         })
         .eq('id', targetItem.id);
     }
@@ -502,7 +502,7 @@ export const createLayawayTransaction = async (transaction: any) => {
     .insert(transaction)
     .select()
     .single();
-  
+
   if (error) throw error;
   return data;
 };

@@ -208,7 +208,7 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string; tit
 export const Logo: React.FC<{ className?: string, light?: boolean }> = ({ className = '', light = false }) => (
   <div className={`flex flex-col items-center justify-center ${className}`}>
     <div className="relative flex items-center justify-center w-16 h-16 transition-transform hover:scale-105">
-        <img src="/logo.png" alt="Azeez Jewels Logo" className="w-full h-full object-contain filter drop-shadow-md" />
+        <img src="/logowithoutbg.png" alt="Azeez Jewels Logo" className="w-full h-full object-contain filter drop-shadow-md" />
     </div>
   </div>
 );
