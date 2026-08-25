@@ -375,9 +375,7 @@ export const AdvanceBooking: React.FC = () => {
             sale_type: saleType === 'NON GST' ? 'nongst' : 'gst',
             subtotal: itemsTotal,
             gst_amount: gstAmount,
-            grand_total: finalTotal,
-            advance_amount: parseFloat(advanceInput) || 0,
-            remaining_amount: balanceDue
+            grand_total: finalTotal
           }).eq('id', booking.bill_id);
 
           await supabase.from('bill_items').delete().eq('bill_id', booking.bill_id);
@@ -419,8 +417,6 @@ export const AdvanceBooking: React.FC = () => {
         subtotal: itemsTotal,
         gst_amount: gstAmount,
         grand_total: finalTotal,
-        advance_amount: parseFloat(advanceInput) || 0,
-        remaining_amount: balanceDue,
         bill_status: 'draft'
       });
       const newBookingRecord = await createAdvanceBooking({
