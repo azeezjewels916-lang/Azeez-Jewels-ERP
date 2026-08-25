@@ -224,39 +224,6 @@ export const Users: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4">
-               {/* MASTER ADMIN GST CONTROL TOGGLE BUTTON */}
-               {(() => {
-                  const [isGstOn, setIsGstOnState] = useState<boolean>(() => {
-                     const saved = localStorage.getItem('admin_gst_control_enabled');
-                     return saved !== null ? JSON.parse(saved) : true;
-                  });
-
-                  const toggleGst = () => {
-                     const nextState = !isGstOn;
-                     localStorage.setItem('admin_gst_control_enabled', JSON.stringify(nextState));
-                     setIsGstOnState(nextState);
-                     window.dispatchEvent(new Event('storage'));
-                     toast({ 
-                        title: `GST Control ${nextState ? 'ENABLED' : 'DISABLED'}`, 
-                        description: nextState ? 'GST billing active.' : 'All POS sales & bookings forced to NON-GST (0%).' 
-                     });
-                  };
-
-                  return (
-                     <button
-                        onClick={toggleGst}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border shadow-sm ${isGstOn
-                           ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                           : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
-                           }`}
-                        title="Click to toggle Systemwide GST Billing Mode (Admin Only)"
-                     >
-                        <Shield size={16} />
-                        <span>GST Control: {isGstOn ? 'ACTIVE (GST ON)' : 'HIDDEN (GST OFF)'}</span>
-                     </button>
-                  );
-               })()}
-
                <div className="relative w-72">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gold-500" size={16} />
                   <input
