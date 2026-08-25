@@ -22,18 +22,17 @@ const App: React.FC = () => {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const [userRole, setUserRole] = useState<string>(currentUser.role || 'admin');
 
-  // Admin Hidden GST Control State
-  const [isGstFeatureEnabled, setIsGstFeatureEnabled] = useState<boolean>(() => {
+  // Admin GST Control State
+  const [isGstControlEnabled, setIsGstControlEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('admin_gst_control_enabled');
     return saved !== null ? JSON.parse(saved) : true;
   });
 
   const toggleGstControl = () => {
-    if (userRole !== 'admin') return;
-    const nextState = !isGstFeatureEnabled;
-    setIsGstFeatureEnabled(nextState);
-    localStorage.setItem('admin_gst_control_enabled', JSON.stringify(nextState));
-    alert(`Admin GST Control: GST features are now ${nextState ? 'ENABLED' : 'DISABLED / HIDDEN'}.`);
+    const nextVal = !isGstControlEnabled;
+    setIsGstControlEnabled(nextVal);
+    localStorage.setItem('admin_gst_control_enabled', JSON.stringify(nextVal));
+    window.dispatchEvent(new Event('storage'));
   };
 
   const handleLogout = () => {
@@ -195,7 +194,22 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* GST CONTROL TOGGLE BUTTON */}
+            <button
+              type="button"
+              onClick={toggleGstControl}
+              title="Toggle Master GST Control Systemwide"
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-wider transition-all shadow-sm flex items-center gap-1.5 border cursor-pointer ${
+                isGstControlEnabled
+                  ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700'
+                  : 'bg-red-600 text-white border-red-700 hover:bg-red-700'
+              }`}
+            >
+              <Shield size={14} />
+              <span>GST: {isGstControlEnabled ? 'ACTIVE (3%)' : 'DISABLED (0%)'}</span>
+            </button>
+
             <div className="text-right hidden sm:block">
               <p className="text-xs font-bold text-gold-600 uppercase tracking-wider">Azeez Jewels Showroom</p>
               <p className="text-[10px] text-charcoal-500 font-mono tracking-wide">#324 Jumma Masjid Road | {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
