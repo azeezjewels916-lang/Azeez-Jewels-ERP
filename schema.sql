@@ -86,13 +86,29 @@ CREATE TABLE IF NOT EXISTS gold_exchanges (
     customer_name TEXT,
     customer_phone TEXT,
     particulars TEXT,
+    description TEXT,
     hsn_code TEXT DEFAULT '7113',
+    weight NUMERIC DEFAULT 0,
     net_weight NUMERIC DEFAULT 0,
-    purity NUMERIC DEFAULT 0,
+    purity TEXT,
     rate NUMERIC DEFAULT 0,
+    total NUMERIC DEFAULT 0,
+    total_value NUMERIC DEFAULT 0,
     total_amount NUMERIC DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ALTERS TO ENSURE EXISTING TABLE HAS ALL REQUIRED COLUMNS
+ALTER TABLE gold_exchanges ADD COLUMN IF NOT EXISTS particulars TEXT;
+ALTER TABLE gold_exchanges ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE gold_exchanges ADD COLUMN IF NOT EXISTS weight NUMERIC DEFAULT 0;
+ALTER TABLE gold_exchanges ADD COLUMN IF NOT EXISTS net_weight NUMERIC DEFAULT 0;
+ALTER TABLE gold_exchanges ADD COLUMN IF NOT EXISTS purity TEXT;
+ALTER TABLE gold_exchanges ADD COLUMN IF NOT EXISTS rate NUMERIC DEFAULT 0;
+ALTER TABLE gold_exchanges ADD COLUMN IF NOT EXISTS total NUMERIC DEFAULT 0;
+ALTER TABLE gold_exchanges ADD COLUMN IF NOT EXISTS total_value NUMERIC DEFAULT 0;
+ALTER TABLE gold_exchanges ADD COLUMN IF NOT EXISTS total_amount NUMERIC DEFAULT 0;
+ALTER TABLE gold_exchanges DISABLE ROW LEVEL SECURITY;
 
 -- 6. GOLD RATES TABLE
 CREATE TABLE IF NOT EXISTS gold_rates (

@@ -183,11 +183,14 @@ export const GoldExchange: React.FC = () => {
             customer_name: formData.customerName,
             customer_phone: formData.customerPhone || 'N/A',
             particulars: formData.description || 'Old Gold',
+            description: formData.description || 'Old Gold',
             hsn_code: formData.hsnCode || '7113',
             weight: parseFloat(formData.weight),
             purity: formData.purity,
             rate: parseFloat(formData.rate),
-            total: formData.totalValue
+            total: formData.totalValue,
+            total_value: formData.totalValue,
+            total_amount: formData.totalValue
          };
 
          if (editingId) {
