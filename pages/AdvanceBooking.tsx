@@ -452,7 +452,7 @@ export const AdvanceBooking: React.FC = () => {
         bills: {
           ...bill,
           sale_type: saleType === 'NON GST' ? 'nongst' : 'gst',
-          customers: selectedCustomer.id === 'new' ? { name: selectedCustomer.name, phone: selectedCustomer.phone, address: selectedCustomer.address } : selectedCustomer
+          customers: String(selectedCustomer.id) === 'new' ? { name: selectedCustomer.name, phone: selectedCustomer.phone, address: selectedCustomer.address } : selectedCustomer
         },
         saleType,
         subtotal: itemsTotal,
@@ -765,25 +765,25 @@ export const AdvanceBooking: React.FC = () => {
               </div>
               <button onClick={() => { setIsModalOpen(false); setEditingBookingId(null); setSelectedCustomer(null); setItems([]); setAdvanceInput(''); setManualTotal(''); setDeliveryDate(''); setNotes(''); setSaleType('GST'); }} className="text-gray-400 hover:text-white"><XCircle size={24} /></button>
             </div>
-            
+
             <div className="flex-1 overflow-auto p-8 grid grid-cols-12 gap-8 bg-gray-50/50">
               <div className="col-span-8 flex flex-col gap-6">
                 {/* CUSTOMER & DELIVERY SECTION */}
                 <section className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
                   <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2"><User size={14} /> Customer Details & Delivery</h4>
-                  
+
                   <div className="grid grid-cols-2 gap-8">
                     <div className="relative">
                       {!selectedCustomer && !isAddingCustomer ? (
                         <div className="space-y-3">
                           <div className="flex gap-2">
-                            <Input 
-                              label="Customer Phone Number *" 
-                              placeholder="Type Phone to Search / Auto-fill..." 
-                              value={customerSearch} 
+                            <Input
+                              label="Customer Phone Number *"
+                              placeholder="Type Phone to Search / Auto-fill..."
+                              value={customerSearch}
                               onChange={e => handlePhoneInputChange(e.target.value)}
-                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCustomerSearch(); } }} 
-                              icon={<Search size={16} />} 
+                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCustomerSearch(); } }}
+                              icon={<Search size={16} />}
                             />
                             <Button size="sm" className="mt-6" onClick={handleCustomerSearch}>Search</Button>
                           </div>
@@ -792,9 +792,9 @@ export const AdvanceBooking: React.FC = () => {
                             <div className="absolute z-30 w-full bg-white border border-gray-200 rounded-md shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1">
                               <div className="max-h-48 overflow-y-auto">
                                 {foundCustomers.map(cust => (
-                                  <div 
-                                    key={cust.id} 
-                                    onClick={() => { setSelectedCustomer(cust); setFoundCustomers([]); setCustomerSearch(''); }} 
+                                  <div
+                                    key={cust.id}
+                                    onClick={() => { setSelectedCustomer(cust); setFoundCustomers([]); setCustomerSearch(''); }}
                                     className="p-3 hover:bg-gold-50 cursor-pointer border-b border-gray-100 last:border-0 transition-colors"
                                   >
                                     <div className="flex justify-between items-center">
@@ -805,8 +805,8 @@ export const AdvanceBooking: React.FC = () => {
                                   </div>
                                 ))}
                               </div>
-                              <div 
-                                className="bg-gray-50 p-2 text-center border-t border-gray-100 cursor-pointer" 
+                              <div
+                                className="bg-gray-50 p-2 text-center border-t border-gray-100 cursor-pointer"
                                 onClick={() => { setIsAddingCustomer(true); setNewCustomerDetails({ name: '', phone: customerSearch, address: '' }); setFoundCustomers([]); }}
                               >
                                 <button className="text-[10px] font-bold text-gold-600 hover:text-gold-700 uppercase tracking-widest">+ Add New Customer Direct</button>
@@ -846,7 +846,7 @@ export const AdvanceBooking: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    
+
                     <div>
                       <Input label="Expected Delivery Date *" type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} />
                     </div>
@@ -857,7 +857,7 @@ export const AdvanceBooking: React.FC = () => {
                 <section className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex-1 flex flex-col">
                   <div className="flex justify-between items-center mb-4">
                     <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2"><ShoppingBag size={14} /> Order Requirements & Tax Mode</h4>
-                    
+
                     {/* GST (3%) vs NON-GST TOGGLE */}
                     <div className="flex items-center gap-2 bg-gray-100 p-1.5 rounded-lg border border-gray-200">
                       <span className="text-[10px] font-bold text-gray-500 uppercase px-1">Bill Tax Mode:</span>
@@ -880,7 +880,7 @@ export const AdvanceBooking: React.FC = () => {
                         </>
                       ) : (
                         <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
-                          NON-GST (Disabled by Admin)
+                          NON-GST
                         </span>
                       )}
                     </div>
@@ -891,7 +891,7 @@ export const AdvanceBooking: React.FC = () => {
                     <div className="col-span-3">
                       <Input label="Item Name *" placeholder="e.g. Ring / Bangle" value={newItem.name || ''} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
                     </div>
-                    
+
                     <div className="col-span-2">
                       <Select label="Purity" options={[
                         { value: '24K (Pure)', label: '24K (Pure)' },
@@ -912,15 +912,15 @@ export const AdvanceBooking: React.FC = () => {
                         setNewItem({ ...newItem, purity: newPurity, rate: newRate || newItem.rate });
                       }} />
                     </div>
-                    
+
                     <div className="col-span-2">
                       <Input label="Weight (g) *" type="number" isMonospaced value={newItem.weight || ''} onChange={e => setNewItem({ ...newItem, weight: parseFloat(e.target.value) || 0 })} />
                     </div>
-                    
+
                     <div className="col-span-2">
                       <Input label="Rate / g *" type="number" isMonospaced value={newItem.rate || ''} onChange={e => setNewItem({ ...newItem, rate: parseFloat(e.target.value) || 0 })} />
                     </div>
-                    
+
                     <div className="col-span-3 flex items-end gap-1">
                       <div className="flex-1">
                         <Input
@@ -932,7 +932,7 @@ export const AdvanceBooking: React.FC = () => {
                           onChange={e => setNewItem({ ...newItem, makingChargesInput: e.target.value })}
                         />
                       </div>
-                      
+
                       <select
                         value={newItem.makingChargesType || 'amt'}
                         onChange={e => setNewItem({ ...newItem, makingChargesType: e.target.value as 'amt' | 'pct' })}
@@ -1001,7 +1001,7 @@ export const AdvanceBooking: React.FC = () => {
 
                   {/* URD / OLD GOLD TRADE-IN DEDUCTION SECTION */}
                   <div className="mt-6 border border-amber-200 rounded-lg bg-amber-50/50 p-4">
-                    <div 
+                    <div
                       className="flex items-center justify-between cursor-pointer"
                       onClick={() => setShowOldGold(!showOldGold)}
                     >
@@ -1022,31 +1022,31 @@ export const AdvanceBooking: React.FC = () => {
                     {showOldGold && (
                       <div className="grid grid-cols-12 gap-3 mt-4 pt-3 border-t border-amber-200/60">
                         <div className="col-span-5">
-                          <Input 
-                            label="Trade-In Description" 
-                            placeholder="e.g. Old Gold Chain / Scrap" 
-                            value={oldGold.particulars || ''} 
-                            onChange={e => setOldGold({ ...oldGold, particulars: e.target.value })} 
+                          <Input
+                            label="Trade-In Description"
+                            placeholder="e.g. Old Gold Chain / Scrap"
+                            value={oldGold.particulars || ''}
+                            onChange={e => setOldGold({ ...oldGold, particulars: e.target.value })}
                           />
                         </div>
                         <div className="col-span-2">
-                          <Input 
-                            label="Weight (g)" 
-                            type="number" 
-                            isMonospaced 
-                            placeholder="0.000" 
-                            value={oldGold.weight || ''} 
-                            onChange={e => setOldGold({ ...oldGold, weight: parseFloat(e.target.value) || 0 })} 
+                          <Input
+                            label="Weight (g)"
+                            type="number"
+                            isMonospaced
+                            placeholder="0.000"
+                            value={oldGold.weight || ''}
+                            onChange={e => setOldGold({ ...oldGold, weight: parseFloat(e.target.value) || 0 })}
                           />
                         </div>
                         <div className="col-span-2">
-                          <Input 
-                            label="Rate / g (₹)" 
-                            type="number" 
-                            isMonospaced 
-                            placeholder="Rate" 
-                            value={oldGold.rate || ''} 
-                            onChange={e => setOldGold({ ...oldGold, rate: parseFloat(e.target.value) || 0 })} 
+                          <Input
+                            label="Rate / g (₹)"
+                            type="number"
+                            isMonospaced
+                            placeholder="Rate"
+                            value={oldGold.rate || ''}
+                            onChange={e => setOldGold({ ...oldGold, rate: parseFloat(e.target.value) || 0 })}
                           />
                         </div>
                         <div className="col-span-3 flex items-end">
@@ -1065,11 +1065,11 @@ export const AdvanceBooking: React.FC = () => {
               <div className="col-span-4 flex flex-col gap-6">
                 <div className="bg-[#2D2A26] p-6 rounded-t-lg text-white shadow-xl">
                   <h4 className="text-xs font-bold text-gold-500 uppercase tracking-widest mb-4">Financial Summary</h4>
-                  
+
                   <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-700">
                     <span className="text-sm font-medium">Price Lock Mode</span>
-                    <button 
-                      onClick={() => setIsPriceLocked(!isPriceLocked)} 
+                    <button
+                      onClick={() => setIsPriceLocked(!isPriceLocked)}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${isPriceLocked ? 'bg-gold-500 text-white' : 'bg-gray-700 text-gray-400'}`}
                     >
                       {isPriceLocked ? <Lock size={12} /> : <Unlock size={12} />}
@@ -1106,11 +1106,11 @@ export const AdvanceBooking: React.FC = () => {
                       <span className="font-sans font-bold text-white">Grand Total</span>
                       {isPriceLocked ? (
                         <div className="w-36">
-                          <input 
-                            type="number" 
-                            className="w-full bg-gray-800 border border-gold-500/50 rounded px-2 py-1 text-right text-gold-400 font-bold focus:outline-none focus:border-gold-500 text-lg" 
-                            value={manualTotal} 
-                            onChange={e => setManualTotal(e.target.value)} 
+                          <input
+                            type="number"
+                            className="w-full bg-gray-800 border border-gold-500/50 rounded px-2 py-1 text-right text-gold-400 font-bold focus:outline-none focus:border-gold-500 text-lg"
+                            value={manualTotal}
+                            onChange={e => setManualTotal(e.target.value)}
                           />
                         </div>
                       ) : (
@@ -1126,12 +1126,12 @@ export const AdvanceBooking: React.FC = () => {
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Advance Deposit Received *</label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg">₹</span>
-                        <input 
-                          type="number" 
-                          className="w-full pl-10 pr-4 py-4 rounded-lg border border-gray-300 font-mono font-bold text-2xl text-green-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none shadow-inner" 
-                          placeholder="0.00" 
-                          value={advanceInput} 
-                          onChange={e => setAdvanceInput(e.target.value)} 
+                        <input
+                          type="number"
+                          className="w-full pl-10 pr-4 py-4 rounded-lg border border-gray-300 font-mono font-bold text-2xl text-green-700 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none shadow-inner"
+                          placeholder="0.00"
+                          value={advanceInput}
+                          onChange={e => setAdvanceInput(e.target.value)}
                         />
                       </div>
                     </div>
@@ -1143,11 +1143,11 @@ export const AdvanceBooking: React.FC = () => {
 
                     <div>
                       <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Customer Notes / Instructions (Optional)</label>
-                      <textarea 
-                        rows={2} 
-                        placeholder="Specific gold weight constraints or design instructions..." 
-                        value={notes} 
-                        onChange={e => setNotes(e.target.value)} 
+                      <textarea
+                        rows={2}
+                        placeholder="Specific gold weight constraints or design instructions..."
+                        value={notes}
+                        onChange={e => setNotes(e.target.value)}
                         className="w-full p-2.5 rounded-lg border border-gray-300 text-xs outline-none focus:border-gold-500"
                       />
                     </div>

@@ -706,10 +706,19 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       if (mcValueAdded.total > 0) {
         billItems.push({
           bill_id: savedBill.id,
-          barcode: null,
+          inventory_item_id: '',
+          category: 'Service',
+          barcode: '',
           item_name: 'Value Added / MC',
-          weight: parseFloat(mcValueAdded.weightInput) || 0, rate: parseFloat(mcValueAdded.rateInput) || 0,
-          making_charges: 0, line_total: mcValueAdded.total, sl_no: billItems.length + 1, metal_type: 'service'
+          huid: '',
+          gross_weight: parseFloat(mcValueAdded.weightInput) || 0,
+          net_weight: parseFloat(mcValueAdded.weightInput) || 0,
+          weight: parseFloat(mcValueAdded.weightInput) || 0,
+          rate: parseFloat(mcValueAdded.rateInput) || 0,
+          making_charges: 0,
+          line_total: mcValueAdded.total,
+          sl_no: billItems.length + 1,
+          metal_type: 'service'
         });
       }
       await createBillItems(savedBill.id, billItems);
@@ -897,8 +906,13 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                 <input
                   type="number"
                   className="w-full text-center font-mono font-bold text-charcoal-900 bg-white rounded border border-gold-500/20 outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500/30 py-1 text-xs shadow-sm transition-all"
-                  value={allMetalRates[key] || ''}
+                  value={
+                    (allMetalRates[key] && (allMetalRates[key] > 5 || key === 'gold' || key === 'gold_916' || key === 'gold_750'))
+                      ? allMetalRates[key] 
+                      : ''
+                  }
                   onChange={(e) => handleRateUpdate(key, e.target.value)}
+                  placeholder="Rate"
                 />
               </div>
             ))}
@@ -917,11 +931,10 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                   setActivePrintView('invoice');
                   setNewItem(prev => ({ ...prev, metal_type: 'gold' }));
                 }}
-                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
-                  billMode === 'gold' 
-                    ? 'bg-gold-500 text-charcoal-950 shadow-md font-extrabold' 
+                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${billMode === 'gold'
+                    ? 'bg-gold-500 text-charcoal-950 shadow-md font-extrabold'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 <Tag size={14} />
                 <span>GOLD TAX INVOICE</span>
@@ -934,11 +947,10 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                   setActivePrintView('silver');
                   setNewItem(prev => ({ ...prev, metal_type: 'silver_92', rateInput: (allMetalRates['silver_92'] || 0).toString() }));
                 }}
-                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${
-                  billMode === 'silver' 
-                    ? 'bg-charcoal-900 text-white shadow-md font-extrabold' 
+                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${billMode === 'silver'
+                    ? 'bg-charcoal-900 text-white shadow-md font-extrabold'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 <Tag size={14} />
                 <span>SILVER CASH BILL</span>
@@ -1009,16 +1021,16 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             <div className="flex gap-4">
               <div className="flex-1"><Input type="date" label="Bill Date" value={billDate} isMonospaced onChange={(e) => setBillDate(e.target.value)} /></div>
               <div className="flex-1">
-                <Select 
-                  label="Sale Type" 
-                  value={saleType} 
+                <Select
+                  label="Sale Type"
+                  value={saleType}
                   disabled={!isGstControlEnabled}
-                  onChange={(e) => setSaleType(e.target.value as any)} 
+                  onChange={(e) => setSaleType(e.target.value as any)}
                   options={
-                    isGstControlEnabled 
+                    isGstControlEnabled
                       ? [{ value: 'GST', label: 'GST (3%)' }, { value: 'NON GST', label: 'Non-GST (0%)' }]
-                      : [{ value: 'NON GST', label: 'Non-GST (Disabled by Admin)' }]
-                  } 
+                      : [{ value: 'NON GST', label: 'Non-GST ' }]
+                  }
                 />
               </div>
             </div>

@@ -29,6 +29,7 @@ const NAV_ITEMS = [
   { id: 'urd', label: 'URD (Old Gold)', icon: Repeat },
   { id: 'inventory', label: 'Inventory', icon: Package },
   { id: 'customers', label: 'Customers', icon: Users },
+  { id: 'users', label: 'User Management', icon: UserCog },
 ];
 
 const STAFF_ALLOWED_MODULES = ['sales-bill'];

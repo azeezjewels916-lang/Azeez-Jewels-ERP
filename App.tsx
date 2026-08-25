@@ -194,22 +194,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* GST CONTROL TOGGLE BUTTON */}
-            <button
-              type="button"
-              onClick={toggleGstControl}
-              title="Toggle Master GST Control Systemwide"
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold uppercase tracking-wider transition-all shadow-sm flex items-center gap-1.5 border cursor-pointer ${
-                isGstControlEnabled
-                  ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700'
-                  : 'bg-red-600 text-white border-red-700 hover:bg-red-700'
-              }`}
-            >
-              <Shield size={14} />
-              <span>GST: {isGstControlEnabled ? 'ACTIVE (3%)' : 'DISABLED (0%)'}</span>
-            </button>
-
+          <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="text-xs font-bold text-gold-600 uppercase tracking-wider">Azeez Jewels Showroom</p>
               <p className="text-[10px] text-charcoal-500 font-mono tracking-wide">#324 Jumma Masjid Road | {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>

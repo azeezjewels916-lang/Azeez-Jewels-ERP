@@ -179,6 +179,19 @@ export const GoldExchange: React.FC = () => {
       }
 
       try {
+         const purityStr = (formData.purity || '').toString();
+         let cleanPurityNum = 22;
+         if (purityStr.includes('24K')) cleanPurityNum = 24;
+         else if (purityStr.includes('22K') || purityStr.includes('916')) cleanPurityNum = 22;
+         else if (purityStr.includes('18K') || purityStr.includes('750')) cleanPurityNum = 18;
+         else if (purityStr.includes('14K') || purityStr.includes('585')) cleanPurityNum = 14;
+         else if (purityStr.includes('925')) cleanPurityNum = 92.5;
+         else if (purityStr.includes('70')) cleanPurityNum = 70;
+         else {
+            const match = purityStr.match(/(\d+(?:\.\d+)?)/);
+            if (match) cleanPurityNum = parseFloat(match[1]);
+         }
+
          const recordData = {
             customer_name: formData.customerName,
             customer_phone: formData.customerPhone || 'N/A',
@@ -186,7 +199,7 @@ export const GoldExchange: React.FC = () => {
             description: formData.description || 'Old Gold',
             hsn_code: formData.hsnCode || '7113',
             weight: parseFloat(formData.weight),
-            purity: formData.purity,
+            purity: cleanPurityNum,
             rate: parseFloat(formData.rate),
             total: formData.totalValue,
             total_value: formData.totalValue,
