@@ -107,6 +107,8 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          position: relative;
+          overflow: hidden;
         }
 
         .purchase-top-header {
@@ -208,6 +210,13 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
       <div className={`purchase-bill-print-wrapper ${isScreenPreview ? 'preview-mode' : ''}`}>
         <div className="purchase-a4">
           <div className="purchase-bill-box">
+            {/* BRAND WATERMARK LOGO */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-[0.035] select-none">
+              <div className="text-center">
+                <div className="text-[130px] font-serif font-bold text-charcoal-900 leading-none tracking-tighter">AJ</div>
+                <div className="text-2xl font-serif font-bold uppercase tracking-[0.3em] text-charcoal-900 mt-2">AZEEZ JEWELS</div>
+              </div>
+            </div>
             {/* TOP AREA */}
             <div className="purchase-top-header">
               <div>

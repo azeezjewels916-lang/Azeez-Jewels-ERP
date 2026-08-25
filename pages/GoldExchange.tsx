@@ -19,7 +19,7 @@ import {
    RefreshCw
 } from 'lucide-react';
 import { Button, Input, Select, Card, toast } from '../components/UIComponents';
-import { getExchanges, createExchange, updateExchange, deleteExchange, generateBillNo } from '../db';
+import { getExchanges, createExchange, updateExchange, deleteExchange, generateURDNo } from '../db';
 import { ExchangePrint } from '../components/ExchangePrint';
 import { supabase } from '../supabaseClient';
 
@@ -195,7 +195,7 @@ export const GoldExchange: React.FC = () => {
             await updateExchange(editingId, recordData);
             toast({ title: "Record Updated", description: "Exchange record has been updated." });
          } else {
-            const referenceNo = await generateBillNo();
+            const referenceNo = await generateURDNo();
             await createExchange({ ...recordData, reference_no: referenceNo });
             toast({ title: "Exchange Recorded", description: `Voucher created successfully.` });
          }

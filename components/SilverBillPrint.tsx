@@ -286,8 +286,14 @@ export const SilverBillPrint: React.FC<SilverBillPrintProps> = ({
           font-weight: 800;
         }
       `}</style>
-
-      <div className="silver-bill-outer">
+      <div className="silver-bill-outer relative overflow-hidden">
+        {/* BRAND WATERMARK LOGO */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-[0.035] select-none">
+          <div className="text-center">
+            <div className="text-[130px] font-serif font-bold text-charcoal-900 leading-none tracking-tighter">AJ</div>
+            <div className="text-2xl font-serif font-bold uppercase tracking-[0.3em] text-charcoal-900 mt-2">AZEEZ JEWELS</div>
+          </div>
+        </div>
         <div className="silver-bill-inner">
           {/* HEADER TOP BAR */}
           <div className="silver-header-top">
@@ -378,8 +384,10 @@ export const SilverBillPrint: React.FC<SilverBillPrintProps> = ({
 
           {/* FOOTER GRID */}
           {(() => {
-            const exchVal = Math.round(totals.grandTotal * 0.60); // 40% less
-            const retVal = Math.round(totals.grandTotal * 0.50);  // 50% less
+            // Calculate pure silver metal value based on weight & market rate (excluding making charges & tax)
+            const silverMetalValue = items.reduce((sum, item) => sum + ((item.weight || 0) * (item.rate || 0)), 0) || totals.itemsSubtotal;
+            const exchVal = Math.round(silverMetalValue * 0.60); // 40% less per market rate
+            const retVal = Math.round(silverMetalValue * 0.50);  // 50% less per market rate
             return (
               <div className="silver-footer-grid">
                 <div className="footer-left-pct">

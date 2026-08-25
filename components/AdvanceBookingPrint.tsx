@@ -63,7 +63,14 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
   const calcGst = gstAmount || (saleType.toUpperCase() === 'GST' ? calcSubtotal * 0.03 : 0);
 
   return (
-    <div className={`${isScreenPreview ? 'block w-[148mm] mx-auto shadow-2xl p-4 my-8' : 'hidden print:block w-[148mm] h-[210mm] mx-auto p-4'} bg-white text-charcoal-900 font-sans font-bold flex flex-col border-2 border-charcoal-900 box-border`}>
+    <div className={`${isScreenPreview ? 'block w-[148mm] max-h-[208mm] mx-auto shadow-2xl p-4 my-8' : 'hidden print:block w-[148mm] max-h-[208mm] mx-auto p-4'} bg-white text-charcoal-900 font-sans font-bold flex flex-col border-2 border-charcoal-900 box-border relative overflow-hidden`}>
+      {/* BRAND WATERMARK LOGO */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-[0.035] select-none">
+        <div className="text-center">
+          <div className="text-[130px] font-serif font-bold text-charcoal-900 leading-none tracking-tighter">AJ</div>
+          <div className="text-2xl font-serif font-bold uppercase tracking-[0.3em] text-charcoal-900 mt-2">AZEEZ JEWELS</div>
+        </div>
+      </div>
       <style>{`
         @media print {
           @page { margin: 0; size: A5 portrait; }

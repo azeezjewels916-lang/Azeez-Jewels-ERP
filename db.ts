@@ -583,9 +583,13 @@ export const getAdvanceBookingById = async (id: number) => {
 };
 
 export const createAdvanceBooking = async (booking: any) => {
+  const payload = {
+    booking_date: new Date().toISOString().split('T')[0],
+    ...booking
+  };
   const { data, error } = await supabase
     .from('advance_bookings')
-    .insert(booking)
+    .insert(payload)
     .select()
     .single();
 
@@ -626,15 +630,58 @@ export const getExchanges = async () => {
   return data;
 };
 
-export const createExchange = async (exchangeData: any) => {
-  const { data, error } = await supabase
+export const generateURDNo = async () => {
+  const { data: exchanges } = await supabase
     .from('gold_exchanges')
-    .insert(exchangeData)
-    .select()
-    .single();
+    .select('reference_no')
+    .order('id', { ascending: false })
+    .limit(200);
 
-  if (error) throw error;
-  return data;
+  let maxNum = 0;
+  exchanges?.forEach(e => {
+    if (!e.reference_no) return;
+    const match = e.reference_no.match(/URD-(\d+)/i) || e.reference_no.match(/MJ-(\d+)/i) || e.reference_no.match(/(\d+)/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > maxNum && num < 1000000) maxNum = num;
+    }
+  });
+
+  const nextNum = maxNum + 1;
+  const padded = nextNum.toString().padStart(Math.max(4, nextNum.toString().length), '0');
+  return `MJ-URD-${padded}`;
+};
+
+export const createExchange = async (exchangeData: any) => {
+  let attempts = 0;
+  let currentData = { ...exchangeData };
+
+  if (!currentData.reference_no) {
+    currentData.reference_no = await generateURDNo();
+  }
+
+  while (attempts < 5) {
+    const { data, error } = await supabase
+      .from('gold_exchanges')
+      .insert(currentData)
+      .select()
+      .single();
+
+    if (!error) return data;
+
+    if (error.code === '23505' || error.message?.includes('unique constraint')) {
+      attempts++;
+      const freshNo = await generateURDNo();
+      const match = freshNo.match(/URD-(\d+)/i);
+      const baseSeq = match ? parseInt(match[1], 10) : 1;
+      const forcedNo = `MJ-URD-${(baseSeq + attempts - 1).toString().padStart(4, '0')}`;
+      currentData.reference_no = forcedNo;
+    } else {
+      throw error;
+    }
+  }
+
+  throw new Error('Failed to save URD purchase voucher after retries.');
 };
 
 export const updateExchange = async (id: string, exchangeData: any) => {

@@ -73,7 +73,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           can_edit_stock: user.can_edit_stock,
           can_authorize_nongst: user.can_authorize_nongst,
         };
-        
+
         localStorage.setItem('user', JSON.stringify(userData));
         toast({ title: 'Welcome Back', description: `Authenticated as ${user.role.toUpperCase()}` });
         onLogin();
@@ -117,11 +117,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-app-bg flex items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Ambient background lighting */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl pointer-events-none" />
-      
+
       <div className="w-full max-w-md bg-white p-10 rounded-3xl border border-app-border relative overflow-hidden shadow-luxury transition-all duration-300">
         {/* Decorative corner accent */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-gold-500/15 via-gold-500/5 to-transparent rounded-bl-full pointer-events-none" />
-        
+
         <div className="mb-8 text-center flex flex-col items-center">
           <Logo className="mb-3" />
           <h1 className="font-serif text-3xl font-bold text-charcoal-900 tracking-tight gold-gradient-text">Azeez Jewels</h1>
@@ -130,16 +130,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
-            <UnderlineInput 
-              label="Username / ID" 
-              placeholder="Admin ID or Staff ID (Optional)"
+            <UnderlineInput
+              label="Username / ID"
+              placeholder="Admin ID or Staff ID"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
             />
-            <UnderlineInput 
-              label="Password" 
-              type="password" 
+            <UnderlineInput
+              label="Password"
+              type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

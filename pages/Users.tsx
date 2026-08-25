@@ -226,17 +226,22 @@ export const Users: React.FC = () => {
             <div className="flex items-center gap-4">
                {/* MASTER ADMIN GST CONTROL TOGGLE BUTTON */}
                {(() => {
-                  const saved = localStorage.getItem('admin_gst_control_enabled');
-                  const isGstOn = saved !== null ? JSON.parse(saved) : true;
+                  const [isGstOn, setIsGstOnState] = useState<boolean>(() => {
+                     const saved = localStorage.getItem('admin_gst_control_enabled');
+                     return saved !== null ? JSON.parse(saved) : true;
+                  });
+
                   const toggleGst = () => {
                      const nextState = !isGstOn;
                      localStorage.setItem('admin_gst_control_enabled', JSON.stringify(nextState));
+                     setIsGstOnState(nextState);
                      window.dispatchEvent(new Event('storage'));
                      toast({ 
                         title: `GST Control ${nextState ? 'ENABLED' : 'DISABLED'}`, 
                         description: nextState ? 'GST billing active.' : 'All POS sales & bookings forced to NON-GST (0%).' 
                      });
                   };
+
                   return (
                      <button
                         onClick={toggleGst}

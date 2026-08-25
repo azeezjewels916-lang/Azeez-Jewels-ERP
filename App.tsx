@@ -196,21 +196,6 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Hidden GST Control Button - Visible strictly to Admin only */}
-            {userRole === 'admin' && (
-              <button
-                onClick={toggleGstControl}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shadow-sm ${isGstFeatureEnabled
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                  : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
-                  }`}
-                title="Admin Hidden GST Control (Toggle GST Features)"
-              >
-                <Shield size={14} />
-                <span>GST Control: {isGstFeatureEnabled ? 'ON' : 'OFF'}</span>
-              </button>
-            )}
-
             <div className="text-right hidden sm:block">
               <p className="text-xs font-bold text-gold-600 uppercase tracking-wider">Azeez Jewels Showroom</p>
               <p className="text-[10px] text-charcoal-500 font-mono tracking-wide">#324 Jumma Masjid Road | {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
