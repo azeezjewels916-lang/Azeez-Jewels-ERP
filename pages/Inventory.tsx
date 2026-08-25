@@ -311,17 +311,18 @@ export const Inventory: React.FC = () => {
       'Chain',
       'Haar',
       'Laccha',
+      'Matal',
       'Choker',
       'Japka',
       'Mangtila',
-      'Motol',
       'Necklace',
       'Tops',
       'Bracelet',
-      'Kada',
       'Baali',
+      'Kada',
       'Earring',
-      'Pendent',
+      'Pendant',
+      'Silver Article'
    ];
 
    // --- DERIVED STATE & METRICS ---  // 1. Calculate per-category breakdown metrics across ALL items
@@ -784,41 +785,8 @@ export const Inventory: React.FC = () => {
                                     label="Category"
                                     value={formData.category}
                                     onChange={e => handleInputChange('category', e.target.value)}
-                                    options={[
-                                       { value: 'Ring', label: 'Ring' },
-                                       { value: 'Bangle', label: 'Bangle' },
-                                       { value: 'Chain', label: 'Chain' },
-                                       { value: 'Necklace', label: 'Necklace' },
-                                       { value: 'Haar', label: 'Haar' },
-                                       { value: 'Choker', label: 'Choker' },
-                                       { value: 'Bracelet', label: 'Bracelet' },
-                                       { value: 'Earring', label: 'Earring' },
-                                       { value: 'Payal', label: 'Payal' },
-                                       { value: 'Coin', label: 'Coin' },
-                                       { value: 'Silver Article', label: 'Silver Article' },
-                                    ]}
+                                    options={CATEGORY_LIST.map(cat => ({ value: cat, label: cat }))}
                                  />
-
-                                 {/* Quick Category Preset Pills */}
-                                 <div className="flex flex-wrap gap-1 mt-2">
-                                    {['Ring', 'Bangle', 'Chain', 'Necklace', 'Haar', 'Bracelet', 'Earring', 'Payal', 'Coin'].map(cat => (
-                                       <button
-                                          key={cat}
-                                          type="button"
-                                          onClick={() => {
-                                             handleInputChange('category', cat);
-                                             if (!formData.item_name) {
-                                                handleInputChange('item_name', `${formData.purity || '22K'} ${cat}`);
-                                             }
-                                          }}
-                                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all border ${
-                                             formData.category === cat ? 'bg-gold-500 text-white border-gold-600' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
-                                          }`}
-                                       >
-                                          + {cat}
-                                       </button>
-                                    ))}
-                                 </div>
                               </div>
                            </div>
                         </div>
