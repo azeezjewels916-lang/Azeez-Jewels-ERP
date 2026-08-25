@@ -13,7 +13,7 @@ export const generateBillNo = async () => {
 
   const extractNumber = (str: string) => {
     if (!str) return;
-    const match = str.match(/MJ-(\d+)/i) || str.match(/(\d+)/);
+    const match = str.match(/AHS-(\d+)/i) || str.match(/MJ-(\d+)/i) || str.match(/(\d+)/);
     if (match) {
       const num = parseInt(match[1], 10);
       if (!isNaN(num) && num > maxNum && num < 1000000) maxNum = num;
@@ -25,7 +25,7 @@ export const generateBillNo = async () => {
 
   const nextNum = maxNum + 1;
   const padded = nextNum.toString().padStart(Math.max(4, nextNum.toString().length), '0');
-  return `MJ-${padded}`;
+  return `AHS-${padded}`;
 };
 
 export const restoreInventoryStock = async (billItems: any[]) => {
@@ -191,10 +191,10 @@ export const createBill = async (billData: any) => {
       attempts++;
       const freshNo = await generateBillNo();
       // If generateBillNo returns the same number, force next sequential increment
-      const match = freshNo.match(/MJ-(\d+)/i);
+      const match = freshNo.match(/AHS-(\d+)/i) || freshNo.match(/MJ-(\d+)/i);
       const baseSeq = match ? parseInt(match[1], 10) : 1;
       const forcedSeq = baseSeq + (attempts - 1);
-      const forcedNo = `MJ-${forcedSeq.toString().padStart(4, '0')}`;
+      const forcedNo = `AHS-${forcedSeq.toString().padStart(4, '0')}`;
       currentBillData.bill_no = forcedNo;
     } else {
       throw error;
@@ -649,7 +649,7 @@ export const generateURDNo = async () => {
 
   const nextNum = maxNum + 1;
   const padded = nextNum.toString().padStart(Math.max(4, nextNum.toString().length), '0');
-  return `MJ-URD-${padded}`;
+  return `AHS-URD-${padded}`;
 };
 
 export const createExchange = async (exchangeData: any) => {
@@ -674,7 +674,7 @@ export const createExchange = async (exchangeData: any) => {
       const freshNo = await generateURDNo();
       const match = freshNo.match(/URD-(\d+)/i);
       const baseSeq = match ? parseInt(match[1], 10) : 1;
-      const forcedNo = `MJ-URD-${(baseSeq + attempts - 1).toString().padStart(4, '0')}`;
+      const forcedNo = `AHS-URD-${(baseSeq + attempts - 1).toString().padStart(4, '0')}`;
       currentData.reference_no = forcedNo;
     } else {
       throw error;

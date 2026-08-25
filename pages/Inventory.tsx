@@ -250,14 +250,14 @@ export const Inventory: React.FC = () => {
    };
 
    const generateAutoBarcode = () => {
-      const randomCode = 'MJ' + Math.floor(100000 + Math.random() * 900000).toString();
+      const randomCode = 'AHS' + Math.floor(100000 + Math.random() * 900000).toString();
       setFormData(prev => ({ ...prev, barcode: randomCode }));
       toast({ title: 'Barcode Generated', description: `Assigned auto barcode: ${randomCode}` });
    };
 
    const handleOpenModal = () => {
       setEditingId(null);
-      const autoBarcode = 'MJ' + Math.floor(100000 + Math.random() * 900000).toString();
+      const autoBarcode = 'AHS' + Math.floor(100000 + Math.random() * 900000).toString();
       setFormData({ ...initialFormState, barcode: autoBarcode, quantity: 1 });
       setIsModalOpen(true);
    };
@@ -735,7 +735,6 @@ export const Inventory: React.FC = () => {
                                        isMonospaced
                                        value={formData.barcode}
                                        onChange={e => handleInputChange('barcode', e.target.value)}
-                                       icon={<ScanLine size={14} />}
                                     />
                                  </div>
                                  <div className="col-span-5 flex items-end">
