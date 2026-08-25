@@ -57,6 +57,26 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
   const [selectedBillIds, setSelectedBillIds] = useState<string[]>([]);
   const [selectedBillForPrint, setSelectedBillForPrint] = useState<any>(null);
 
+  // Admin GST Control State
+  const [isGstControlEnabled, setIsGstControlEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('admin_gst_control_enabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  useEffect(() => {
+    const syncGstControl = () => {
+      const saved = localStorage.getItem('admin_gst_control_enabled');
+      const enabled = saved !== null ? JSON.parse(saved) : true;
+      setIsGstControlEnabled(enabled);
+      if (!enabled) {
+        setTypeFilter('ALL');
+      }
+    };
+    window.addEventListener('storage', syncGstControl);
+    syncGstControl();
+    return () => window.removeEventListener('storage', syncGstControl);
+  }, []);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       const allIds = paginatedSales.map(s => s.id.toString());
@@ -165,11 +185,17 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
       // Normalize database type for matching
       const rawType = (sale.sale_type || '').toUpperCase();
       const normalizedSaleType = (rawType === 'NOGST' || rawType === 'NONGST' || rawType === 'NON_GST') ? 'NON GST' : rawType;
+
+      // When Master Admin GST Control is DISABLED, hide all GST bills from All Sales view
+      if (!isGstControlEnabled && normalizedSaleType === 'GST') {
+        return false;
+      }
+
       const matchesType = typeFilter === 'ALL' || normalizedSaleType === typeFilter;
 
       return matchesSearch && matchesType;
     });
-  }, [sales, searchTerm, typeFilter]);
+  }, [sales, searchTerm, typeFilter, isGstControlEnabled]);
 
   const stats = useMemo(() => {
     const totalRevenue = filteredSales.reduce((sum, s) => sum + (s.grand_total || 0), 0);
@@ -343,15 +369,26 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
 
           {/* Type Filter */}
           <div className="flex bg-white rounded-md border border-gray-300 p-1 shadow-sm">
-            {(['ALL', 'GST', 'NON GST'] as const).map(type => (
-              <button
-                key={type}
-                onClick={() => setTypeFilter(type)}
-                className={`px-3 py-1 text-xs font-bold rounded transition-colors ${typeFilter === type ? 'bg-charcoal-900 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
-              >
-                {type === 'NON GST' ? 'Non-GST' : type}
-              </button>
-            ))}
+            {(['ALL', 'GST', 'NON GST'] as const).map(type => {
+              const isDisabled = !isGstControlEnabled && type === 'GST';
+              return (
+                <button
+                  key={type}
+                  disabled={isDisabled}
+                  onClick={() => !isDisabled && setTypeFilter(type)}
+                  title={isDisabled ? 'GST Billing is currently disabled by Master Admin Control' : ''}
+                  className={`px-3 py-1 text-xs font-bold rounded transition-colors ${
+                    isDisabled 
+                      ? 'opacity-40 cursor-not-allowed text-gray-400 line-through' 
+                      : typeFilter === type 
+                        ? 'bg-charcoal-900 text-white' 
+                        : 'text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  {type === 'NON GST' ? 'Non-GST' : type}
+                </button>
+              );
+            })}
           </div>
         </div>
 
