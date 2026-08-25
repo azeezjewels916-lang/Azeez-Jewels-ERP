@@ -183,30 +183,30 @@ export const GoldExchange: React.FC = () => {
             customer_name: formData.customerName,
             customer_phone: formData.customerPhone || 'N/A',
             description: formData.description || 'Old Gold',
-            hsn_code: formData.hsnCode,
+            hsn_code: formData.hsnCode || '7113',
             weight: parseFloat(formData.weight),
             purity: formData.purity,
             rate: parseFloat(formData.rate),
-            total_value: formData.totalValue,
-            date: new Date().toISOString().split('T')[0]
+            total_value: formData.totalValue
          };
 
          if (editingId) {
             await updateExchange(editingId, recordData);
-            toast({ title: "Record Updated", description: "Exchange record has been updated." });
+            toast({ title: "Record Updated", description: "URD Exchange record has been updated." });
          } else {
             const referenceNo = await generateURDNo();
             await createExchange({ ...recordData, reference_no: referenceNo });
-            toast({ title: "Exchange Recorded", description: `Voucher created successfully.` });
+            toast({ title: "URD Purchase Recorded", description: `Voucher created successfully.` });
          }
 
          setFormData(initialForm);
          setEditingId(null);
          setIsModalOpen(false);
          fetchData();
-      } catch (error) {
+      } catch (error: any) {
          console.error('Error saving exchange:', error);
-         toast({ title: "Error", description: "Failed to save exchange record.", variant: 'destructive' });
+         const errMsg = error?.message || error?.details || "Failed to save exchange record.";
+         toast({ title: "Error Saving URD Record", description: errMsg, variant: 'destructive' });
       }
    };
 
