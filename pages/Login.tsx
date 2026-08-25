@@ -38,7 +38,10 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
     try {
       // 2. Check default Admin credentials
-      if ((cleanUser === 'admin' || cleanUser === 'admin@azeez.com' || cleanUser === 'manager') && (cleanPass === 'admin123' || cleanPass === 'admin')) {
+      const isAdminUser = cleanUser === 'azeezazmath!123' || cleanUser === 'admin' || cleanUser === 'admin@azeez.com' || cleanUser === 'manager';
+      const isAdminPass = cleanPass === 'azeez!20' || cleanPass === 'admin123' || cleanPass === 'admin';
+
+      if (isAdminUser && isAdminPass) {
         const adminUser = {
           id: 'admin-001',
           username: cleanUser,
@@ -50,7 +53,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           can_authorize_nongst: true,
         };
         localStorage.setItem('user', JSON.stringify(adminUser));
-        toast({ title: 'Admin Access Granted', description: 'Welcome Admin (Full ERP Access Unlocked)' });
+        toast({ title: 'Admin Access Granted', description: 'Welcome Azmathulla Khan (Full ERP Access Unlocked)' });
         onLogin();
         return;
       }

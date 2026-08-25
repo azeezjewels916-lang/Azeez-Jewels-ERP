@@ -166,7 +166,7 @@ export const GoldExchange: React.FC = () => {
    const stats = useMemo(() => {
       const totalCount = filteredRecords.length;
       const totalWeight = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.weight) || 0), 0);
-      const totalValue = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total_value) || 0), 0);
+      const totalValue = filteredRecords.reduce((sum, r) => sum + (parseFloat(r.total || r.total_value) || 0), 0);
       return { totalCount, totalWeight, totalValue };
    }, [filteredRecords]);
 
@@ -187,7 +187,7 @@ export const GoldExchange: React.FC = () => {
             weight: parseFloat(formData.weight),
             purity: formData.purity,
             rate: parseFloat(formData.rate),
-            total_value: formData.totalValue
+            total: formData.totalValue
          };
 
          if (editingId) {
@@ -220,7 +220,7 @@ export const GoldExchange: React.FC = () => {
          weight: rec.weight.toString(),
          purity: rec.purity,
          rate: rec.rate.toString(),
-         totalValue: rec.total_value
+         totalValue: rec.total || rec.total_value || 0
       });
       setIsModalOpen(true);
    };
