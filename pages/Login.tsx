@@ -132,7 +132,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="space-y-4">
             <UnderlineInput
               label="Username / ID"
-              placeholder="Admin ID or Staff ID"
+              placeholder="Admin ID"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}

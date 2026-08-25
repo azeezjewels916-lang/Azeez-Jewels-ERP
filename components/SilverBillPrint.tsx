@@ -384,19 +384,21 @@ export const SilverBillPrint: React.FC<SilverBillPrintProps> = ({
 
           {/* FOOTER GRID */}
           {(() => {
-            // Calculate pure silver metal value based on weight & market rate (excluding making charges & tax)
-            const silverMetalValue = items.reduce((sum, item) => sum + ((item.weight || 0) * (item.rate || 0)), 0) || totals.itemsSubtotal;
-            const exchVal = Math.round(silverMetalValue * 0.60); // 40% less per market rate
-            const retVal = Math.round(silverMetalValue * 0.50);  // 50% less per market rate
+            const totalVal = totals.grandTotal || totals.itemsSubtotal || 0;
+            const exchPctNum = parseFloat((exchangeValuePct || '40%').replace('%', '')) || 40;
+            const retPctNum = parseFloat((returnValuePct || '50%').replace('%', '')) || 50;
+
+            const exchVal = Math.round(totalVal * (1 - exchPctNum / 100));
+            const retVal = Math.round(totalVal * (1 - retPctNum / 100));
             return (
               <div className="silver-footer-grid">
                 <div className="footer-left-pct">
                   <div className="pct-box">
-                    <div className="pct-label">Exchange Value (40% less)</div>
+                    <div className="pct-label">Exchange Value ({exchangeValuePct || '40%'} less)</div>
                     <div className="pct-val font-mono">₹ {exchVal.toLocaleString()}</div>
                   </div>
                   <div className="pct-box">
-                    <div className="pct-label">Cash Return Value (50% less)</div>
+                    <div className="pct-label">Cash Return Value ({returnValuePct || '50%'} less)</div>
                     <div className="pct-val font-mono">₹ {retVal.toLocaleString()}</div>
                   </div>
                 </div>

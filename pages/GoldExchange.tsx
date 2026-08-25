@@ -182,7 +182,7 @@ export const GoldExchange: React.FC = () => {
          const recordData = {
             customer_name: formData.customerName,
             customer_phone: formData.customerPhone || 'N/A',
-            description: formData.description || 'Old Gold',
+            particulars: formData.description || 'Old Gold',
             hsn_code: formData.hsnCode || '7113',
             weight: parseFloat(formData.weight),
             purity: formData.purity,
@@ -215,7 +215,7 @@ export const GoldExchange: React.FC = () => {
       setFormData({
          customerName: rec.customer_name,
          customerPhone: rec.customer_phone,
-         description: rec.description,
+         description: rec.particulars || rec.description || 'Old Gold',
          hsnCode: rec.hsn_code,
          weight: rec.weight.toString(),
          purity: rec.purity,
