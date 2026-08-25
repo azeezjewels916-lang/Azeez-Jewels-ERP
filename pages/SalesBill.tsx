@@ -301,17 +301,17 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
   // --- EFFECTS ---
 
-  // 1. Sync initial rate when rates are loaded or item is reset
+  // 1. Sync initial rate when rates are loaded or metal_type changes (do NOT depend on rateInput so backspace works cleanly)
   useEffect(() => {
     const currentTypeRate = allMetalRates[newItem.metal_type] || 0;
-    if (!newItem.rateInput && currentTypeRate > 0) {
+    if (currentTypeRate > 0 && !newItem.rateInput) {
       setNewItem(prev => ({
         ...prev,
         rateInput: currentTypeRate.toString(),
         rate: currentTypeRate
       }));
     }
-  }, [allMetalRates, newItem.metal_type, newItem.rateInput]);
+  }, [allMetalRates, newItem.metal_type]);
 
   useEffect(() => {
     const fetchRates = async () => {
@@ -551,6 +551,15 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
     setAllMetalRates(prev => ({ ...prev, [metalKey]: rate }));
     if (metalKey === 'gold') setDailyGoldRate(rate);
+
+    // Auto-sync rate into active item form if metalKey matches currently selected metal_type
+    if (metalKey === newItem.metal_type) {
+      setNewItem(prev => ({
+        ...prev,
+        rateInput: value,
+        rate: rate
+      }));
+    }
 
     // 2. Persist to DB
     if (!isNaN(numValue) && numValue > 0) {

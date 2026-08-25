@@ -224,6 +224,20 @@ export const Users: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4">
+               {/* SMALLER INLINE GST CONTROL TOGGLE BUTTON */}
+               <button
+                  onClick={toggleGstControl}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border shadow-sm ${
+                     isGstEnabled
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                        : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
+                  }`}
+                  title="Click to toggle Systemwide GST Billing Mode (Admin Only)"
+               >
+                  <Shield size={16} />
+                  <span>GST Control: {isGstEnabled ? 'ACTIVE (GST ON)' : 'HIDDEN (GST OFF)'}</span>
+               </button>
+
                <div className="relative w-72">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gold-500" size={16} />
                   <input
@@ -240,50 +254,7 @@ export const Users: React.FC = () => {
             </div>
          </div>
 
-         {/* 2. ADMIN GST CONTROL BANNER CARD */}
-         <div className="px-8 pt-6">
-            <div className={`p-6 rounded-2xl border flex flex-col md:flex-row items-center justify-between gap-6 shadow-luxury transition-all ${
-               isGstEnabled 
-                  ? 'bg-gradient-to-r from-gold-50 to-amber-50/60 border-gold-500/30' 
-                  : 'bg-gradient-to-r from-charcoal-900 to-charcoal-950 text-white border-charcoal-800'
-            }`}>
-               <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border shadow-md ${
-                     isGstEnabled ? 'bg-gold-500 text-white border-gold-400' : 'bg-red-500/20 text-red-400 border-red-500/30'
-                  }`}>
-                     <ShieldAlert size={24} />
-                  </div>
-                  <div>
-                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold uppercase tracking-widest text-gold-600">Master Admin Control</span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                           isGstEnabled ? 'bg-gold-500 text-white' : 'bg-red-600 text-white'
-                        }`}>
-                           {isGstEnabled ? 'GST 3% ENABLED' : 'FORCED NON-GST (0%)'}
-                        </span>
-                     </div>
-                     <h3 className="font-serif text-xl font-bold mt-1">Global GST Tax Selection Control</h3>
-                     <p className={`text-xs font-light mt-0.5 ${isGstEnabled ? 'text-charcoal-700' : 'text-gray-300'}`}>
-                        {isGstEnabled 
-                           ? 'GST billing (3%) is active across Sales Bill POS & Order Booking. Staff can switch between GST & Non-GST.' 
-                           : 'GST billing is DISABLED system-wide. All POS sales bills & order bookings are forced into NON-GST (0%) mode.'}
-                     </p>
-                  </div>
-               </div>
 
-               <button
-                  onClick={toggleGstControl}
-                  className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg shrink-0 ${
-                     isGstEnabled 
-                        ? 'bg-charcoal-900 text-white hover:bg-black' 
-                        : 'bg-gold-500 text-charcoal-950 hover:bg-gold-400 shadow-gold-glow'
-                  }`}
-               >
-                  <Lock size={16} />
-                  <span>{isGstEnabled ? 'DISABLE GST SYSTEM-WIDE' : 'ENABLE GST SYSTEM-WIDE'}</span>
-               </button>
-            </div>
-         </div>
 
          {/* 2. USER GRID */}
          <div className="flex-1 overflow-auto p-8">
