@@ -738,14 +738,42 @@ export const Inventory: React.FC = () => {
                                        onChange={e => handleInputChange('barcode', e.target.value)}
                                     />
                                  </div>
-                                 <div className="col-span-5 flex items-end">
+                                 <div className="col-span-5 flex items-end gap-1.5">
                                     <button
                                        type="button"
                                        onClick={generateAutoBarcode}
-                                       className="w-full bg-gold-100 hover:bg-gold-200 text-gold-800 border border-gold-300 font-bold px-2 py-2.5 rounded text-xs flex items-center justify-center gap-1 transition-all"
+                                       className="flex-1 bg-gold-100 hover:bg-gold-200 text-gold-800 border border-gold-300 font-bold px-1.5 py-2.5 rounded text-[11px] flex items-center justify-center gap-1 transition-all"
                                        title="Auto Generate Barcode"
                                     >
                                        <Wand2 size={13} /> Auto Gen
+                                    </button>
+                                    <button
+                                       type="button"
+                                       onClick={() => {
+                                          const activeItem: InventoryItem = {
+                                             id: editingId || 'temp-' + Date.now(),
+                                             barcode: formData.barcode || ('AHS' + Math.floor(100000 + Math.random() * 900000)),
+                                             item_name: formData.item_name || `${formData.purity || '22K'} ${formData.category || 'Jewelry'}`,
+                                             category: formData.category || 'Ring',
+                                             metal_type: formData.metal_type || 'Gold',
+                                             purity: formData.purity || '22K',
+                                             weight: formData.weight || formData.gross_weight || 0,
+                                             gross_weight: formData.gross_weight || formData.weight || 0,
+                                             net_weight: formData.net_weight || formData.weight || 0,
+                                             huid: formData.huid || '',
+                                             price_per_gram: formData.price_per_gram || 0,
+                                             net_price: formData.net_price || 0,
+                                             stock_status: (formData.stock_status || 'in_stock') as any,
+                                             remarks: formData.remarks || '',
+                                             quantity: formData.quantity || 1
+                                          };
+                                          setBarcodeModalItem(activeItem);
+                                          setIsBarcodeModalOpen(true);
+                                       }}
+                                       className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold px-2 py-2.5 rounded text-[11px] flex items-center justify-center gap-1 transition-all"
+                                       title="Print Barcode Tag Sticker"
+                                    >
+                                       <Tag size={13} /> Tag
                                     </button>
                                  </div>
                               </div>
@@ -891,13 +919,43 @@ export const Inventory: React.FC = () => {
                   </div>
 
                   {/* Modal Footer */}
-                  <div className="p-5 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 shrink-0">
-                     <Button variant="outline" onClick={() => setIsModalOpen(false)} className="border-gray-300 hover:bg-white">
-                        Cancel
+                  <div className="p-5 bg-gray-50 border-t border-gray-200 flex justify-between items-center shrink-0">
+                     <Button
+                        type="button"
+                        onClick={() => {
+                           const activeItem: InventoryItem = {
+                              id: editingId || 'temp-' + Date.now(),
+                              barcode: formData.barcode || ('AHS' + Math.floor(100000 + Math.random() * 900000)),
+                              item_name: formData.item_name || `${formData.purity || '22K'} ${formData.category || 'Jewelry'}`,
+                              category: formData.category || 'Ring',
+                              metal_type: formData.metal_type || 'Gold',
+                              purity: formData.purity || '22K',
+                              weight: formData.weight || formData.gross_weight || 0,
+                              gross_weight: formData.gross_weight || formData.weight || 0,
+                              net_weight: formData.net_weight || formData.weight || 0,
+                              huid: formData.huid || '',
+                              price_per_gram: formData.price_per_gram || 0,
+                              net_price: formData.net_price || 0,
+                              stock_status: (formData.stock_status || 'in_stock') as any,
+                              remarks: formData.remarks || '',
+                              quantity: formData.quantity || 1
+                           };
+                           setBarcodeModalItem(activeItem);
+                           setIsBarcodeModalOpen(true);
+                        }}
+                        className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold px-5 flex items-center gap-2 cursor-pointer shadow-sm"
+                     >
+                        <Tag size={16} /> PRINT BARCODE TAG
                      </Button>
-                     <Button onClick={handleSave} className="bg-gradient-to-r from-gold-500 to-gold-600 text-white shadow-lg hover:shadow-gold-500/20 px-8">
-                        <Save size={18} className="mr-2" /> {editingId ? 'Update Item' : 'Save Item'}
-                     </Button>
+
+                     <div className="flex items-center gap-3">
+                        <Button variant="outline" onClick={() => setIsModalOpen(false)} className="border-gray-300 hover:bg-white">
+                           Cancel
+                        </Button>
+                        <Button onClick={handleSave} className="bg-gradient-to-r from-gold-500 to-gold-600 text-white shadow-lg hover:shadow-gold-500/20 px-8">
+                           <Save size={18} className="mr-2" /> {editingId ? 'Update Item' : 'Save Item'}
+                        </Button>
+                     </div>
                   </div>
 
                </div>
