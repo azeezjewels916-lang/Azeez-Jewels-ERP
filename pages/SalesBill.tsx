@@ -915,11 +915,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                 <input
                   type="number"
                   className="w-full text-center font-mono font-bold text-charcoal-900 bg-white rounded border border-gold-500/20 outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500/30 py-1 text-xs shadow-sm transition-all"
-                  value={
-                    (allMetalRates[key] && (allMetalRates[key] > 5 || key === 'gold' || key === 'gold_916' || key === 'gold_750'))
-                      ? allMetalRates[key] 
-                      : ''
-                  }
+                  value={allMetalRates[key] || ''}
                   onChange={(e) => handleRateUpdate(key, e.target.value)}
                   placeholder="Rate"
                 />
