@@ -738,42 +738,14 @@ export const Inventory: React.FC = () => {
                                        onChange={e => handleInputChange('barcode', e.target.value)}
                                     />
                                  </div>
-                                 <div className="col-span-5 flex items-end gap-1.5">
+                                 <div className="col-span-5 flex items-end">
                                     <button
                                        type="button"
                                        onClick={generateAutoBarcode}
-                                       className="flex-1 bg-gold-100 hover:bg-gold-200 text-gold-800 border border-gold-300 font-bold px-1.5 py-2.5 rounded text-[11px] flex items-center justify-center gap-1 transition-all"
+                                       className="w-full bg-gold-100 hover:bg-gold-200 text-gold-800 border border-gold-300 font-bold px-2 py-2.5 rounded text-xs flex items-center justify-center gap-1 transition-all"
                                        title="Auto Generate Barcode"
                                     >
                                        <Wand2 size={13} /> Auto Gen
-                                    </button>
-                                    <button
-                                       type="button"
-                                       onClick={() => {
-                                          const activeItem: InventoryItem = {
-                                             id: editingId || 'temp-' + Date.now(),
-                                             barcode: formData.barcode || ('AHS' + Math.floor(100000 + Math.random() * 900000)),
-                                             item_name: formData.item_name || `${formData.purity || '22K'} ${formData.category || 'Jewelry'}`,
-                                             category: formData.category || 'Ring',
-                                             metal_type: formData.metal_type || 'Gold',
-                                             purity: formData.purity || '22K',
-                                             weight: formData.weight || formData.gross_weight || 0,
-                                             gross_weight: formData.gross_weight || formData.weight || 0,
-                                             net_weight: formData.net_weight || formData.weight || 0,
-                                             huid: formData.huid || '',
-                                             price_per_gram: formData.price_per_gram || 0,
-                                             net_price: formData.net_price || 0,
-                                             stock_status: (formData.stock_status || 'in_stock') as any,
-                                             remarks: formData.remarks || '',
-                                             quantity: formData.quantity || 1
-                                          };
-                                          setBarcodeModalItem(activeItem);
-                                          setIsBarcodeModalOpen(true);
-                                       }}
-                                       className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold px-2 py-2.5 rounded text-[11px] flex items-center justify-center gap-1 transition-all"
-                                       title="Print Barcode Tag Sticker"
-                                    >
-                                       <Tag size={13} /> Tag
                                     </button>
                                  </div>
                               </div>
