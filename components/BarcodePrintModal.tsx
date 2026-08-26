@@ -69,6 +69,19 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       '100x20': { width: '100mm', height: '20mm', printable: '72mm' },
     }[tagSize];
 
+    const cleanCode = (item.barcode || 'AHS000000').toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    let barRects = '';
+    let curX = 2;
+    for (let i = 0; i < cleanCode.length; i++) {
+      const c = cleanCode.charCodeAt(i);
+      const w1 = (c % 3) + 1;
+      const w2 = ((c * 2) % 3) + 1;
+      barRects += `<rect x="${curX}" y="0" width="${w1}" height="28" fill="#000" />`;
+      curX += w1 + 1;
+      barRects += `<rect x="${curX}" y="0" width="${w2}" height="28" fill="#000" />`;
+      curX += w2 + 1;
+    }
+
     const labelHtml = Array.from({ length: printQuantity }).map(() => `
       <div className="label-container">
         <div className="label-printable">
@@ -77,32 +90,9 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             <span className="purity">${item.purity || '22K 916'}</span>
           </div>
           <div className="barcode-wrap">
-            <svg viewBox="0 0 100 30" style="width: 100%; height: 18px;">
-              <rect x="0" y="0" width="2" height="30" fill="#000" />
-              <rect x="4" y="0" width="1" height="30" fill="#000" />
-              <rect x="7" y="0" width="3" height="30" fill="#000" />
-              <rect x="12" y="0" width="1" height="30" fill="#000" />
-              <rect x="15" y="0" width="2" height="30" fill="#000" />
-              <rect x="19" y="0" width="1" height="30" fill="#000" />
-              <rect x="22" y="0" width="3" height="30" fill="#000" />
-              <rect x="27" y="0" width="2" height="30" fill="#000" />
-              <rect x="31" y="0" width="1" height="30" fill="#000" />
-              <rect x="34" y="0" width="2" height="30" fill="#000" />
-              <rect x="38" y="0" width="3" height="30" fill="#000" />
-              <rect x="43" y="0" width="1" height="30" fill="#000" />
-              <rect x="46" y="0" width="2" height="30" fill="#000" />
-              <rect x="50" y="0" width="1" height="30" fill="#000" />
-              <rect x="53" y="0" width="3" height="30" fill="#000" />
-              <rect x="58" y="0" width="2" height="30" fill="#000" />
-              <rect x="62" y="0" width="1" height="30" fill="#000" />
-              <rect x="65" y="0" width="2" height="30" fill="#000" />
-              <rect x="69" y="0" width="3" height="30" fill="#000" />
-              <rect x="74" y="0" width="1" height="30" fill="#000" />
-              <rect x="77" y="0" width="2" height="30" fill="#000" />
-              <rect x="81" y="0" width="1" height="30" fill="#000" />
-              <rect x="84" y="0" width="3" height="30" fill="#000" />
-              <rect x="89" y="0" width="2" height="30" fill="#000" />
-              <rect x="93" y="0" width="3" height="30" fill="#000" />
+            <svg viewBox="0 0 ${Math.max(curX + 5, 100)} 28" style="width: 100%; height: 18px;" preserveAspectRatio="none">
+              <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
+              ${barRects}
             </svg>
           </div>
           <div className="sku-code">${item.barcode}</div>

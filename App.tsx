@@ -51,7 +51,7 @@ const App: React.FC = () => {
 
       // Prompt staff user for Admin Password
       const enteredPass = window.prompt('Security Lock: Enter Admin Password to access Full ERP:');
-      if (enteredPass === 'admin123' || enteredPass === 'admin') {
+      if (enteredPass === 'Azeez!20') {
         setUserRole('admin');
         // Temporarily elevate current session role
         storedUser.role = 'admin';
