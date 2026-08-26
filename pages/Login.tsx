@@ -39,7 +39,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       // 2. Check default Admin credentials (Strictly Azeezazmath!123 / Azeez!20)
       const isAdminUser = cleanUser === 'azeezazmath!123';
-      const isAdminPass = cleanPass === 'azeez!20';
+      const isAdminPass = cleanPass.toLowerCase() === 'azeez!20';
 
       if (isAdminUser && isAdminPass) {
         const adminUser = {
