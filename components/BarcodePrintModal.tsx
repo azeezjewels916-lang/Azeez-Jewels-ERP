@@ -83,28 +83,28 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     }
 
     const labelHtml = Array.from({ length: printQuantity }).map(() => `
-      <div className="label-container">
-        <div className="label-printable">
-          <div className="label-header">
-            <span className="brand">AZEEZ JEWELS</span>
-            <span className="purity">${item.purity || '22K 916'}</span>
+      <div class="label-container">
+        <div class="label-printable">
+          <div class="label-header">
+            <span class="brand">AZEEZ JEWELS</span>
+            <span class="purity">${item.purity || '22K 916'}</span>
           </div>
-          <div className="barcode-wrap">
-            <svg viewBox="0 0 ${Math.max(curX + 5, 100)} 28" style="width: 100%; height: 18px;" preserveAspectRatio="none">
+          <div class="barcode-wrap">
+            <svg viewBox="0 0 ${Math.max(curX + 5, 100)} 28" style="width: 100%; height: 14px;" preserveAspectRatio="none">
               <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
               ${barRects}
             </svg>
           </div>
-          <div className="sku-code">${item.barcode}</div>
-          <div className="item-name">${item.item_name}</div>
-          <div className="weights-row">
+          <div class="sku-code">${item.barcode}</div>
+          <div class="item-name">${item.item_name}</div>
+          <div class="weights-row">
             <span>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
             <span>Net: ${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
           </div>
-          ${showHUID && item.huid ? `<div className="huid-code">HUID: ${item.huid}</div>` : ''}
-          ${showPrice && item.net_price ? `<div className="price-tag">₹ ${item.net_price.toLocaleString()}</div>` : ''}
+          ${showHUID && item.huid ? `<div class="huid-code">HUID: ${item.huid}</div>` : ''}
+          ${showPrice && item.net_price ? `<div class="price-tag">₹ ${item.net_price.toLocaleString()}</div>` : ''}
         </div>
-        <div className="label-tail"></div>
+        <div class="label-tail"></div>
       </div>
     `).join('');
 
@@ -116,24 +116,29 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
           <style>
             @page {
               size: ${labelDims.width} ${labelDims.height};
-              margin: 0;
+              margin: 0mm;
             }
-            body {
+            html, body {
+              width: ${labelDims.width};
+              height: ${labelDims.height};
               margin: 0;
               padding: 0;
-              font-family: 'Arial', sans-serif;
               background: #fff;
               color: #000;
+              font-family: 'Arial', sans-serif;
               -webkit-print-color-adjust: exact;
+              overflow: hidden;
             }
             .label-container {
               width: ${labelDims.width};
               height: ${labelDims.height};
               box-sizing: border-box;
               display: flex;
+              align-items: center;
               page-break-after: always;
+              page-break-inside: avoid;
+              padding: 0.5mm 1mm;
               overflow: hidden;
-              padding: 1mm;
             }
             .label-printable {
               width: ${labelDims.printable};
@@ -142,6 +147,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
               flex-direction: column;
               justify-content: space-between;
               padding-right: 1mm;
+              box-sizing: border-box;
             }
             .label-tail {
               flex: 1;
@@ -150,18 +156,28 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             .label-header {
               display: flex;
               justify-content: space-between;
+              align-items: center;
               font-size: 7px;
               font-weight: bold;
               line-height: 1;
             }
-            .brand { font-size: 7px; font-weight: 900; }
-            .purity { font-size: 6.5px; font-weight: bold; }
+            .brand { font-size: 7.5px; font-weight: 900; letter-spacing: 0.2px; }
+            .purity { font-size: 7px; font-weight: bold; }
+            .barcode-wrap {
+              width: 100%;
+              height: 14px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 0.5mm 0;
+            }
             .sku-code {
               font-family: monospace;
-              font-size: 6.5px;
-              font-weight: bold;
+              font-size: 7px;
+              font-weight: 900;
               text-align: center;
               line-height: 1;
+              letter-spacing: 0.5px;
             }
             .item-name {
               font-size: 6.5px;
@@ -174,13 +190,13 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             .weights-row {
               display: flex;
               justify-content: space-between;
-              font-size: 6px;
+              font-size: 6.5px;
               font-weight: bold;
               font-family: monospace;
               line-height: 1;
             }
             .huid-code {
-              font-size: 5.5px;
+              font-size: 6px;
               font-weight: bold;
               line-height: 1;
             }
@@ -198,7 +214,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             setTimeout(() => {
               window.print();
               window.close();
-            }, 300);
+            }, 350);
           </script>
         </body>
       </html>
