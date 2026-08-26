@@ -166,9 +166,10 @@ CREATE TABLE IF NOT EXISTS users (
 -- SEED DEFAULT ADMIN AND STAFF USERS
 INSERT INTO users (id, username, password_hash, role, staff_code, can_edit_bills, can_edit_stock, can_authorize_nongst)
 VALUES 
-  ('admin-001', 'admin', 'admin123', 'admin', 'ADM01', true, true, true),
+  ('admin-001', 'Azeezazmath!123', 'Azeez!20', 'admin', 'ADM01', true, true, true),
   ('staff-001', 'staff', 'staff123', 'staff', 'STF01', false, false, false)
-ON CONFLICT (username) DO NOTHING;
+ON CONFLICT (username) DO UPDATE 
+SET password_hash = EXCLUDED.password_hash, role = 'admin', can_edit_bills = true, can_edit_stock = true, can_authorize_nongst = true;
 
 -- DISABLE ROW LEVEL SECURITY (RLS) ON PUBLIC TABLES TO ALLOW API KEY ACCESS
 ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
