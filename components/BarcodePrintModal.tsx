@@ -256,31 +256,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             </div>
           </div>
 
-          {/* ON-SCREEN TAG PREVIEW BOX */}
-          <div className="bg-gray-100 p-6 rounded-xl border border-gray-200 flex flex-col items-center justify-center">
-            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-3">Live Label Preview</span>
-            <div className="bg-white border-2 border-dashed border-gray-400 p-2.5 rounded shadow-sm w-72 h-20 flex justify-between items-center font-sans relative">
-              <div className="flex-1 flex flex-col justify-between h-full pr-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-extrabold text-[9px] text-charcoal-900">AZEEZ JEWELS</span>
-                  <span className="font-bold text-[8px] text-gold-600">{item.purity || '22K 916'}</span>
-                </div>
 
-                <Code128Barcode code={item.barcode} height={16} />
-
-                <div className="font-mono text-[8px] font-bold text-center tracking-tighter">{item.barcode}</div>
-                <div className="text-[8px] font-bold truncate">{item.item_name}</div>
-
-                <div className="flex justify-between text-[7.5px] font-mono font-bold text-gray-600">
-                  <span>Gr: {(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
-                  <span>Net: ${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
-                </div>
-              </div>
-              <div className="w-16 h-full border-l border-dashed border-gray-300 flex items-center justify-center text-[7px] font-bold text-gray-400 uppercase rotate-90">
-                Non-Sticky Tail
-              </div>
-            </div>
-          </div>
 
           {/* PRINT OPTIONS & QUANTITY */}
           <div className="grid grid-cols-3 gap-4 items-center">
