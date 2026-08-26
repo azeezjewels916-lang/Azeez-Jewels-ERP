@@ -164,12 +164,11 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- SEED DEFAULT ADMIN AND STAFF USERS
+DELETE FROM users WHERE id IN ('admin-001', 'staff-001') OR username IN ('Azeezazmath!123', 'admin', 'admin123');
 INSERT INTO users (id, username, password_hash, role, staff_code, can_edit_bills, can_edit_stock, can_authorize_nongst)
 VALUES 
   ('admin-001', 'Azeezazmath!123', 'Azeez!20', 'admin', 'ADM01', true, true, true),
-  ('staff-001', 'staff', 'staff123', 'staff', 'STF01', false, false, false)
-ON CONFLICT (username) DO UPDATE 
-SET password_hash = EXCLUDED.password_hash, role = 'admin', can_edit_bills = true, can_edit_stock = true, can_authorize_nongst = true;
+  ('staff-001', 'staff', 'staff123', 'staff', 'STF01', false, false, false);
 
 -- DISABLE ROW LEVEL SECURITY (RLS) ON PUBLIC TABLES TO ALLOW API KEY ACCESS
 ALTER TABLE customers DISABLE ROW LEVEL SECURITY;
