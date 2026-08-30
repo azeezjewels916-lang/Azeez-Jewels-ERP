@@ -117,15 +117,15 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     const H = labelDims.height;
     const PW = labelDims.printable;
 
-    // All font sizes in mm — proportional to label height
-    const brandFs = (H * 0.14).toFixed(2);
-    const purityFs = (H * 0.12).toFixed(2);
-    const barcodeH = (H * 0.25).toFixed(2);
-    const skuFs = (H * 0.12).toFixed(2);
-    const nameFs = (H * 0.11).toFixed(2);
-    const weightFs = (H * 0.11).toFixed(2);
-    const huidFs = (H * 0.09).toFixed(2);
-    const priceFs = (H * 0.11).toFixed(2);
+    // All font sizes in mm — smaller proportions to fit 12mm
+    const brandFs = (H * 0.11).toFixed(2);
+    const purityFs = (H * 0.09).toFixed(2);
+    const barcodeH = (H * 0.20).toFixed(2);
+    const skuFs = (H * 0.09).toFixed(2);
+    const nameFs = (H * 0.08).toFixed(2);
+    const weightFs = (H * 0.08).toFixed(2);
+    const huidFs = (H * 0.07).toFixed(2);
+    const priceFs = (H * 0.08).toFixed(2);
 
     const labelHtml = Array.from({ length: printQuantity }).map(() => `
       <div class="lc">
@@ -172,11 +172,12 @@ html,body{width:${W}mm;height:${H}mm;margin:0;padding:0;background:#fff;color:#0
 .wt{display:flex;justify-content:space-between;font-size:${weightFs}mm;font-weight:700;font-family:monospace;line-height:1}
 .hu{font-size:${huidFs}mm;font-weight:700;line-height:1}
 .pr{font-size:${priceFs}mm;font-weight:900;text-align:right;line-height:1}
+@media print{html,body{width:${W}mm!important;height:${H}mm!important}.lc{width:${W}mm!important;height:${H}mm!important}}
 </style>
 </head>
 <body>
 ${labelHtml}
-<script>setTimeout(()=>{window.print();window.close()},400)</script>
+<p style="margin-top:2mm;font-size:2mm;color:#999;text-align:center">Verify preview → Press Ctrl+P → Select TSC TTP-244 Pro → Margins: None → Print</p>
 </body>
 </html>`);
     printWindow.document.close();
