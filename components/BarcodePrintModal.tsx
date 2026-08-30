@@ -17,11 +17,11 @@ function getBarcodeSvgString(text: string): string {
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, text || 'AHS000000', {
       format: "CODE128",
-      width: 1.5,
-      height: 35,
+      width: 1.3,
+      height: 36,
       displayValue: false,
-      margin: 0,
-      background: "transparent",
+      margin: 4,
+      background: "#ffffff",
       lineColor: "#000000"
     });
     svgNode.setAttribute("style", "width: 100%; height: 100%; max-height: 100%;");
@@ -52,10 +52,10 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     if (!printWindow) return;
 
     const labelDims = {
-      '50x12': { width: 50, height: 12, printable: 32 },
-      '81x12': { width: 81, height: 12, printable: 52 },
-      '100x15': { width: 100, height: 15, printable: 70 },
-      '100x20': { width: 100, height: 20, printable: 72 },
+      '50x12': { width: 50, height: 12, halfW: 16, tailW: 18 },
+      '81x12': { width: 81, height: 12, halfW: 26, tailW: 29 },
+      '100x15': { width: 100, height: 15, halfW: 35, tailW: 30 },
+      '100x20': { width: 100, height: 20, halfW: 36, tailW: 28 },
     }[tagSize]!;
 
     const barcodeText = (item.barcode || 'AHS000000').trim();
@@ -64,38 +64,34 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
     const W = labelDims.width;
     const H = labelDims.height;
-    const PW = labelDims.printable;
-
-    // Font and section sizing in mm
-    const brandFs = (H * 0.13).toFixed(2);
-    const purityFs = (H * 0.11).toFixed(2);
-    const barcodeH = (H * 0.26).toFixed(2);
-    const skuFs = (H * 0.11).toFixed(2);
-    const nameFs = (H * 0.10).toFixed(2);
-    const weightFs = (H * 0.10).toFixed(2);
-    const huidFs = (H * 0.09).toFixed(2);
-    const priceFs = (H * 0.10).toFixed(2);
+    const HW = labelDims.halfW;
+    const TW = labelDims.tailW;
 
     const labelHtml = Array.from({ length: printQuantity }).map(() => `
       <div class="lc">
-        <div class="lp">
-          <div class="hdr">
-            <span class="br">AZEEZ JEWELS</span>
-            <span class="pu">${item.purity || '22K 916'}</span>
-          </div>
-          <div class="bc">
+        <!-- LEFT HALF (Side 1: Brand, Barcode, SKU) -->
+        <div class="half left-half">
+          <div class="brand">AZEEZ JEWELS</div>
+          <div class="bc-box">
             ${barcodeSvgHtml}
           </div>
-          <div class="sk">${barcodeText}</div>
-          <div class="nm">${item.item_name}</div>
-          <div class="wt">
-            <span>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
-            <span>Net: ${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
-          </div>
-          ${showHUID && item.huid ? `<div class="hu">HUID: ${item.huid}</div>` : ''}
-          ${showPrice && item.net_price ? `<div class="pr">₹ ${item.net_price.toLocaleString()}</div>` : ''}
+          <div class="sku">${barcodeText}</div>
         </div>
-        <div class="tl"></div>
+
+        <!-- RIGHT HALF (Side 2: Details) -->
+        <div class="half right-half">
+          <div class="purity">${item.purity || '22K 916'}</div>
+          <div class="item-name">${item.item_name}</div>
+          <div class="weights">
+            <span>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
+            <span>Nt: ${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
+          </div>
+          ${showHUID && item.huid ? `<div class="huid">HUID: ${item.huid}</div>` : ''}
+          ${showPrice && item.net_price ? `<div class="price">₹ ${item.net_price.toLocaleString()}</div>` : ''}
+        </div>
+
+        <!-- TAIL -->
+        <div class="tail"></div>
       </div>
     `).join('');
 
@@ -116,7 +112,7 @@ html, body {
   padding: 0 !important;
   background: #fff;
   color: #000;
-  font-family: Arial, sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
   overflow: hidden;
@@ -129,73 +125,94 @@ html, body {
   align-items: stretch;
   page-break-after: always;
   page-break-inside: avoid;
-  padding: 0.3mm 0.6mm;
+  padding: 0.5mm 1mm;
   overflow: hidden;
+  box-sizing: border-box;
 }
-.lp {
-  width: ${PW}mm;
-  height: ${H - 0.6}mm;
+.half {
+  width: ${HW}mm;
+  height: ${H - 1}mm;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  box-sizing: border-box;
   overflow: hidden;
-  padding-right: 0.5mm;
 }
-.tl { flex: 1; }
-.hdr {
-  display: flex;
-  justify-content: space-between;
+.left-half {
+  padding-right: 1.2mm;
+  padding-left: 0.8mm;
   align-items: center;
-  line-height: 1;
+  text-align: center;
 }
-.br { font-size: ${brandFs}mm; font-weight: 900; letter-spacing: 0.1mm; }
-.pu { font-size: ${purityFs}mm; font-weight: bold; }
-.bc {
+.right-half {
+  padding-left: 1.5mm;
+  padding-right: 0.8mm;
+  justify-content: space-between;
+}
+.tail {
+  width: ${TW}mm;
+  flex-shrink: 0;
+}
+.brand {
+  font-size: 2mm;
+  font-weight: 900;
+  letter-spacing: 0.15mm;
+  line-height: 1;
+  text-transform: uppercase;
+  text-align: center;
+}
+.bc-box {
   width: 100%;
-  height: ${barcodeH}mm;
+  height: 6.8mm;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  margin: 0.1mm 0;
+  margin: 0.2mm 0;
 }
-.bc svg {
+.bc-box svg {
   width: 100%;
-  height: ${barcodeH}mm;
+  height: 100%;
 }
-.sk {
+.sku {
   font-family: monospace, monospace;
-  font-size: ${skuFs}mm;
+  font-size: 1.9mm;
   font-weight: 900;
   text-align: center;
   line-height: 1;
-  letter-spacing: 0.2mm;
+  letter-spacing: 0.25mm;
 }
-.nm {
-  font-size: ${nameFs}mm;
+.purity {
+  font-size: 2mm;
+  font-weight: 900;
+  line-height: 1;
+  color: #000;
+}
+.item-name {
+  font-size: 2.1mm;
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1;
+  line-height: 1.1;
+  text-transform: capitalize;
 }
-.wt {
+.weights {
   display: flex;
   justify-content: space-between;
-  font-size: ${weightFs}mm;
+  font-size: 1.8mm;
   font-weight: bold;
   font-family: monospace, monospace;
   line-height: 1;
 }
-.hu {
-  font-size: ${huidFs}mm;
+.huid {
+  font-size: 1.7mm;
   font-weight: bold;
   line-height: 1;
 }
-.pr {
-  font-size: ${priceFs}mm;
+.price {
+  font-size: 1.9mm;
   font-weight: 900;
-  text-align: right;
   line-height: 1;
 }
 @media print {
@@ -210,7 +227,7 @@ ${labelHtml}
   setTimeout(() => {
     window.print();
     window.close();
-  }, 250);
+  }, 300);
 </script>
 </body>
 </html>`);
