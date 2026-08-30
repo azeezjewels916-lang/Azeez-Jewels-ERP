@@ -103,154 +103,82 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     if (!printWindow) return;
 
     const labelDims = {
-      '50x12': { width: '50mm', height: '12mm', printable: '32mm' },
-      '81x12': { width: '81mm', height: '12mm', printable: '52mm' },
-      '100x15': { width: '100mm', height: '15mm', printable: '68mm' },
-      '100x20': { width: '100mm', height: '20mm', printable: '72mm' },
-    }[tagSize];
+      '50x12': { width: 50, height: 12, printable: 32 },
+      '81x12': { width: 81, height: 12, printable: 52 },
+      '100x15': { width: 100, height: 15, printable: 68 },
+      '100x20': { width: 100, height: 20, printable: 72 },
+    }[tagSize]!;
 
     const barcodeText = item.barcode || 'AHS000000';
     const { rects: barRects, totalWidth: barTotalWidth } = generateBarcodeSVGRects(barcodeText, 28);
 
     const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
+    const W = labelDims.width;
+    const H = labelDims.height;
+    const PW = labelDims.printable;
+
+    // All font sizes in mm — proportional to label height
+    const brandFs = (H * 0.14).toFixed(2);
+    const purityFs = (H * 0.12).toFixed(2);
+    const barcodeH = (H * 0.25).toFixed(2);
+    const skuFs = (H * 0.12).toFixed(2);
+    const nameFs = (H * 0.11).toFixed(2);
+    const weightFs = (H * 0.11).toFixed(2);
+    const huidFs = (H * 0.09).toFixed(2);
+    const priceFs = (H * 0.11).toFixed(2);
 
     const labelHtml = Array.from({ length: printQuantity }).map(() => `
-      <div class="label-container">
-        <div class="label-printable">
-          <div class="label-header">
-            <span class="brand">AZEEZ JEWELS</span>
-            <span class="purity">${item.purity || '22K 916'}</span>
+      <div class="lc">
+        <div class="lp">
+          <div class="hdr">
+            <span class="br">AZEEZ JEWELS</span>
+            <span class="pu">${item.purity || '22K 916'}</span>
           </div>
-          <div class="barcode-wrap">
-            <svg viewBox="0 0 ${barTotalWidth} 28" style="width: 100%; height: 10px;" preserveAspectRatio="xMidYMid meet" shape-rendering="crispEdges">
+          <div class="bc">
+            <svg viewBox="0 0 ${barTotalWidth} 28" preserveAspectRatio="xMidYMid meet" shape-rendering="crispEdges">
               ${barRects}
             </svg>
           </div>
-          <div class="sku-code">${item.barcode}</div>
-          <div class="item-name">${item.item_name}</div>
-          <div class="weights-row">
-            <span>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
-            <span>Net: ${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
+          <div class="sk">${item.barcode}</div>
+          <div class="nm">${item.item_name}</div>
+          <div class="wt">
+            <span>Gr:${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
+            <span>Nt:${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
           </div>
-          ${showHUID && item.huid ? `<div class="huid-code">HUID: ${item.huid}</div>` : ''}
-          ${showPrice && item.net_price ? `<div class="price-tag">₹ ${item.net_price.toLocaleString()}</div>` : ''}
+          ${showHUID && item.huid ? `<div class="hu">HUID:${item.huid}</div>` : ''}
+          ${showPrice && item.net_price ? `<div class="pr">₹${item.net_price.toLocaleString()}</div>` : ''}
         </div>
-        <div class="label-tail"></div>
+        <div class="tl"></div>
       </div>
     `).join('');
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title></title>
-          <style>
-            @page {
-              size: ${labelDims.width} ${labelDims.height};
-              margin: 0mm !important;
-            }
-            html, body {
-              width: ${labelDims.width};
-              height: ${labelDims.height};
-              margin: 0 !important;
-              padding: 0 !important;
-              background: #fff;
-              color: #000;
-              font-family: 'Arial', sans-serif;
-              -webkit-print-color-adjust: exact;
-              overflow: hidden;
-            }
-            .label-container {
-              width: ${labelDims.width};
-              height: ${labelDims.height};
-              box-sizing: border-box;
-              display: flex;
-              flex-direction: ${flexDir};
-              align-items: center;
-              page-break-after: always;
-              page-break-inside: avoid;
-              padding: 0.3mm 0.8mm;
-              overflow: hidden;
-            }
-            .label-printable {
-              width: ${labelDims.printable};
-              height: 100%;
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-              padding-right: 0.5mm;
-              box-sizing: border-box;
-            }
-            .label-tail {
-              flex: 1;
-              background: transparent;
-            }
-            .label-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              font-size: 6px;
-              font-weight: bold;
-              line-height: 1;
-            }
-            .brand { font-size: 6.5px; font-weight: 900; letter-spacing: 0.2px; }
-            .purity { font-size: 6px; font-weight: bold; }
-            .barcode-wrap {
-              width: 100%;
-              height: 10px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              margin: 0.2mm 0;
-            }
-            .sku-code {
-              font-family: monospace;
-              font-size: 6px;
-              font-weight: 900;
-              text-align: center;
-              line-height: 1;
-              letter-spacing: 0.3px;
-            }
-            .item-name {
-              font-size: 6px;
-              font-weight: bold;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              line-height: 1;
-            }
-            .weights-row {
-              display: flex;
-              justify-content: space-between;
-              font-size: 6px;
-              font-weight: bold;
-              font-family: monospace;
-              line-height: 1;
-            }
-            .huid-code {
-              font-size: 5.5px;
-              font-weight: bold;
-              line-height: 1;
-            }
-            .price-tag {
-              font-size: 6px;
-              font-weight: 900;
-              text-align: right;
-              line-height: 1;
-            }
-          </style>
-        </head>
-        <body>
-          ${labelHtml}
-          <script>
-            setTimeout(() => {
-              window.print();
-              window.close();
-            }, 350);
-          </script>
-        </body>
-      </html>
-    `);
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head><title>Label</title>
+<style>
+@page{size:${W}mm ${H}mm;margin:0!important}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:${W}mm;height:${H}mm;margin:0;padding:0;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;overflow:hidden}
+.lc{width:${W}mm;height:${H}mm;display:flex;flex-direction:${flexDir};align-items:stretch;page-break-after:always;page-break-inside:avoid;padding:0.2mm 0.4mm;overflow:hidden}
+.lp{width:${PW}mm;height:${H - 0.4}mm;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.tl{flex:1}
+.hdr{display:flex;justify-content:space-between;align-items:center;height:${brandFs}mm;line-height:1}
+.br{font-size:${brandFs}mm;font-weight:900;letter-spacing:0.1mm}
+.pu{font-size:${purityFs}mm;font-weight:700}
+.bc{width:100%;height:${barcodeH}mm;display:flex;align-items:center;justify-content:center}
+.bc svg{width:100%;height:${barcodeH}mm}
+.sk{font-family:monospace;font-size:${skuFs}mm;font-weight:900;text-align:center;line-height:1;letter-spacing:0.1mm}
+.nm{font-size:${nameFs}mm;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1}
+.wt{display:flex;justify-content:space-between;font-size:${weightFs}mm;font-weight:700;font-family:monospace;line-height:1}
+.hu{font-size:${huidFs}mm;font-weight:700;line-height:1}
+.pr{font-size:${priceFs}mm;font-weight:900;text-align:right;line-height:1}
+</style>
+</head>
+<body>
+${labelHtml}
+<script>setTimeout(()=>{window.print();window.close()},400)</script>
+</body>
+</html>`);
     printWindow.document.close();
   };
 
