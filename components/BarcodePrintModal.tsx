@@ -85,17 +85,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
 
     const labelHtml = Array.from({ length: printQuantity }).map(() => `
       <div class="lc">
-        <!-- LEFT HALF (Side 1: Brand, Barcode, SKU) -->
+        <!-- LEFT HALF (Side 1: Details - swapped to avoid printer dead line on the left) -->
         <div class="half left-half">
-          <div class="brand">AZEEZ JEWELS</div>
-          <div class="bc-box">
-            ${barcodeSvgHtml}
-          </div>
-          <div class="sku">${barcodeText}</div>
-        </div>
-
-        <!-- RIGHT HALF (Side 2: Details) -->
-        <div class="half right-half">
           <div class="purity">${item.purity || '22K 916'}</div>
           <div class="item-name">${item.item_name}</div>
           <div class="weights">
@@ -104,6 +95,15 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
           </div>
           ${showHUID && item.huid ? `<div class="huid">HUID: ${item.huid}</div>` : ''}
           ${showPrice && item.net_price ? `<div class="price">₹ ${item.net_price.toLocaleString()}</div>` : ''}
+        </div>
+
+        <!-- RIGHT HALF (Side 2: Brand, Barcode, SKU - safe from dead pixels) -->
+        <div class="half right-half">
+          <div class="brand">AZEEZ JEWELS</div>
+          <div class="bc-box">
+            ${barcodeSvgHtml}
+          </div>
+          <div class="sku">${barcodeText}</div>
         </div>
 
         <!-- TAIL -->
