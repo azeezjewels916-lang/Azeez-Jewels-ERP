@@ -9,7 +9,7 @@ interface BarcodePrintModalProps {
   item: Item | null;
 }
 
-export type TagSize = '81x12' | '100x15' | '100x20';
+export type TagSize = '50x12' | '81x12' | '100x15' | '100x20';
 
 // Simple Pure SVG Code 128 Barcode Generator
 const Code128Barcode: React.FC<{ code: string; height?: number }> = ({ code, height = 30 }) => {
@@ -65,6 +65,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     if (!printWindow) return;
 
     const labelDims = {
+      '50x12': { width: '50mm', height: '12mm', printable: '32mm' },
       '81x12': { width: '81mm', height: '12mm', printable: '52mm' },
       '100x15': { width: '100mm', height: '15mm', printable: '68mm' },
       '100x20': { width: '100mm', height: '20mm', printable: '72mm' },
@@ -250,27 +251,28 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
           {/* TAG SIZE SELECTOR */}
           <div>
             <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-2">
-              1. Select Tag / Label Size
+              1. Select Physical Tag / Label Size
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-2">
               {[
-                { id: '81x12', label: '81mm × 12mm', desc: 'Dumbbell Tag (Rings/Earrings)' },
-                { id: '100x15', label: '100mm × 15mm', desc: 'Chain / Necklace Tag' },
-                { id: '100x20', label: '100mm × 20mm', desc: 'Heavy Tag (Hallmark / HUID)' },
+                { id: '50x12', label: '50mm × 12mm', desc: 'Standard Dumbbell' },
+                { id: '81x12', label: '81mm × 12mm', desc: 'Extended Dumbbell' },
+                { id: '100x15', label: '100mm × 15mm', desc: 'Chain / Necklace' },
+                { id: '100x20', label: '100mm × 20mm', desc: 'Heavy Tag (HUID)' },
               ].map(size => (
                 <button
                   key={size.id}
                   onClick={() => setTagSize(size.id as TagSize)}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${tagSize === size.id
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${tagSize === size.id
                     ? 'border-gold-500 bg-gold-50/70 shadow-sm ring-1 ring-gold-500'
                     : 'border-gray-200 hover:bg-gray-50'
                     }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-charcoal-900">{size.label}</span>
-                    {tagSize === size.id && <Check size={14} className="text-gold-600" />}
+                    {tagSize === size.id && <Check size={13} className="text-gold-600" />}
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-1 leading-tight">{size.desc}</p>
+                  <p className="text-[9.5px] text-gray-500 mt-0.5 leading-tight">{size.desc}</p>
                 </button>
               ))}
             </div>
@@ -303,12 +305,12 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
           {/* CRITICAL PRINTER SETTINGS BANNER */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-1.5">
             <div className="font-bold flex items-center gap-1.5 text-amber-800 uppercase tracking-wider text-[11px]">
-              <Sliders size={14} className="text-amber-600" /> Key Chrome Print Settings (TSC TTP-244 Pro)
+              <Sliders size={14} className="text-amber-600" /> Key Chrome Settings & Printer Calibration (TSC TTP-244 Pro)
             </div>
             <ul className="list-disc list-inside space-y-0.5 text-[11px] font-medium text-amber-800">
-              <li>Set <strong>Layout</strong> to <strong>Landscape</strong> (crucial to prevent vertical text!)</li>
-              <li>Set <strong>Margins</strong> to <strong>None</strong></li>
-              <li>Uncheck <strong>"Headers and footers"</strong> (removes top URL/date line)</li>
+              <li>In Chrome Print: Set <strong>Margins</strong> to <strong>None</strong> & Uncheck <strong>Headers & Footers</strong></li>
+              <li><strong>TSC Driver Setup</strong>: In Windows <i>Devices & Printers → TSC TTP-244 Pro → Preferences</i>, set <strong>Media Type: Labels with Gaps</strong> (Gap: 2mm)</li>
+              <li><strong>Calibrate Gap Sensor</strong>: Turn OFF printer, hold <strong>FEED button</strong>, turn ON until green LED blinks — this aligns physical sticker gaps perfectly!</li>
             </ul>
           </div>
 
