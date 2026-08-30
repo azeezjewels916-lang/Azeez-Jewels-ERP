@@ -76,9 +76,9 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       const c = cleanCode.charCodeAt(i);
       const w1 = (c % 3) + 1;
       const w2 = ((c * 2) % 3) + 1;
-      barRects += `<rect x="${curX}" y="0" width="${w1}" height="28" fill="#000" />`;
+      barRects += `<rect x="${curX}" y="0" width="${w1}" height="28" fill="#000" shape-rendering="crispEdges" />`;
       curX += w1 + 1;
-      barRects += `<rect x="${curX}" y="0" width="${w2}" height="28" fill="#000" />`;
+      barRects += `<rect x="${curX}" y="0" width="${w2}" height="28" fill="#000" shape-rendering="crispEdges" />`;
       curX += w2 + 1;
     }
 
@@ -90,7 +90,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             <span class="purity">${item.purity || '22K 916'}</span>
           </div>
           <div class="barcode-wrap">
-            <svg viewBox="0 0 ${Math.max(curX + 5, 100)} 28" style="width: 100%; height: 14px;" preserveAspectRatio="none">
+            <svg viewBox="0 0 ${Math.max(curX + 5, 100)} 28" style="width: 100%; height: 14px;" preserveAspectRatio="none" shape-rendering="crispEdges">
               <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
               ${barRects}
             </svg>
@@ -112,17 +112,17 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>TSC TTP-244 Pro Barcode Printing - ${item.barcode}</title>
+          <title></title>
           <style>
             @page {
               size: ${labelDims.width} ${labelDims.height};
-              margin: 0mm;
+              margin: 0mm !important;
             }
             html, body {
               width: ${labelDims.width};
               height: ${labelDims.height};
-              margin: 0;
-              padding: 0;
+              margin: 0 !important;
+              padding: 0 !important;
               background: #fff;
               color: #000;
               font-family: 'Arial', sans-serif;
@@ -272,9 +272,17 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             </div>
           </div>
 
-
-
-          {/* PRINT OPTIONS & QUANTITY */}
+          {/* CRITICAL PRINTER SETTINGS BANNER */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-1">
+            <div className="font-bold flex items-center gap-1.5 text-amber-800 uppercase tracking-wider text-[11px]">
+              <Sliders size={14} className="text-amber-600" /> Required Chrome Print Settings (TSC TTP-244 Pro)
+            </div>
+            <ul className="list-disc list-inside space-y-0.5 text-[11px] font-medium text-amber-800">
+              <li>Set <strong>Margins</strong> to <strong>None</strong></li>
+              <li>Uncheck <strong>"Headers and footers"</strong> (removes top/bottom margin text)</li>
+              <li>Set <strong>Paper Size</strong> to <strong>81mm × 12mm</strong> (or User-Defined Dumbbell Tag)</li>
+            </ul>
+          </div>
           <div className="grid grid-cols-3 gap-4 items-center">
             <div>
               <label className="block text-xs font-bold text-charcoal-800 uppercase mb-1">Copies</label>
