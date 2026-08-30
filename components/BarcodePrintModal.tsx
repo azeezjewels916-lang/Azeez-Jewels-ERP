@@ -11,41 +11,79 @@ interface BarcodePrintModalProps {
 
 export type TagSize = '50x12' | '81x12' | '100x15' | '100x20';
 
-// Simple Pure SVG Code 128 Barcode Generator
-const Code128Barcode: React.FC<{ code: string; height?: number }> = ({ code, height = 30 }) => {
-  const cleanCode = code || '00000000';
+// ============================================================
+// REAL Code 128B Barcode Encoder
+// Each value maps to 6 widths: [bar, space, bar, space, bar, space]
+// Each character symbol = 11 modules wide
+// ============================================================
+const CODE128B_PATTERNS: number[][] = [
+  [2,1,2,2,2,2],[2,2,2,1,2,2],[2,2,2,2,2,1],[1,2,1,2,2,3],[1,2,1,3,2,2],
+  [1,3,1,2,2,2],[1,2,2,2,1,3],[1,2,2,3,1,2],[1,3,2,2,1,2],[2,2,1,2,1,3],
+  [2,2,1,3,1,2],[2,3,1,2,1,2],[1,1,2,2,3,2],[1,2,2,1,3,2],[1,2,2,2,3,1],// 10-14
+  [1,1,3,2,2,2],[1,2,3,1,2,2],[1,2,3,2,2,1],[2,2,3,2,1,1],[2,2,1,1,3,2],
+  [2,2,1,2,3,1],[2,1,3,2,1,2],[2,2,3,1,1,2],[3,1,2,1,3,1],[3,1,1,2,2,2],// 20-24
+  [3,2,1,1,2,2],[3,2,1,2,2,1],[3,1,2,2,1,2],[3,2,2,1,1,2],[3,2,2,2,1,1],
+  [2,1,2,1,2,3],[2,1,2,3,2,1],[2,3,2,1,2,1],[1,1,1,3,2,3],[1,3,1,1,2,3],// 30-34
+  [1,3,1,3,2,1],[1,1,2,3,1,3],[1,3,2,1,1,3],[1,3,2,3,1,1],[2,1,1,3,1,3],
+  [2,3,1,1,1,3],[2,3,1,3,1,1],[1,1,2,1,3,3],[1,1,2,3,3,1],[1,3,2,1,3,1],// 40-44
+  [1,1,3,1,2,3],[1,1,3,3,2,1],[1,3,3,1,2,1],[3,1,3,1,2,1],[2,1,1,3,3,1],
+  [2,3,1,1,3,1],[2,1,3,1,1,3],[2,1,3,3,1,1],[2,1,3,1,3,1],[3,1,1,1,2,3],// 50-54
+  [3,1,1,3,2,1],[3,3,1,1,2,1],[3,1,2,1,1,3],[3,1,2,3,1,1],[3,3,2,1,1,1],
+  [3,1,4,1,1,1],[2,2,1,4,1,1],[4,3,1,1,1,1],[1,1,1,2,2,4],[1,1,1,4,2,2],// 60-64
+  [1,2,1,1,2,4],[1,2,1,4,2,1],[1,4,1,1,2,2],[1,4,1,2,2,1],[1,1,2,2,1,4],
+  [1,1,2,4,1,2],[1,2,2,1,1,4],[1,2,2,4,1,1],[1,4,2,1,1,2],[1,4,2,2,1,1],// 70-74
+  [2,4,1,2,1,1],[2,2,1,1,1,4],[4,1,3,1,1,1],[2,4,1,1,1,2],[1,3,4,1,1,1],
+  [1,1,1,2,4,2],[1,2,1,1,4,2],[1,2,1,2,4,1],[1,1,4,2,1,2],[1,2,4,1,1,2],// 80-84
+  [1,2,4,2,1,1],[4,1,1,2,1,2],[4,2,1,1,1,2],[4,2,1,2,1,1],[2,1,2,1,4,1],
+  [2,1,4,1,2,1],[4,1,2,1,2,1],[1,1,1,1,4,3],[1,1,1,3,4,1],[1,3,1,1,4,1],// 90-94
+  [1,1,4,1,1,3],[1,1,4,3,1,1],[4,1,1,1,1,3],[4,1,1,3,1,1],[1,1,3,1,4,1],
+  [1,1,4,1,3,1],[3,1,1,1,4,1],[4,1,1,1,3,1],[2,1,1,4,1,2],[2,1,1,2,1,4],// 100-104
+  [2,1,1,2,3,2],[2,3,3,1,1,1,2]  // 105 = START B, 106 = STOP (7 elements)
+];
+// START_B = 104, STOP = 106
 
-  // Simple pseudo barcode pattern generator for visual presentation
-  const bars: { x: number; width: number }[] = [];
-  let currentX = 0;
-
-  // Start pattern
-  bars.push({ x: currentX, width: 2 }); currentX += 4;
-  bars.push({ x: currentX, width: 1 }); currentX += 2;
-
-  for (let i = 0; i < cleanCode.length; i++) {
-    const charCode = cleanCode.charCodeAt(i);
-    const w1 = (charCode % 3) + 1;
-    const w2 = ((charCode * 2) % 3) + 1;
-    const w3 = ((charCode * 3) % 3) + 1;
-
-    bars.push({ x: currentX, width: w1 }); currentX += w1 + 1;
-    bars.push({ x: currentX, width: w2 }); currentX += w2 + 1;
-    bars.push({ x: currentX, width: w3 }); currentX += w3 + 1;
+/** Encode a string to Code 128B bar/space modules */
+function encodeCode128B(text: string): number[] {
+  const values: number[] = [];
+  // Start Code B = value 104
+  values.push(104);
+  for (let i = 0; i < text.length; i++) {
+    const v = text.charCodeAt(i) - 32; // Code 128B: value = ASCII - 32
+    values.push(v < 0 || v > 94 ? 0 : v);
   }
+  // Calculate checksum (mod 103)
+  let checksum = values[0]; // start with START_B value
+  for (let i = 1; i < values.length; i++) {
+    checksum += values[i] * i;
+  }
+  checksum = checksum % 103;
+  values.push(checksum);
+  values.push(106); // STOP
 
-  // Stop pattern
-  bars.push({ x: currentX, width: 2 }); currentX += 3;
-  bars.push({ x: currentX, width: 3 }); currentX += 5;
+  // Convert values to module widths
+  const modules: number[] = [];
+  for (const v of values) {
+    const pattern = CODE128B_PATTERNS[v];
+    if (pattern) modules.push(...pattern);
+  }
+  return modules;
+}
 
-  return (
-    <svg viewBox={`0 0 ${currentX} ${height}`} className="w-full h-auto max-h-8">
-      {bars.map((bar, idx) => (
-        <rect key={idx} x={bar.x} y="0" width={bar.width} height={height} fill="#000000" />
-      ))}
-    </svg>
-  );
-};
+/** Generate SVG bar rects string from Code 128B modules for print HTML */
+function generateBarcodeSVGRects(text: string, barHeight: number): { rects: string; totalWidth: number } {
+  const modules = encodeCode128B(text);
+  let rects = '';
+  let x = 0;
+  let isBar = true; // starts with bar
+  for (const width of modules) {
+    if (isBar) {
+      rects += `<rect x="${x}" y="0" width="${width}" height="${barHeight}" fill="#000" shape-rendering="crispEdges" />`;
+    }
+    x += width;
+    isBar = !isBar;
+  }
+  return { rects, totalWidth: x };
+}
 
 export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   isOpen,
@@ -71,18 +109,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       '100x20': { width: '100mm', height: '20mm', printable: '72mm' },
     }[tagSize];
 
-    const cleanCode = (item.barcode || 'AHS000000').toUpperCase().replace(/[^A-Z0-9-]/g, '');
-    let barRects = '';
-    let curX = 2;
-    for (let i = 0; i < cleanCode.length; i++) {
-      const c = cleanCode.charCodeAt(i);
-      const w1 = (c % 3) + 1;
-      const w2 = ((c * 2) % 3) + 1;
-      barRects += `<rect x="${curX}" y="0" width="${w1}" height="28" fill="#000" shape-rendering="crispEdges" />`;
-      curX += w1 + 1;
-      barRects += `<rect x="${curX}" y="0" width="${w2}" height="28" fill="#000" shape-rendering="crispEdges" />`;
-      curX += w2 + 1;
-    }
+    const barcodeText = item.barcode || 'AHS000000';
+    const { rects: barRects, totalWidth: barTotalWidth } = generateBarcodeSVGRects(barcodeText, 28);
 
     const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
 
@@ -94,8 +122,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             <span class="purity">${item.purity || '22K 916'}</span>
           </div>
           <div class="barcode-wrap">
-            <svg viewBox="0 0 ${Math.max(curX + 5, 100)} 28" style="width: 100%; height: 14px;" preserveAspectRatio="none" shape-rendering="crispEdges">
-              <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
+            <svg viewBox="0 0 ${barTotalWidth} 28" style="width: 100%; height: 14px;" preserveAspectRatio="xMidYMid meet" shape-rendering="crispEdges">
               ${barRects}
             </svg>
           </div>
