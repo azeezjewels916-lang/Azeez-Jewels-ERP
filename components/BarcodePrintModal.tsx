@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Printer, Tag, Check, Sliders } from 'lucide-react';
+import JsBarcode from 'jsbarcode';
 import { Button } from './UIComponents';
 import { Item } from '../types';
 
@@ -10,6 +11,28 @@ interface BarcodePrintModalProps {
 }
 
 export type TagSize = '50x12' | '81x12' | '100x15' | '100x20';
+
+function getBarcodeSvgString(text: string): string {
+  try {
+    const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    JsBarcode(svgNode, text || 'AHS000000', {
+      format: "CODE128",
+      width: 1.5,
+      height: 35,
+      displayValue: false,
+      margin: 0,
+      background: "transparent",
+      lineColor: "#000000"
+    });
+    svgNode.setAttribute("style", "width: 100%; height: 100%; max-height: 100%;");
+    svgNode.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    svgNode.setAttribute("shape-rendering", "crispEdges");
+    return svgNode.outerHTML;
+  } catch (e) {
+    console.error("JsBarcode generation error:", e);
+    return `<svg viewBox="0 0 100 35"><rect width="100%" height="100%" fill="#fff"/></svg>`;
+  }
+}
 
 export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   isOpen,
@@ -35,23 +58,25 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       '100x20': { width: 100, height: 20, printable: 72 },
     }[tagSize]!;
 
-    const barcodeText = item.barcode || 'AHS000000';
+    const barcodeText = (item.barcode || 'AHS000000').trim();
+    const barcodeSvgHtml = getBarcodeSvgString(barcodeText);
+
     const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
     const W = labelDims.width;
     const H = labelDims.height;
     const PW = labelDims.printable;
 
-    // Font sizes in mm — proportional to label height
-    const brandFs = (H * 0.12).toFixed(2);
-    const purityFs = (H * 0.10).toFixed(2);
-    const barcodeH = (H * 0.22).toFixed(2);
-    const skuFs = (H * 0.09).toFixed(2);
-    const nameFs = (H * 0.09).toFixed(2);
-    const weightFs = (H * 0.09).toFixed(2);
-    const huidFs = (H * 0.08).toFixed(2);
-    const priceFs = (H * 0.09).toFixed(2);
+    // Font and section sizing in mm
+    const brandFs = (H * 0.13).toFixed(2);
+    const purityFs = (H * 0.11).toFixed(2);
+    const barcodeH = (H * 0.26).toFixed(2);
+    const skuFs = (H * 0.11).toFixed(2);
+    const nameFs = (H * 0.10).toFixed(2);
+    const weightFs = (H * 0.10).toFixed(2);
+    const huidFs = (H * 0.09).toFixed(2);
+    const priceFs = (H * 0.10).toFixed(2);
 
-    const labelHtml = Array.from({ length: printQuantity }).map((_, idx) => `
+    const labelHtml = Array.from({ length: printQuantity }).map(() => `
       <div class="lc">
         <div class="lp">
           <div class="hdr">
@@ -59,16 +84,16 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             <span class="pu">${item.purity || '22K 916'}</span>
           </div>
           <div class="bc">
-            <svg id="barcode-${idx}"></svg>
+            ${barcodeSvgHtml}
           </div>
-          <div class="sk">${item.barcode}</div>
+          <div class="sk">${barcodeText}</div>
           <div class="nm">${item.item_name}</div>
           <div class="wt">
-            <span>Gr:${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
-            <span>Nt:${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
+            <span>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
+            <span>Net: ${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
           </div>
-          ${showHUID && item.huid ? `<div class="hu">HUID:${item.huid}</div>` : ''}
-          ${showPrice && item.net_price ? `<div class="pr">₹${item.net_price.toLocaleString()}</div>` : ''}
+          ${showHUID && item.huid ? `<div class="hu">HUID: ${item.huid}</div>` : ''}
+          ${showPrice && item.net_price ? `<div class="pr">₹ ${item.net_price.toLocaleString()}</div>` : ''}
         </div>
         <div class="tl"></div>
       </div>
@@ -76,46 +101,117 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
 
     printWindow.document.write(`<!DOCTYPE html>
 <html>
-<head><title>Label</title>
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
+<head>
+<title></title>
 <style>
-@page{size:${W}mm ${H}mm;margin:0!important}
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:${W}mm;height:${H}mm;margin:0;padding:0;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;overflow:hidden}
-.lc{width:${W}mm;height:${H}mm;display:flex;flex-direction:${flexDir};align-items:stretch;page-break-after:always;page-break-inside:avoid;padding:0.2mm 0.4mm;overflow:hidden}
-.lp{width:${PW}mm;height:${H - 0.4}mm;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
-.tl{flex:1}
-.hdr{display:flex;justify-content:space-between;align-items:center;height:${brandFs}mm;line-height:1}
-.br{font-size:${brandFs}mm;font-weight:900;letter-spacing:0.1mm}
-.pu{font-size:${purityFs}mm;font-weight:700}
-.bc{width:100%;height:${barcodeH}mm;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.bc svg{width:100%;height:${barcodeH}mm}
-.sk{font-family:monospace;font-size:${skuFs}mm;font-weight:900;text-align:center;line-height:1;letter-spacing:0.1mm}
-.nm{font-size:${nameFs}mm;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1}
-.wt{display:flex;justify-content:space-between;font-size:${weightFs}mm;font-weight:700;font-family:monospace;line-height:1}
-.hu{font-size:${huidFs}mm;font-weight:700;line-height:1}
-.pr{font-size:${priceFs}mm;font-weight:900;text-align:right;line-height:1}
-@media print{html,body{width:${W}mm!important;height:${H}mm!important}.lc{width:${W}mm!important;height:${H}mm!important}}
+@page {
+  size: ${W}mm ${H}mm;
+  margin: 0mm !important;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: ${W}mm;
+  height: ${H}mm;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #fff;
+  color: #000;
+  font-family: Arial, sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  overflow: hidden;
+}
+.lc {
+  width: ${W}mm;
+  height: ${H}mm;
+  display: flex;
+  flex-direction: ${flexDir};
+  align-items: stretch;
+  page-break-after: always;
+  page-break-inside: avoid;
+  padding: 0.3mm 0.6mm;
+  overflow: hidden;
+}
+.lp {
+  width: ${PW}mm;
+  height: ${H - 0.6}mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding-right: 0.5mm;
+}
+.tl { flex: 1; }
+.hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  line-height: 1;
+}
+.br { font-size: ${brandFs}mm; font-weight: 900; letter-spacing: 0.1mm; }
+.pu { font-size: ${purityFs}mm; font-weight: bold; }
+.bc {
+  width: 100%;
+  height: ${barcodeH}mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin: 0.1mm 0;
+}
+.bc svg {
+  width: 100%;
+  height: ${barcodeH}mm;
+}
+.sk {
+  font-family: monospace, monospace;
+  font-size: ${skuFs}mm;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1;
+  letter-spacing: 0.2mm;
+}
+.nm {
+  font-size: ${nameFs}mm;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+.wt {
+  display: flex;
+  justify-content: space-between;
+  font-size: ${weightFs}mm;
+  font-weight: bold;
+  font-family: monospace, monospace;
+  line-height: 1;
+}
+.hu {
+  font-size: ${huidFs}mm;
+  font-weight: bold;
+  line-height: 1;
+}
+.pr {
+  font-size: ${priceFs}mm;
+  font-weight: 900;
+  text-align: right;
+  line-height: 1;
+}
+@media print {
+  html, body { width: ${W}mm !important; height: ${H}mm !important; }
+  .lc { width: ${W}mm !important; height: ${H}mm !important; }
+}
 </style>
 </head>
 <body>
 ${labelHtml}
 <script>
-window.onload = function() {
-  for (var i = 0; i < ${printQuantity}; i++) {
-    try {
-      JsBarcode("#barcode-" + i, "${barcodeText}", {
-        format: "CODE128",
-        width: 1,
-        height: 30,
-        displayValue: false,
-        margin: 0,
-        background: "transparent"
-      });
-    } catch(e) { console.error(e); }
-  }
-};
-<\/script>
+  setTimeout(() => {
+    window.print();
+    window.close();
+  }, 250);
+</script>
 </body>
 </html>`);
     printWindow.document.close();
