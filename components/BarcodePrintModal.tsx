@@ -143,13 +143,13 @@ html, body {
   align-items: stretch;
   page-break-after: always;
   page-break-inside: avoid;
-  padding: 0.5mm 1mm;
+  padding: 2mm 1mm 0mm 1mm; /* Pushed down by 2mm to avoid top cutoff */
   overflow: hidden;
   box-sizing: border-box;
 }
 .half {
   width: ${HW}mm;
-  height: ${H - 1}mm;
+  height: ${H - 2}mm;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
