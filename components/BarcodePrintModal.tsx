@@ -122,7 +122,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             <span class="purity">${item.purity || '22K 916'}</span>
           </div>
           <div class="barcode-wrap">
-            <svg viewBox="0 0 ${barTotalWidth} 28" style="width: 100%; height: 14px;" preserveAspectRatio="xMidYMid meet" shape-rendering="crispEdges">
+            <svg viewBox="0 0 ${barTotalWidth} 28" style="width: 100%; height: 10px;" preserveAspectRatio="xMidYMid meet" shape-rendering="crispEdges">
               ${barRects}
             </svg>
           </div>
@@ -169,7 +169,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
               align-items: center;
               page-break-after: always;
               page-break-inside: avoid;
-              padding: 0.5mm 1mm;
+              padding: 0.3mm 0.8mm;
               overflow: hidden;
             }
             .label-printable {
@@ -178,7 +178,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
               display: flex;
               flex-direction: column;
               justify-content: space-between;
-              padding-right: 1mm;
+              padding-right: 0.5mm;
               box-sizing: border-box;
             }
             .label-tail {
@@ -189,30 +189,30 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
               display: flex;
               justify-content: space-between;
               align-items: center;
-              font-size: 7px;
+              font-size: 6px;
               font-weight: bold;
               line-height: 1;
             }
-            .brand { font-size: 7.5px; font-weight: 900; letter-spacing: 0.2px; }
-            .purity { font-size: 7px; font-weight: bold; }
+            .brand { font-size: 6.5px; font-weight: 900; letter-spacing: 0.2px; }
+            .purity { font-size: 6px; font-weight: bold; }
             .barcode-wrap {
               width: 100%;
-              height: 14px;
+              height: 10px;
               display: flex;
               align-items: center;
               justify-content: center;
-              margin: 0.5mm 0;
+              margin: 0.2mm 0;
             }
             .sku-code {
               font-family: monospace;
-              font-size: 7px;
+              font-size: 6px;
               font-weight: 900;
               text-align: center;
               line-height: 1;
-              letter-spacing: 0.5px;
+              letter-spacing: 0.3px;
             }
             .item-name {
-              font-size: 6.5px;
+              font-size: 6px;
               font-weight: bold;
               white-space: nowrap;
               overflow: hidden;
@@ -222,18 +222,18 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             .weights-row {
               display: flex;
               justify-content: space-between;
-              font-size: 6.5px;
+              font-size: 6px;
               font-weight: bold;
               font-family: monospace;
               line-height: 1;
             }
             .huid-code {
-              font-size: 6px;
+              font-size: 5.5px;
               font-weight: bold;
               line-height: 1;
             }
             .price-tag {
-              font-size: 6.5px;
+              font-size: 6px;
               font-weight: 900;
               text-align: right;
               line-height: 1;
