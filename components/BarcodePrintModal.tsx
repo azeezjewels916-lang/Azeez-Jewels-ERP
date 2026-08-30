@@ -56,7 +56,6 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   const [printQuantity, setPrintQuantity] = useState<number>(1);
   const [showPrice, setShowPrice] = useState<boolean>(true);
   const [showHUID, setShowHUID] = useState<boolean>(true);
-  const [orientation, setOrientation] = useState<'0' | '90' | '270'>('0');
   const [tailPosition, setTailPosition] = useState<'right' | 'left'>('right');
 
   if (!isOpen || !item) return null;
@@ -70,11 +69,6 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       '100x15': { width: '100mm', height: '15mm', printable: '68mm' },
       '100x20': { width: '100mm', height: '20mm', printable: '72mm' },
     }[tagSize];
-
-    const isRotated = orientation !== '0';
-    const pageSizeCss = isRotated
-      ? `${labelDims.height} ${labelDims.width} portrait`
-      : `${labelDims.width} ${labelDims.height} landscape`;
 
     const cleanCode = (item.barcode || 'AHS000000').toUpperCase().replace(/[^A-Z0-9-]/g, '');
     let barRects = '';
@@ -92,30 +86,28 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
 
     const labelHtml = Array.from({ length: printQuantity }).map(() => `
-      <div class="page-wrapper">
-        <div class="label-container">
-          <div class="label-printable">
-            <div class="label-header">
-              <span class="brand">AZEEZ JEWELS</span>
-              <span class="purity">${item.purity || '22K 916'}</span>
-            </div>
-            <div class="barcode-wrap">
-              <svg viewBox="0 0 ${Math.max(curX + 5, 100)} 28" style="width: 100%; height: 14px;" preserveAspectRatio="none" shape-rendering="crispEdges">
-                <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
-                ${barRects}
-              </svg>
-            </div>
-            <div class="sku-code">${item.barcode}</div>
-            <div class="item-name">${item.item_name}</div>
-            <div class="weights-row">
-              <span>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
-              <span>Net: ${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
-            </div>
-            ${showHUID && item.huid ? `<div class="huid-code">HUID: ${item.huid}</div>` : ''}
-            ${showPrice && item.net_price ? `<div class="price-tag">₹ ${item.net_price.toLocaleString()}</div>` : ''}
+      <div class="label-container">
+        <div class="label-printable">
+          <div class="label-header">
+            <span class="brand">AZEEZ JEWELS</span>
+            <span class="purity">${item.purity || '22K 916'}</span>
           </div>
-          <div class="label-tail"></div>
+          <div class="barcode-wrap">
+            <svg viewBox="0 0 ${Math.max(curX + 5, 100)} 28" style="width: 100%; height: 14px;" preserveAspectRatio="none" shape-rendering="crispEdges">
+              <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
+              ${barRects}
+            </svg>
+          </div>
+          <div class="sku-code">${item.barcode}</div>
+          <div class="item-name">${item.item_name}</div>
+          <div class="weights-row">
+            <span>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
+            <span>Net: ${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
+          </div>
+          ${showHUID && item.huid ? `<div class="huid-code">HUID: ${item.huid}</div>` : ''}
+          ${showPrice && item.net_price ? `<div class="price-tag">₹ ${item.net_price.toLocaleString()}</div>` : ''}
         </div>
+        <div class="label-tail"></div>
       </div>
     `).join('');
 
@@ -126,28 +118,18 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
           <title></title>
           <style>
             @page {
-              size: ${pageSizeCss};
+              size: ${labelDims.width} ${labelDims.height};
               margin: 0mm !important;
             }
             html, body {
-              width: ${isRotated ? labelDims.height : labelDims.width};
-              height: ${isRotated ? labelDims.width : labelDims.height};
+              width: ${labelDims.width};
+              height: ${labelDims.height};
               margin: 0 !important;
               padding: 0 !important;
               background: #fff;
               color: #000;
               font-family: 'Arial', sans-serif;
               -webkit-print-color-adjust: exact;
-              overflow: hidden;
-            }
-            .page-wrapper {
-              width: ${isRotated ? labelDims.height : labelDims.width};
-              height: ${isRotated ? labelDims.width : labelDims.height};
-              page-break-after: always;
-              page-break-inside: avoid;
-              display: flex;
-              align-items: center;
-              justify-content: center;
               overflow: hidden;
             }
             .label-container {
@@ -157,10 +139,10 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
               display: flex;
               flex-direction: ${flexDir};
               align-items: center;
+              page-break-after: always;
+              page-break-inside: avoid;
               padding: 0.5mm 1mm;
               overflow: hidden;
-              ${orientation === '90' ? 'transform: rotate(90deg); transform-origin: center;' : ''}
-              ${orientation === '270' ? 'transform: rotate(270deg); transform-origin: center;' : ''}
             }
             .label-printable {
               width: ${labelDims.printable};
@@ -294,65 +276,39 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             </div>
           </div>
 
-          {/* ORIENTATION & TAIL CONTROLS */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-                2. Print Orientation
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { id: '0', label: '0° Normal' },
-                  { id: '90', label: '90° Side Feed' },
-                  { id: '270', label: '270° Flip' }
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => setOrientation(opt.id as any)}
-                    className={`py-2 px-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${orientation === opt.id
-                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm'
-                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-                3. Sticker Tail Direction
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: 'right', label: 'Tail Right (Head Left)' },
-                  { id: 'left', label: 'Tail Left (Head Right)' }
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => setTailPosition(opt.id as any)}
-                    className={`py-2 px-2 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${tailPosition === opt.id
-                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm'
-                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+          {/* STICKER TAIL DIRECTION */}
+          <div>
+            <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+              2. Sticker Tail Position
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { id: 'right', label: 'Tail Right (Standard Head Left)' },
+                { id: 'left', label: 'Tail Left (Reversed Head Right)' }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => setTailPosition(opt.id as any)}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left ${tailPosition === opt.id
+                    ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* CRITICAL PRINTER SETTINGS BANNER */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 space-y-1">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-1.5">
             <div className="font-bold flex items-center gap-1.5 text-amber-800 uppercase tracking-wider text-[11px]">
-              <Sliders size={14} className="text-amber-600" /> Chrome Settings for TSC TTP-244 Pro:
+              <Sliders size={14} className="text-amber-600" /> Key Chrome Print Settings (TSC TTP-244 Pro)
             </div>
             <ul className="list-disc list-inside space-y-0.5 text-[11px] font-medium text-amber-800">
+              <li>Set <strong>Layout</strong> to <strong>Landscape</strong> (crucial to prevent vertical text!)</li>
               <li>Set <strong>Margins</strong> to <strong>None</strong></li>
-              <li>Uncheck <strong>"Headers and footers"</strong> (removes URL text)</li>
-              <li>If text prints sideways, switch <strong>Print Orientation</strong> to <strong>90° Side Feed</strong> above!</li>
+              <li>Uncheck <strong>"Headers and footers"</strong> (removes top URL/date line)</li>
             </ul>
           </div>
 
