@@ -18,9 +18,9 @@ function getBarcodeSvgString(text: string): string {
     JsBarcode(svgNode, text || 'AHS000000', {
       format: "CODE128",
       width: 1, // 1 unit per module
-      height: 60, // Taller bars are easier to scan
+      height: 40, // Reduced height to pull it inward away from the top/bottom text
       displayValue: false,
-      margin: 15, // CRITICAL: 15-module quiet zone built-in
+      margin: 20, // Increased to massive 20-module quiet zone on each side
       background: "#ffffff",
       lineColor: "#000000"
     });
@@ -63,11 +63,21 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   const [showHUID, setShowHUID] = useState<boolean>(true);
   const [tailPosition, setTailPosition] = useState<'right' | 'left'>('right');
 
+  useEffect(() => {
+    // Reset state when modal opens
+    if (isOpen) {
+      setPrintQuantity(1);
+    }
+  }, [isOpen]);
+
   if (!isOpen || !item) return null;
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    if (!printWindow) {
+      alert("Please allow popups to print barcodes.");
+      return;
+    }
 
     const labelDims = {
       '50x12': { width: 50, height: 12, halfW: 16, tailW: 18 },
@@ -143,13 +153,13 @@ html, body {
   align-items: stretch;
   page-break-after: always;
   page-break-inside: avoid;
-  padding: 2mm 1mm 0mm 1mm; /* Pushed down by 2mm to avoid top cutoff */
+  padding: 3.5mm 1mm 0mm 1mm; /* Pushed down MASSIVELY by 3.5mm to avoid printer top cutoff */
   overflow: hidden;
   box-sizing: border-box;
 }
 .half {
   width: ${HW}mm;
-  height: ${H - 2}mm;
+  height: ${H - 3.5}mm;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
