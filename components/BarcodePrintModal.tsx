@@ -11,86 +11,12 @@ interface BarcodePrintModalProps {
 
 export type TagSize = '50x12' | '81x12' | '100x15' | '100x20';
 
-// ============================================================
-// REAL Code 128B Barcode Encoder
-// Each value maps to 6 widths: [bar, space, bar, space, bar, space]
-// Each character symbol = 11 modules wide
-// ============================================================
-const CODE128B_PATTERNS: number[][] = [
-  [2,1,2,2,2,2],[2,2,2,1,2,2],[2,2,2,2,2,1],[1,2,1,2,2,3],[1,2,1,3,2,2],
-  [1,3,1,2,2,2],[1,2,2,2,1,3],[1,2,2,3,1,2],[1,3,2,2,1,2],[2,2,1,2,1,3],
-  [2,2,1,3,1,2],[2,3,1,2,1,2],[1,1,2,2,3,2],[1,2,2,1,3,2],[1,2,2,2,3,1],// 10-14
-  [1,1,3,2,2,2],[1,2,3,1,2,2],[1,2,3,2,2,1],[2,2,3,2,1,1],[2,2,1,1,3,2],
-  [2,2,1,2,3,1],[2,1,3,2,1,2],[2,2,3,1,1,2],[3,1,2,1,3,1],[3,1,1,2,2,2],// 20-24
-  [3,2,1,1,2,2],[3,2,1,2,2,1],[3,1,2,2,1,2],[3,2,2,1,1,2],[3,2,2,2,1,1],
-  [2,1,2,1,2,3],[2,1,2,3,2,1],[2,3,2,1,2,1],[1,1,1,3,2,3],[1,3,1,1,2,3],// 30-34
-  [1,3,1,3,2,1],[1,1,2,3,1,3],[1,3,2,1,1,3],[1,3,2,3,1,1],[2,1,1,3,1,3],
-  [2,3,1,1,1,3],[2,3,1,3,1,1],[1,1,2,1,3,3],[1,1,2,3,3,1],[1,3,2,1,3,1],// 40-44
-  [1,1,3,1,2,3],[1,1,3,3,2,1],[1,3,3,1,2,1],[3,1,3,1,2,1],[2,1,1,3,3,1],
-  [2,3,1,1,3,1],[2,1,3,1,1,3],[2,1,3,3,1,1],[2,1,3,1,3,1],[3,1,1,1,2,3],// 50-54
-  [3,1,1,3,2,1],[3,3,1,1,2,1],[3,1,2,1,1,3],[3,1,2,3,1,1],[3,3,2,1,1,1],
-  [3,1,4,1,1,1],[2,2,1,4,1,1],[4,3,1,1,1,1],[1,1,1,2,2,4],[1,1,1,4,2,2],// 60-64
-  [1,2,1,1,2,4],[1,2,1,4,2,1],[1,4,1,1,2,2],[1,4,1,2,2,1],[1,1,2,2,1,4],
-  [1,1,2,4,1,2],[1,2,2,1,1,4],[1,2,2,4,1,1],[1,4,2,1,1,2],[1,4,2,2,1,1],// 70-74
-  [2,4,1,2,1,1],[2,2,1,1,1,4],[4,1,3,1,1,1],[2,4,1,1,1,2],[1,3,4,1,1,1],
-  [1,1,1,2,4,2],[1,2,1,1,4,2],[1,2,1,2,4,1],[1,1,4,2,1,2],[1,2,4,1,1,2],// 80-84
-  [1,2,4,2,1,1],[4,1,1,2,1,2],[4,2,1,1,1,2],[4,2,1,2,1,1],[2,1,2,1,4,1],
-  [2,1,4,1,2,1],[4,1,2,1,2,1],[1,1,1,1,4,3],[1,1,1,3,4,1],[1,3,1,1,4,1],// 90-94
-  [1,1,4,1,1,3],[1,1,4,3,1,1],[4,1,1,1,1,3],[4,1,1,3,1,1],[1,1,3,1,4,1],
-  [1,1,4,1,3,1],[3,1,1,1,4,1],[4,1,1,1,3,1],[2,1,1,4,1,2],[2,1,1,2,1,4],// 100-104
-  [2,1,1,2,3,2],[2,3,3,1,1,1,2]  // 105 = START B, 106 = STOP (7 elements)
-];
-// START_B = 104, STOP = 106
-
-/** Encode a string to Code 128B bar/space modules */
-function encodeCode128B(text: string): number[] {
-  const values: number[] = [];
-  // Start Code B = value 104
-  values.push(104);
-  for (let i = 0; i < text.length; i++) {
-    const v = text.charCodeAt(i) - 32; // Code 128B: value = ASCII - 32
-    values.push(v < 0 || v > 94 ? 0 : v);
-  }
-  // Calculate checksum (mod 103)
-  let checksum = values[0]; // start with START_B value
-  for (let i = 1; i < values.length; i++) {
-    checksum += values[i] * i;
-  }
-  checksum = checksum % 103;
-  values.push(checksum);
-  values.push(106); // STOP
-
-  // Convert values to module widths
-  const modules: number[] = [];
-  for (const v of values) {
-    const pattern = CODE128B_PATTERNS[v];
-    if (pattern) modules.push(...pattern);
-  }
-  return modules;
-}
-
-/** Generate SVG bar rects string from Code 128B modules for print HTML */
-function generateBarcodeSVGRects(text: string, barHeight: number): { rects: string; totalWidth: number } {
-  const modules = encodeCode128B(text);
-  let rects = '';
-  let x = 0;
-  let isBar = true; // starts with bar
-  for (const width of modules) {
-    if (isBar) {
-      rects += `<rect x="${x}" y="0" width="${width}" height="${barHeight}" fill="#000" shape-rendering="crispEdges" />`;
-    }
-    x += width;
-    isBar = !isBar;
-  }
-  return { rects, totalWidth: x };
-}
-
 export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   isOpen,
   onClose,
   item
 }) => {
-  const [tagSize, setTagSize] = useState<TagSize>('81x12');
+  const [tagSize, setTagSize] = useState<TagSize>('100x15');
   const [printQuantity, setPrintQuantity] = useState<number>(1);
   const [showPrice, setShowPrice] = useState<boolean>(true);
   const [showHUID, setShowHUID] = useState<boolean>(true);
@@ -105,29 +31,27 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     const labelDims = {
       '50x12': { width: 50, height: 12, printable: 32 },
       '81x12': { width: 81, height: 12, printable: 52 },
-      '100x15': { width: 100, height: 15, printable: 68 },
+      '100x15': { width: 100, height: 15, printable: 70 },
       '100x20': { width: 100, height: 20, printable: 72 },
     }[tagSize]!;
 
     const barcodeText = item.barcode || 'AHS000000';
-    const { rects: barRects, totalWidth: barTotalWidth } = generateBarcodeSVGRects(barcodeText, 28);
-
     const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
     const W = labelDims.width;
     const H = labelDims.height;
     const PW = labelDims.printable;
 
-    // All font sizes in mm — smaller proportions to fit 12mm
-    const brandFs = (H * 0.11).toFixed(2);
-    const purityFs = (H * 0.09).toFixed(2);
-    const barcodeH = (H * 0.20).toFixed(2);
+    // Font sizes in mm — proportional to label height
+    const brandFs = (H * 0.12).toFixed(2);
+    const purityFs = (H * 0.10).toFixed(2);
+    const barcodeH = (H * 0.22).toFixed(2);
     const skuFs = (H * 0.09).toFixed(2);
-    const nameFs = (H * 0.08).toFixed(2);
-    const weightFs = (H * 0.08).toFixed(2);
-    const huidFs = (H * 0.07).toFixed(2);
-    const priceFs = (H * 0.08).toFixed(2);
+    const nameFs = (H * 0.09).toFixed(2);
+    const weightFs = (H * 0.09).toFixed(2);
+    const huidFs = (H * 0.08).toFixed(2);
+    const priceFs = (H * 0.09).toFixed(2);
 
-    const labelHtml = Array.from({ length: printQuantity }).map(() => `
+    const labelHtml = Array.from({ length: printQuantity }).map((_, idx) => `
       <div class="lc">
         <div class="lp">
           <div class="hdr">
@@ -135,9 +59,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
             <span class="pu">${item.purity || '22K 916'}</span>
           </div>
           <div class="bc">
-            <svg viewBox="0 0 ${barTotalWidth} 28" preserveAspectRatio="xMidYMid meet" shape-rendering="crispEdges">
-              ${barRects}
-            </svg>
+            <svg id="barcode-${idx}"></svg>
           </div>
           <div class="sk">${item.barcode}</div>
           <div class="nm">${item.item_name}</div>
@@ -155,6 +77,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     printWindow.document.write(`<!DOCTYPE html>
 <html>
 <head><title>Label</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
 <style>
 @page{size:${W}mm ${H}mm;margin:0!important}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -165,7 +88,7 @@ html,body{width:${W}mm;height:${H}mm;margin:0;padding:0;background:#fff;color:#0
 .hdr{display:flex;justify-content:space-between;align-items:center;height:${brandFs}mm;line-height:1}
 .br{font-size:${brandFs}mm;font-weight:900;letter-spacing:0.1mm}
 .pu{font-size:${purityFs}mm;font-weight:700}
-.bc{width:100%;height:${barcodeH}mm;display:flex;align-items:center;justify-content:center}
+.bc{width:100%;height:${barcodeH}mm;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .bc svg{width:100%;height:${barcodeH}mm}
 .sk{font-family:monospace;font-size:${skuFs}mm;font-weight:900;text-align:center;line-height:1;letter-spacing:0.1mm}
 .nm{font-size:${nameFs}mm;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1}
@@ -177,7 +100,22 @@ html,body{width:${W}mm;height:${H}mm;margin:0;padding:0;background:#fff;color:#0
 </head>
 <body>
 ${labelHtml}
-<p style="margin-top:2mm;font-size:2mm;color:#999;text-align:center">Verify preview → Press Ctrl+P → Select TSC TTP-244 Pro → Margins: None → Print</p>
+<script>
+window.onload = function() {
+  for (var i = 0; i < ${printQuantity}; i++) {
+    try {
+      JsBarcode("#barcode-" + i, "${barcodeText}", {
+        format: "CODE128",
+        width: 1,
+        height: 30,
+        displayValue: false,
+        margin: 0,
+        background: "transparent"
+      });
+    } catch(e) { console.error(e); }
+  }
+};
+<\/script>
 </body>
 </html>`);
     printWindow.document.close();
