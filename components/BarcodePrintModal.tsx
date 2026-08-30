@@ -54,7 +54,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     const labelDims = {
       '50x12': { width: 50, height: 12, halfW: 16, tailW: 18 },
       '81x12': { width: 81, height: 12, halfW: 26, tailW: 29 },
-      '100x15': { width: 100, height: 15, halfW: 35, tailW: 30 },
+      '100x15': { width: 100, height: 15, halfW: 27.5, tailW: 45 },
       '100x20': { width: 100, height: 20, halfW: 36, tailW: 28 },
     }[tagSize]!;
 
