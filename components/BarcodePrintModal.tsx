@@ -17,7 +17,7 @@ function getBarcodeSvgString(text: string): string {
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, text || 'AHS000000', {
       format: "CODE128",
-      width: 1.3,
+      width: 1.1,
       height: 36,
       displayValue: false,
       margin: 4,
@@ -83,8 +83,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
           <div class="purity">${item.purity || '22K 916'}</div>
           <div class="item-name">${item.item_name}</div>
           <div class="weights">
-            <span>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
-            <span>Nt: ${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
+            <div>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</div>
+            <div>Nt: ${(item.net_weight || item.weight || 0).toFixed(3)}g</div>
           </div>
           ${showHUID && item.huid ? `<div class="huid">HUID: ${item.huid}</div>` : ''}
           ${showPrice && item.net_price ? `<div class="price">₹ ${item.net_price.toLocaleString()}</div>` : ''}
@@ -139,14 +139,14 @@ html, body {
   overflow: hidden;
 }
 .left-half {
-  padding-right: 1.2mm;
-  padding-left: 0.8mm;
+  padding-right: 1mm;
+  padding-left: 2mm; /* Shifted right to avoid printer dead-zone cutoff */
   align-items: center;
   text-align: center;
 }
 .right-half {
-  padding-left: 1.5mm;
-  padding-right: 0.8mm;
+  padding-left: 2mm; /* Added more space from the fold line */
+  padding-right: 0.5mm;
   justify-content: space-between;
 }
 .tail {
@@ -154,12 +154,15 @@ html, body {
   flex-shrink: 0;
 }
 .brand {
-  font-size: 2mm;
+  font-size: 1.6mm;
   font-weight: 900;
-  letter-spacing: 0.15mm;
+  letter-spacing: 0.1mm;
   line-height: 1;
   text-transform: uppercase;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
 }
 .bc-box {
   width: 100%;
@@ -176,20 +179,25 @@ html, body {
 }
 .sku {
   font-family: monospace, monospace;
-  font-size: 1.9mm;
+  font-size: 1.5mm;
   font-weight: 900;
   text-align: center;
   line-height: 1;
-  letter-spacing: 0.25mm;
+  letter-spacing: 0.1mm;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
 }
 .purity {
-  font-size: 2mm;
+  font-size: 1.6mm;
   font-weight: 900;
   line-height: 1;
   color: #000;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .item-name {
-  font-size: 2.1mm;
+  font-size: 1.7mm;
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
@@ -199,21 +207,26 @@ html, body {
 }
 .weights {
   display: flex;
-  justify-content: space-between;
-  font-size: 1.8mm;
+  flex-direction: column;
+  gap: 0.3mm;
+  font-size: 1.5mm;
   font-weight: bold;
   font-family: monospace, monospace;
   line-height: 1;
 }
 .huid {
-  font-size: 1.7mm;
+  font-size: 1.5mm;
   font-weight: bold;
   line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .price {
-  font-size: 1.9mm;
+  font-size: 1.6mm;
   font-weight: 900;
   line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
 }
 @media print {
   html, body { width: ${W}mm !important; height: ${H}mm !important; }
