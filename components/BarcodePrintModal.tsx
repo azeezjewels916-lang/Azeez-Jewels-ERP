@@ -17,10 +17,10 @@ function getBarcodeSvgString(text: string): string {
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, text || 'AHS000000', {
       format: "CODE128",
-      width: 1.6, // 1.6 printer dots (20% reduction from 2.0)
+      width: 1, // MUST be an integer to prevent dithering on thermal printers. 1 dot per module.
       height: 40, 
       displayValue: false,
-      margin: 24, // increased margin for a larger quiet zone
+      margin: 10, // Quiet zone
       background: "#ffffff",
       lineColor: "#000000"
     });
@@ -35,13 +35,12 @@ function getBarcodeSvgString(text: string): string {
     }
 
     // 203 DPI printer: 1 dot = 0.125mm.
-    // Width is 1.6 units per module now.
-    const exactWidthMm = totalModules * 0.125; // 0.125mm * total width units
+    const exactWidthMm = totalModules * 0.125;
     
-    // Set explicit physical dimensions
+    // Set explicit physical dimensions so Chrome doesn't scale and blur the SVG
     svgNode.setAttribute("style", `width: ${exactWidthMm}mm; height: 100%;`);
     svgNode.setAttribute("preserveAspectRatio", "none");
-    svgNode.setAttribute("shape-rendering", "crispEdges");
+    svgNode.setAttribute("shape-rendering", "crispEdges"); // Crucial for thermal printers
     
     return svgNode.outerHTML;
   } catch (e) {
@@ -166,7 +165,7 @@ html, body {
 }
 .left-half {
   padding-right: 1mm;
-  padding-left: 2mm; /* Shifted right to avoid printer dead-zone cutoff */
+  padding-left: 4mm; /* Shifted more right to avoid printer dead-zone cutoff */
   align-items: center;
   text-align: center;
 }
