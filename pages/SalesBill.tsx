@@ -258,6 +258,44 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     return () => window.removeEventListener('storage', syncGstControl);
   }, []);
 
+  // --- GLOBAL HARDWARE BARCODE SCANNER LISTENER ---
+  useEffect(() => {
+    let scanBuffer = '';
+    let lastKeyTime = Date.now();
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastKeyTime;
+      lastKeyTime = currentTime;
+
+      // Scanners send an 'Enter' key at the end of the scanned barcode
+      if (e.key === 'Enter') {
+        if (scanBuffer.length >= 3) {
+          const scannedCode = scanBuffer.trim();
+          scanBuffer = '';
+          setNewItem(prev => ({ ...prev, barcode: scannedCode }));
+          toast({ title: "Scanner Capture", description: `Scanned barcode: ${scannedCode}` });
+          e.preventDefault();
+        } else {
+          scanBuffer = '';
+        }
+      } else if (e.key.length === 1) {
+        // Hardware scanners output keystrokes in rapid succession (< 50ms per key)
+        if (timeDiff > 80 && !isInput) {
+          scanBuffer = e.key;
+        } else {
+          scanBuffer += e.key;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   // --- OLD GOLD STATE ---
   const [isOldGoldOpen, setIsOldGoldOpen] = useState(false);
   const [oldGoldExchange, setOldGoldExchange] = useState({

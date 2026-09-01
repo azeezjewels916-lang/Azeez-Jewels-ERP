@@ -80,27 +80,31 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
         }
       `}</style>
 
-      {/* HEADER - CENTERED */}
-      <div className="flex flex-col items-center mb-1 border-b-2 border-charcoal-900 pb-1 relative">
-        {/* LOGO - LARGER AND CENTERED */}
-        <div className="w-24 h-24 relative flex items-center justify-center -mt-4">
-           <img src="/logowithoutbg.png" alt="Logo" className="w-full h-full object-contain" />
+      {/* HEADER TOP BAR */}
+      <div className="flex justify-between items-center px-2 py-1 border-b border-charcoal-900 text-[10px] font-extrabold">
+        <div>GSTIN : 29BPSPK1616Q1Z2</div>
+        <div className="border border-charcoal-900 px-2 py-[1px] text-[11px] font-black">{saleType.toUpperCase() === 'GST' ? 'ADVANCE BOOKING (GST)' : 'ADVANCE BOOKING'}</div>
+        <div className="flex items-center gap-1">
+          <span>📞 9916667573</span>
         </div>
-        
-        <div className="text-center w-full -mt-2">
-          <h1 className="font-serif text-3xl font-bold text-charcoal-900 tracking-tighter leading-none mb-1">AZEEZ JEWELS</h1>
-          <div className="text-[10px] text-charcoal-800 leading-tight font-bold space-y-0.5">
-             <p className="text-[11px] font-bold text-gold-600">Dealers in : 22 Ct. 916 KDM Gold Silver Ornaments</p>
-             <p>#324, Jumma Masjid Road (OPH Road), Shivajinagar, Bangalore - 560051</p>
-             <p className="text-xs">Prop: Azmathulla Khan — Mobile: 9916667573</p>
-             <p className="text-[10px] mt-0.5 underline decoration-1">GSTIN: 29BBGPM2303C1Z4</p>
-          </div>
-        </div>
+      </div>
 
-        <div className="absolute top-0 right-0">
-           <div className="w-10 h-10">
-              <img src="/BIS_PNG.png" alt="BIS Hallmark" className="max-w-full max-h-full object-contain" />
-           </div>
+      {/* BRAND SECTION (MATCHING GOLD BILL) */}
+      <div className="text-center py-2 relative flex flex-col items-center justify-center border-b-2 border-charcoal-900">
+        <div className="absolute left-2 top-0 bottom-0 w-24 h-full flex items-center justify-center">
+          <img src="/logowithoutbg.png" alt="AHS Logo" className="w-full h-full object-contain" />
+        </div>
+        <h1 className="font-serif text-3xl font-black text-charcoal-900 uppercase tracking-tighter m-0 leading-tight">
+          Azeez Jewels
+        </h1>
+        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-charcoal-800 border-y border-charcoal-800 py-[2px] mt-1 inline-block px-4 mb-1">
+          Gold and Silver Ornaments
+        </div>
+        <div className="text-[9px] font-extrabold leading-tight text-charcoal-900 mt-1 max-w-[70%]">
+          No. 324, Jumma Masjid Road (O.P.H. Road) Shivaji Nagar, Bangalore - 51
+        </div>
+        <div className="text-[8.5px] font-extrabold leading-tight text-charcoal-900 mt-[1px]">
+          Email : azmathkhan7676@gmail.com
         </div>
       </div>
 

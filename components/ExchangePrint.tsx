@@ -219,43 +219,46 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
                 <div className="text-2xl font-serif font-bold uppercase tracking-[0.3em] text-charcoal-900 mt-2">AZEEZ JEWELS</div>
               </div>
             </div>
-            {/* TOP AREA */}
-            <div className="purchase-top-header">
-              <div>
-                Mr./Mrs: <span className="purchase-pink-write uppercase">{customerName}</span>
-              </div>
-              <div className="text-right">
-                No: <span className="purchase-pink-write">{voucherNo}</span>
+            {/* HEADER TOP BAR */}
+            <div className="flex justify-between items-center px-2 py-1 border-b border-charcoal-900 text-[10px] font-extrabold">
+              <div>GSTIN : 29BPSPK1616Q1Z2</div>
+              <div className="border border-charcoal-900 px-2 py-[1px] text-[11px] font-black">VOUCHER</div>
+              <div className="flex items-center gap-1">
+                <span>📞 9916667573</span>
               </div>
             </div>
 
-            <div className="purchase-header-main">
-              <div style={{ width: '90px', height: '90px', marginBottom: '2px', marginTop: '-10px' }}>
-                <img src="/logowithoutbg.png" alt="AZEEZ Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            {/* BRAND SECTION (MATCHING GOLD BILL) */}
+            <div className="text-center py-2 relative flex flex-col items-center justify-center border-b-2 border-charcoal-900">
+              <div className="absolute left-2 top-0 bottom-0 w-24 h-full flex items-center justify-center">
+                <img src="/logowithoutbg.png" alt="AHS Logo" className="w-full h-full object-contain" />
               </div>
-              <h1 className="purchase-title">AZEEZ JEWELS</h1>
-              <div className="text-center">
-                <div style={{ fontSize: '10px', fontWeight: '900', color: '#A3803C', textTransform: 'uppercase', marginBottom: '1px' }}>Dealers in : 22 Ct. 916 KDM Gold Silver Ornaments</div>
-                <div style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', marginBottom: '1px' }}>#324, Jumma Masjid Road (OPH Road), Shivajinagar, Bangalore - 560051</div>
-                <div style={{ fontSize: '9px', fontWeight: '800' }}>Prop: Azmathulla Khan — Mobile: 9916667573 | GSTIN: 29BBGPM2303C1Z4</div>
+              <h1 className="font-serif text-3xl font-black text-charcoal-900 uppercase tracking-tighter m-0 leading-tight">
+                Azeez Jewels
+              </h1>
+              <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-charcoal-800 border-y border-charcoal-800 py-[2px] mt-1 inline-block px-4 mb-1">
+                Gold and Silver Ornaments
               </div>
-              <div className="flex justify-between w-full mt-1 items-end">
-                <div style={{ fontSize: '12px', fontWeight: '900', border: '1px solid #000', padding: '1px 6px', textTransform: 'uppercase' }}>Voucher</div>
-                <div style={{ width: '30px', height: '30px' }}>
-                  <img src="/BIS_PNG.png" alt="BIS Hallmark" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <div className="text-[9px] font-extrabold leading-tight text-charcoal-900 mt-1 max-w-[70%]">
+                No. 324, Jumma Masjid Road (O.P.H. Road) Shivaji Nagar, Bangalore - 51
+              </div>
+              <div className="text-[8.5px] font-extrabold leading-tight text-charcoal-900 mt-[1px]">
+                Email : azmathkhan7676@gmail.com
+              </div>
+            </div>
+
+            {/* VOUCHER & CUSTOMER INFO BAR */}
+            <div className="grid grid-cols-2 gap-2 my-2 border border-charcoal-900 p-1.5 rounded-sm">
+              <div>
+                <h3 className="text-[8px] font-bold text-charcoal-900 uppercase tracking-widest mb-0.5">Customer Details</h3>
+                <div className="text-xs">
+                  <p className="font-bold text-charcoal-900 uppercase">{customerName || 'Walk-in Customer'}</p>
+                  <p className="font-mono text-[10px] text-charcoal-700">{customer?.phone}</p>
                 </div>
               </div>
-            </div>
-
-            <div className="purchase-sub-info">
-              <div>Prop: Azmathulla Khan — Mobile: 9916667573</div>
-              <div className="text-right font-mono uppercase">GSTIN: 29BBGPM2303C1Z4</div>
-            </div>
-
-            <div className="purchase-sub-info">
-              <div style={{ fontSize: '12px' }}>Address: #324, Jumma Masjid Road (OPH Road), Shivajinagar, Bangalore - 560051</div>
-              <div className="text-right">
-                Date: <span className="purchase-pink-write">{formatDate(date)}</span>
+              <div className="flex flex-col items-end justify-center">
+                <p className="font-mono text-xs font-bold text-charcoal-900">NO: {voucherNo}</p>
+                <p className="font-mono text-[10px] text-charcoal-700">DATE: {formatDate(date)}</p>
               </div>
             </div>
 

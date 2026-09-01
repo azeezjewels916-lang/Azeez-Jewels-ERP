@@ -14,24 +14,27 @@ export type TagSize = '50x12' | '81x12' | '100x15' | '100x20';
 
 /**
  * Generate a high-contrast vector SVG barcode for thermal printing.
- * Uses 2-dot thick modules (10 mil = 0.25mm) - identical to vendor jewellery tags (e.g. TV/5554).
- * Vector <rect> elements are sent directly to Windows GDI as solid black rectangles,
- * completely avoiding bitmap resampling, blurriness, and dithering.
+ * Supports CODE128 and CODE39 (the standard used on vendor jewellery tags like TV/5554).
  */
-function getBarcodeSvgString(rawText: string): { svgHtml: string; encodedValue: string } {
+function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CODE128'): { svgHtml: string; encodedValue: string } {
   try {
     const fullText = (rawText || 'AHS000000').trim();
 
-    // If text has digits (e.g. AHS464454 -> 464454), encode the numeric digits with 2-dot thick bars
-    // In Code 128 (Code C), numeric pairs use only 11 modules per 2 digits = ultra-compact & thick bars!
+    // For Code 128: extract numeric digits if present for high-density 2-dot Code C pairs
     const digitsOnly = fullText.replace(/\D/g, '');
-    const useNumericCode = digitsOnly.length >= 4;
-    const valueToEncode = useNumericCode ? digitsOnly : fullText;
+    let valueToEncode = fullText;
+
+    if (format === 'CODE128' && digitsOnly.length >= 4) {
+      valueToEncode = digitsOnly;
+    } else if (format === 'CODE39') {
+      // Code 39 requires uppercase alphanumeric characters
+      valueToEncode = fullText.toUpperCase();
+    }
 
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, valueToEncode, {
-      format: "CODE128",
-      width: 2,         // EXACT 2 physical printer dots per module (0.25mm = 10 mil)
+      format: format,
+      width: format === 'CODE39' ? 1.2 : 2, // 2-dot modules for Code 128, 1.2 for Code 39
       height: 52,       // Generous vertical bar height for easy laser/CCD scanner capture
       displayValue: false,
       margin: 12,       // Pure white quiet zones on both left and right
@@ -58,6 +61,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   item
 }) => {
   const [tagSize, setTagSize] = useState<TagSize>('100x15');
+  const [barcodeFormat, setBarcodeFormat] = useState<'CODE128' | 'CODE39'>('CODE128');
   const [printQuantity, setPrintQuantity] = useState<number>(1);
   const [showPrice, setShowPrice] = useState<boolean>(true);
   const [showHUID, setShowHUID] = useState<boolean>(true);
@@ -75,15 +79,15 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   useEffect(() => {
     if (isOpen && item && previewSvgRef.current) {
       const barcodeText = (item.barcode || 'AHS000000').trim();
-      const { svgHtml } = getBarcodeSvgString(barcodeText);
+      const { svgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat);
       previewSvgRef.current.innerHTML = svgHtml;
     }
-  }, [isOpen, item]);
+  }, [isOpen, item, barcodeFormat]);
 
   if (!isOpen || !item) return null;
 
   const barcodeText = (item.barcode || 'AHS000000').trim();
-  const { svgHtml: barcodeSvgHtml, encodedValue } = getBarcodeSvgString(barcodeText);
+  const { svgHtml: barcodeSvgHtml, encodedValue } = getBarcodeSvgString(barcodeText, barcodeFormat);
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -353,10 +357,38 @@ ${labelHtml}
             </div>
           </div>
 
+          {/* BARCODE FORMAT SELECTOR */}
+          <div>
+            <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+              1. Barcode Symbology Format
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { id: 'CODE128', label: 'Code 128 (High Density 2-Dot)', desc: 'Standard compact retail format' },
+                { id: 'CODE39', label: 'Code 39 (Universal Retail)', desc: 'Used on vendor tags (e.g. TV/5554)' }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => setBarcodeFormat(opt.id as any)}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left ${barcodeFormat === opt.id
+                    ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>{opt.label}</span>
+                    {barcodeFormat === opt.id && <Check size={13} className="text-gold-600" />}
+                  </div>
+                  <p className="text-[9.5px] font-normal text-gray-500 mt-0.5">{opt.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* TAG SIZE SELECTOR */}
           <div>
             <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-              1. Select Physical Tag / Label Size
+              2. Select Physical Tag / Label Size
             </label>
             <div className="grid grid-cols-4 gap-2">
               {[
