@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Printer, Tag, Check, Sliders } from 'lucide-react';
 import JsBarcode from 'jsbarcode';
 import { Button } from './UIComponents';
