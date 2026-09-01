@@ -114,6 +114,8 @@ export const GoldExchange: React.FC = () => {
       weight: '',
       purity: '22K',
       rate: '',
+      gstRate: 0,
+      gstAmount: 0,
       totalValue: 0
    };
    const [formData, setFormData] = useState(initialForm);
@@ -145,8 +147,10 @@ export const GoldExchange: React.FC = () => {
    useEffect(() => {
       const w = parseFloat(formData.weight) || 0;
       const r = parseFloat(formData.rate) || 0;
-      setFormData(prev => ({ ...prev, totalValue: w * r }));
-   }, [formData.weight, formData.rate]);
+      const baseTotal = w * r;
+      const gstAmount = baseTotal * ((formData.gstRate || 0) / 100);
+      setFormData(prev => ({ ...prev, gstAmount: gstAmount, totalValue: baseTotal + gstAmount }));
+   }, [formData.weight, formData.rate, formData.gstRate]);
 
    const filteredRecords = useMemo(() => {
       return records.filter(rec => {
@@ -201,6 +205,8 @@ export const GoldExchange: React.FC = () => {
             weight: parseFloat(formData.weight),
             purity: cleanPurityNum,
             rate: parseFloat(formData.rate),
+            gst_rate: formData.gstRate,
+            gst_amount: formData.gstAmount,
             total: formData.totalValue,
             total_value: formData.totalValue,
             total_amount: formData.totalValue
@@ -236,6 +242,8 @@ export const GoldExchange: React.FC = () => {
          weight: rec.weight.toString(),
          purity: rec.purity,
          rate: rec.rate.toString(),
+         gstRate: rec.gst_rate || 0,
+         gstAmount: rec.gst_amount || 0,
          totalValue: rec.total || rec.total_value || 0
       });
       setIsModalOpen(true);
@@ -512,7 +520,7 @@ export const GoldExchange: React.FC = () => {
                               </div>
                            </div>
 
-                           <div className="grid grid-cols-3 gap-4">
+                           <div className="grid grid-cols-4 gap-4">
                               <Input
                                  label="Weight (g)"
                                  type="number"
@@ -544,6 +552,16 @@ export const GoldExchange: React.FC = () => {
                                  value={formData.rate}
                                  onChange={e => setFormData({ ...formData, rate: e.target.value })}
                               />
+                              <Select
+                                 label="GST"
+                                 options={[
+                                    { value: '0', label: 'Non-GST (0%)' },
+                                    { value: '1.5', label: 'GST (1.5%)' },
+                                    { value: '3', label: 'GST (3%)' },
+                                 ]}
+                                 value={formData.gstRate.toString()}
+                                 onChange={e => setFormData({ ...formData, gstRate: parseFloat(e.target.value) || 0 })}
+                              />
                            </div>
                         </div>
                      </div>
@@ -553,9 +571,16 @@ export const GoldExchange: React.FC = () => {
                   <div className="bg-white p-5 border-t border-gray-200 flex justify-between items-center z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                      <div>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Exchange Value</p>
-                        <p className="text-3xl font-mono font-bold text-pink-600 tracking-tight">
-                           {formatCurrency(formData.totalValue)}
-                        </p>
+                        <div className="flex items-end gap-3">
+                           <p className="text-3xl font-mono font-bold text-pink-600 tracking-tight">
+                              {formatCurrency(formData.totalValue)}
+                           </p>
+                           {formData.gstAmount > 0 && (
+                              <p className="text-xs font-bold text-gray-400 mb-1 tracking-tight">
+                                 (Inc. GST: {formatCurrency(formData.gstAmount)})
+                              </p>
+                           )}
+                        </div>
                      </div>
                      <div className="flex gap-3">
                         <Button variant="outline" onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData(initialForm); }}>Cancel</Button>

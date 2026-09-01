@@ -13,6 +13,8 @@ interface ExchangePrintProps {
     rate: number;
     total: number;
     hsn_code: string;
+    gst_rate?: number;
+    gst_amount?: number;
   };
   isScreenPreview?: boolean;
 }
@@ -238,7 +240,7 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
                 <div style={{ fontSize: '9px', fontWeight: '800' }}>Prop: Azmathulla Khan — Mobile: 9916667573 | GSTIN: 29BBGPM2303C1Z4</div>
               </div>
               <div className="flex justify-between w-full mt-1 items-end">
-                <div style={{ fontSize: '12px', fontWeight: '900', border: '1px solid #000', padding: '1px 6px', textTransform: 'uppercase' }}>Exchange Voucher</div>
+                <div style={{ fontSize: '12px', fontWeight: '900', border: '1px solid #000', padding: '1px 6px', textTransform: 'uppercase' }}>Voucher</div>
                 <div style={{ width: '30px', height: '30px' }}>
                   <img src="/BIS_PNG.png" alt="BIS Hallmark" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
@@ -282,16 +284,27 @@ export const ExchangePrint: React.FC<ExchangePrintProps> = ({
                   <td className="purchase-pink-write">
                     {formatRate(exchangeData.rate)}
                   </td>
-                  <td className="purchase-pink-write">{formatAmount(exchangeData.total)}</td>
+                  <td className="purchase-pink-write">{formatAmount(exchangeData.total - (exchangeData.gst_amount || 0))}</td>
                 </tr>
               </tbody>
             </table>
 
-            <div className="purchase-footer-row">
-              <div className="text-gray-400 font-medium">CGST 1.5% —</div>
-              <div className="text-gray-400 font-medium">SGST 1.5% —</div>
-              <div>
-                Total: <span className="purchase-pink-write" style={{ fontSize: '24px', borderBottom: '3px double #000' }}>
+            <div className="purchase-footer-row flex-col items-end gap-1 mt-2">
+              {exchangeData.gst_amount && exchangeData.gst_amount > 0 ? (
+                <>
+                  <div className="text-gray-600 font-medium text-[11px] flex justify-between w-48">
+                    <span>CGST {(exchangeData.gst_rate || 0) / 2}%</span>
+                    <span>₹ {formatAmount(exchangeData.gst_amount / 2)}</span>
+                  </div>
+                  <div className="text-gray-600 font-medium text-[11px] flex justify-between w-48 border-b border-gray-400 pb-1">
+                    <span>SGST {(exchangeData.gst_rate || 0) / 2}%</span>
+                    <span>₹ {formatAmount(exchangeData.gst_amount / 2)}</span>
+                  </div>
+                </>
+              ) : null}
+              <div className="flex justify-between w-48 pt-1">
+                <span>Total:</span>
+                <span className="purchase-pink-write" style={{ fontSize: '20px', borderBottom: '3px double #000' }}>
                   ₹ {formatAmount(exchangeData.total)}
                 </span>
               </div>

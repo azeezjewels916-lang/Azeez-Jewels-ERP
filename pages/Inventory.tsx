@@ -355,10 +355,10 @@ export const Inventory: React.FC = () => {
       const lowerTerm = searchTerm.toLowerCase();
       return items.filter(item => {
          const matchesSearch =
-            item.item_name.toLowerCase().includes(lowerTerm) ||
-            item.barcode.toLowerCase().includes(lowerTerm) ||
-            (item.category && item.category.toLowerCase().includes(lowerTerm)) ||
-            (item.huid && item.huid.toLowerCase().includes(lowerTerm));
+            (item.item_name || '').toLowerCase().includes(lowerTerm) ||
+            (item.barcode || '').toLowerCase().includes(lowerTerm) ||
+            (item.category || '').toLowerCase().includes(lowerTerm) ||
+            (item.huid || '').toLowerCase().includes(lowerTerm);
 
          const matchesCat = selectedCategory === 'ALL' || (item.category && item.category.toLowerCase() === selectedCategory.toLowerCase());
 

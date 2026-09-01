@@ -596,14 +596,26 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     }
 
     let making = 0;
+    let mcType = 'amt';
+    let mcInput = '';
     if (newItem.makingChargesAmount) {
       making = parseFloat(newItem.makingChargesAmount) || 0;
+      mcType = 'amt';
+      mcInput = newItem.makingChargesAmount;
     } else if (newItem.makingChargesPercentage) {
       making = (netWeight * finalRate) * (parseFloat(newItem.makingChargesPercentage) / 100);
+      mcType = 'pct';
+      mcInput = newItem.makingChargesPercentage;
     } else if (newItem.makingChargesInput) {
-      making = newItem.makingChargesInput.includes('%')
-        ? (netWeight * finalRate) * (parseFloat(newItem.makingChargesInput.replace('%', '')) / 100)
-        : parseFloat(newItem.makingChargesInput) || 0;
+      if (newItem.makingChargesInput.includes('%')) {
+        making = (netWeight * finalRate) * (parseFloat(newItem.makingChargesInput.replace('%', '')) / 100);
+        mcType = 'pct';
+        mcInput = newItem.makingChargesInput.replace('%', '');
+      } else {
+        making = parseFloat(newItem.makingChargesInput) || 0;
+        mcType = 'amt';
+        mcInput = newItem.makingChargesInput;
+      }
     }
 
     const lineTotal = (netWeight * finalRate) + making;
@@ -619,6 +631,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       weight: netWeight, // Sync weight with net_weight
       rate: finalRate,
       making_charges: making,
+      making_charges_type: mcType,
+      making_charges_input: mcInput,
       gst_rate: 0, line_total: lineTotal,
       metal_type: newItem.metal_type,
       hsn_code: newItem.hsn_code,

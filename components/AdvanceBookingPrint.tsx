@@ -154,7 +154,7 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
                   </td>
                   <td className="py-1 px-1 text-right text-charcoal-900 border border-charcoal-900">{item.weight.toFixed(3)}</td>
                   <td className="py-1 px-1 text-right text-charcoal-900 border border-charcoal-900">{item.rate.toLocaleString()}</td>
-                  <td className="py-1 px-1 text-right text-charcoal-900 border border-charcoal-900">{item.makingCharges ? item.makingCharges.toLocaleString() : '0'}</td>
+                  <td className="py-1 px-1 text-right text-charcoal-900 border border-charcoal-900">{(item as any).makingChargesType === 'pct' ? `${(item as any).makingChargesInput}%` : `₹${item.makingCharges ? item.makingCharges.toLocaleString() : '0'}`}</td>
                   <td className="py-1 px-1 text-right text-charcoal-900 font-bold border border-charcoal-900">{formatCurrency(item.lineTotal)}</td>
                 </tr>
               ))}

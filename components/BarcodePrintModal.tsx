@@ -17,10 +17,10 @@ function getBarcodeSvgString(text: string): string {
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, text || 'AHS000000', {
       format: "CODE128",
-      width: 2, // EXACTLY 2 printer dots per module (0.25mm) for cheap scanners
+      width: 1.6, // 1.6 printer dots (20% reduction from 2.0)
       height: 40, 
       displayValue: false,
-      margin: 20, // 20 units = 10 modules quiet zone
+      margin: 24, // increased margin for a larger quiet zone
       background: "#ffffff",
       lineColor: "#000000"
     });
@@ -35,9 +35,8 @@ function getBarcodeSvgString(text: string): string {
     }
 
     // 203 DPI printer: 1 dot = 0.125mm.
-    // width: 2 means totalModules is in 2x units.
-    // exactWidthMm maps 1 unit to 1 dot. So 1 module = 2 units = 2 dots = 0.25mm!
-    const exactWidthMm = totalModules * 0.125;
+    // Width is 1.6 units per module now.
+    const exactWidthMm = totalModules * 0.125; // 0.125mm * total width units
     
     // Set explicit physical dimensions
     svgNode.setAttribute("style", `width: ${exactWidthMm}mm; height: 100%;`);
@@ -192,18 +191,19 @@ html, body {
   width: 100%;
 }
 .bc-box {
-  width: 33mm; /* Explicit width for the 2-dot barcode */
-  margin-left: -3mm; /* Pull it slightly into the left half so it fits */
+  width: 100%;
+  padding-left: 2mm; /* Ensure quiet zone on the left */
+  padding-right: 2mm; /* Ensure quiet zone on the right */
   height: 8.5mm;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
+  overflow: hidden;
   margin-top: 0.2mm;
   margin-bottom: 0.2mm;
 }
 .bc-box svg {
-  width: 33mm;
+  max-width: 100%;
   height: 100%;
 }
 .sku {

@@ -338,8 +338,8 @@ export const AdvanceBooking: React.FC = () => {
           weight: bi.weight,
           rate: bi.rate,
           makingCharges: bi.making_charges,
-          makingChargesType: 'amt',
-          makingChargesInput: bi.making_charges ? bi.making_charges.toString() : '0',
+          makingChargesType: bi.making_charges_type || 'amt',
+          makingChargesInput: bi.making_charges_input || (bi.making_charges ? bi.making_charges.toString() : '0'),
           purity: bi.purity,
           lineTotal: bi.line_total
         })));
@@ -387,6 +387,8 @@ export const AdvanceBooking: React.FC = () => {
             weight: item.weight,
             rate: item.rate,
             making_charges: item.makingCharges,
+            making_charges_type: item.makingChargesType,
+            making_charges_input: item.makingChargesInput,
             line_total: item.lineTotal
           }));
           await supabase.from('bill_items').insert(itemsToInsert);
@@ -438,6 +440,8 @@ export const AdvanceBooking: React.FC = () => {
           weight: item.weight,
           rate: item.rate,
           making_charges: item.makingCharges,
+          making_charges_type: item.makingChargesType,
+          making_charges_input: item.makingChargesInput,
           line_total: item.lineTotal
         }));
         await supabase.from('bill_items').insert(itemsToInsert);
