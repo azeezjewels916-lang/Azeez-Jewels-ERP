@@ -11,58 +11,64 @@ interface BarcodePrintModalProps {
 }
 
 export type TagSize = '50x12' | '81x12' | '100x15' | '100x20';
-
 /**
  * Generate a barcode as a PNG data URL using Canvas rendering.
- * 
- * WHY NOT SVG? Chrome's print rasterizer applies anti-aliasing to SVG bar edges,
- * creating gray pixels. CCD scanners (like MJ2818C) need pure black/white transitions.
- * Canvas + binary threshold guarantees every pixel is either #000 or #FFF.
- * 
- * At 203 DPI: 1 pixel = 1 dot = 0.125mm
- * width:2 → 2 dots per narrow bar = 0.25mm (10mil) — well within CCD scanner spec.
+ *
+ * KEY INSIGHT: Chrome's print engine works at 96 CSS DPI internally.
+ * If we generate a canvas whose pixel count matches what Chrome expects
+ * for the target mm width at 96 DPI, Chrome passes it through 1:1
+ * with ZERO resampling. No resampling = no anti-aliasing = scannable barcode.
+ *
+ * Chrome CSS DPI: 96 DPI = 3.78 pixels per mm
+ * Target barcode width: ~25mm on the label
+ * Canvas pixels needed: 25mm × 3.78 ≈ 94 pixels
+ * JsBarcode width:1 → each module = 1 CSS pixel = 0.264mm (10.4mil) at 96 DPI
+ *   → Well above the MJ2818C minimum (7.5mil / 0.19mm)
  */
-function getBarcodePngDataUrl(text: string): { dataUrl: string; widthMm: number; heightMm: number } {
+function getBarcodePngDataUrl(text: string, targetWidthMm?: number): { dataUrl: string; widthMm: number } {
   try {
     const canvas = document.createElement('canvas');
+
+    // JsBarcode with width:1 gives us 1 pixel per module.
+    // margin:4 gives 4px quiet zone on each side (≈1mm at 96 DPI — sufficient).
     JsBarcode(canvas, text || 'AHS000000', {
       format: "CODE128",
-      width: 2,       // 2 pixels per module → 2 dots at 203 DPI = 0.25mm per narrow bar
-      height: 60,     // Tall enough for scanner to have a good read line
+      width: 1,        // 1 CSS pixel per narrow module
+      height: 80,      // Tall bars = more scan lines = reliable reads
       displayValue: false,
-      margin: 16,     // 16px = 8 modules = 2mm quiet zone on each side
+      margin: 4,       // 4px margin = ~1mm quiet zone each side at 96 DPI
       background: "#ffffff",
       lineColor: "#000000"
     });
 
-    // CRITICAL: Apply binary threshold to eliminate ANY anti-aliasing.
-    // After this loop, every pixel is either pure black (0,0,0) or pure white (255,255,255).
+    // CRITICAL: Apply binary threshold to eliminate ANY canvas anti-aliasing.
+    // Every pixel becomes either pure black (0,0,0) or pure white (255,255,255).
     const ctx = canvas.getContext('2d');
     if (ctx) {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       for (let i = 0; i < data.length; i += 4) {
-        // Simple luminance threshold: anything darker than 50% → black, else → white
         const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
         const val = avg < 128 ? 0 : 255;
-        data[i] = val;       // R
-        data[i + 1] = val;   // G
-        data[i + 2] = val;   // B
-        data[i + 3] = 255;   // A (fully opaque)
+        data[i] = val;
+        data[i + 1] = val;
+        data[i + 2] = val;
+        data[i + 3] = 255;
       }
       ctx.putImageData(imageData, 0, 0);
     }
 
     const dataUrl = canvas.toDataURL('image/png');
 
-    // Calculate exact physical dimensions: each pixel = 1 printer dot = 0.125mm at 203 DPI
-    const widthMm = canvas.width * 0.125;
-    const heightMm = canvas.height * 0.125;
+    // Convert canvas pixels to mm using Chrome's CSS DPI (96 DPI = 3.78 px/mm)
+    // This ensures Chrome maps our pixels 1:1 during print — zero resampling.
+    const CSS_PX_PER_MM = 96 / 25.4; // ≈ 3.7795
+    const widthMm = canvas.width / CSS_PX_PER_MM;
 
-    return { dataUrl, widthMm, heightMm };
+    return { dataUrl, widthMm };
   } catch (e) {
     console.error("Barcode canvas generation error:", e);
-    return { dataUrl: '', widthMm: 20, heightMm: 8 };
+    return { dataUrl: '', widthMm: 20 };
   }
 }
 
@@ -127,7 +133,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
         <div class="half right-half">
           <div class="brand">AZEEZ JEWELS</div>
           <div class="bc-box">
-            <img src="${barcodePng.dataUrl}" class="bc-img" />
+            <img src="${barcodePng.dataUrl}" class="bc-img" style="width: ${barcodePng.widthMm.toFixed(2)}mm;" />
           </div>
           <div class="sku">${barcodeText}</div>
         </div>
@@ -218,11 +224,11 @@ html, body {
   background: #fff;
 }
 .bc-img {
-  max-width: 100%;
   height: 100%;
-  image-rendering: pixelated;          /* Chrome, Edge */
-  image-rendering: -moz-crisp-edges;   /* Firefox */
-  -ms-interpolation-mode: nearest-neighbor; /* IE */
+  /* width is set inline to match exact canvas→mm mapping */
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
 }
 .sku {
   font-family: monospace, monospace;
