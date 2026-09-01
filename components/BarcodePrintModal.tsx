@@ -12,40 +12,57 @@ interface BarcodePrintModalProps {
 
 export type TagSize = '50x12' | '81x12' | '100x15' | '100x20';
 
-function getBarcodeSvgString(text: string): string {
+/**
+ * Generate a barcode as a PNG data URL using Canvas rendering.
+ * 
+ * WHY NOT SVG? Chrome's print rasterizer applies anti-aliasing to SVG bar edges,
+ * creating gray pixels. CCD scanners (like MJ2818C) need pure black/white transitions.
+ * Canvas + binary threshold guarantees every pixel is either #000 or #FFF.
+ * 
+ * At 203 DPI: 1 pixel = 1 dot = 0.125mm
+ * width:2 → 2 dots per narrow bar = 0.25mm (10mil) — well within CCD scanner spec.
+ */
+function getBarcodePngDataUrl(text: string): { dataUrl: string; widthMm: number; heightMm: number } {
   try {
-    const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    JsBarcode(svgNode, text || 'AHS000000', {
+    const canvas = document.createElement('canvas');
+    JsBarcode(canvas, text || 'AHS000000', {
       format: "CODE128",
-      width: 1, // MUST be an integer to prevent dithering on thermal printers. 1 dot per module.
-      height: 40, 
+      width: 2,       // 2 pixels per module → 2 dots at 203 DPI = 0.25mm per narrow bar
+      height: 60,     // Tall enough for scanner to have a good read line
       displayValue: false,
-      margin: 10, // Quiet zone
+      margin: 16,     // 16px = 8 modules = 2mm quiet zone on each side
       background: "#ffffff",
       lineColor: "#000000"
     });
-    
-    let totalModules = 100;
-    const viewBox = svgNode.getAttribute("viewBox");
-    if (viewBox) {
-      const parts = viewBox.split(' ');
-      if (parts.length === 4) totalModules = parseFloat(parts[2]);
-    } else {
-      totalModules = parseFloat(svgNode.getAttribute("width") || "100");
+
+    // CRITICAL: Apply binary threshold to eliminate ANY anti-aliasing.
+    // After this loop, every pixel is either pure black (0,0,0) or pure white (255,255,255).
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        // Simple luminance threshold: anything darker than 50% → black, else → white
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        const val = avg < 128 ? 0 : 255;
+        data[i] = val;       // R
+        data[i + 1] = val;   // G
+        data[i + 2] = val;   // B
+        data[i + 3] = 255;   // A (fully opaque)
+      }
+      ctx.putImageData(imageData, 0, 0);
     }
 
-    // 203 DPI printer: 1 dot = 0.125mm.
-    const exactWidthMm = totalModules * 0.125;
-    
-    // Set explicit physical dimensions so Chrome doesn't scale and blur the SVG
-    svgNode.setAttribute("style", `width: ${exactWidthMm}mm; height: 100%;`);
-    svgNode.setAttribute("preserveAspectRatio", "none");
-    svgNode.setAttribute("shape-rendering", "crispEdges"); // Crucial for thermal printers
-    
-    return svgNode.outerHTML;
+    const dataUrl = canvas.toDataURL('image/png');
+
+    // Calculate exact physical dimensions: each pixel = 1 printer dot = 0.125mm at 203 DPI
+    const widthMm = canvas.width * 0.125;
+    const heightMm = canvas.height * 0.125;
+
+    return { dataUrl, widthMm, heightMm };
   } catch (e) {
-    console.error("JsBarcode generation error:", e);
-    return `<svg viewBox="0 0 100 35"><rect width="100%" height="100%" fill="#fff"/></svg>`;
+    console.error("Barcode canvas generation error:", e);
+    return { dataUrl: '', widthMm: 20, heightMm: 8 };
   }
 }
 
@@ -84,7 +101,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     }[tagSize]!;
 
     const barcodeText = (item.barcode || 'AHS000000').trim();
-    const barcodeSvgHtml = getBarcodeSvgString(barcodeText);
+    const barcodePng = getBarcodePngDataUrl(barcodeText);
 
     const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
     const W = labelDims.width;
@@ -94,7 +111,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
 
     const labelHtml = Array.from({ length: printQuantity }).map(() => `
       <div class="lc">
-        <!-- LEFT HALF (Side 1: Details - swapped to avoid printer dead line on the left) -->
+        <!-- LEFT HALF (Side 1: Details) -->
         <div class="half left-half">
           <div class="purity">${item.purity || '22K 916'}</div>
           <div class="item-name">${item.item_name}</div>
@@ -106,11 +123,11 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
           ${showPrice && item.net_price ? `<div class="price">₹ ${item.net_price.toLocaleString()}</div>` : ''}
         </div>
 
-        <!-- RIGHT HALF (Side 2: Brand, Barcode, SKU - safe from dead pixels) -->
+        <!-- RIGHT HALF (Side 2: Brand, Barcode, SKU) -->
         <div class="half right-half">
           <div class="brand">AZEEZ JEWELS</div>
           <div class="bc-box">
-            ${barcodeSvgHtml}
+            <img src="${barcodePng.dataUrl}" class="bc-img" />
           </div>
           <div class="sku">${barcodeText}</div>
         </div>
@@ -191,8 +208,6 @@ html, body {
 }
 .bc-box {
   width: 100%;
-  padding-left: 2mm; /* Ensure quiet zone on the left */
-  padding-right: 2mm; /* Ensure quiet zone on the right */
   height: 8.5mm;
   display: flex;
   align-items: center;
@@ -200,10 +215,14 @@ html, body {
   overflow: hidden;
   margin-top: 0.2mm;
   margin-bottom: 0.2mm;
+  background: #fff;
 }
-.bc-box svg {
+.bc-img {
   max-width: 100%;
   height: 100%;
+  image-rendering: pixelated;          /* Chrome, Edge */
+  image-rendering: -moz-crisp-edges;   /* Firefox */
+  -ms-interpolation-mode: nearest-neighbor; /* IE */
 }
 .sku {
   font-family: monospace, monospace;
