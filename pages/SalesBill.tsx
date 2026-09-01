@@ -398,10 +398,15 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     const timer = setTimeout(async () => {
       setIsLoadingItem(true);
       try {
-        const { data } = await supabase
-          .from('items')
-          .select('*')
-          .eq('barcode', barcode);
+        const cleanDigits = barcode.replace(/\D/g, '');
+        let query = supabase.from('items').select('*');
+        if (cleanDigits && cleanDigits.length >= 3) {
+          query = query.or(`barcode.eq.${barcode},barcode.eq.AHS${cleanDigits},barcode.eq.${cleanDigits},barcode.ilike.%${cleanDigits}%`);
+        } else {
+          query = query.eq('barcode', barcode);
+        }
+
+        const { data } = await query;
 
         if (data && data.length > 0) {
           if (data.length === 1) {
@@ -416,7 +421,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       } finally {
         setIsLoadingItem(false);
       }
-    }, 300);
+    }, 200);
     return () => clearTimeout(timer);
   }, [newItem.barcode]);
 

@@ -14,29 +14,41 @@ export type TagSize = '50x12' | '81x12' | '100x15' | '100x20';
 
 /**
  * Generate a high-contrast vector SVG barcode for thermal printing.
- * Vector <rect> elements are sent directly to Windows GDI as black rectangles,
- * completely avoiding bitmap resampling and dithering.
+ * Uses 2-dot thick modules (10 mil = 0.25mm) - identical to vendor jewellery tags (e.g. TV/5554).
+ * Vector <rect> elements are sent directly to Windows GDI as solid black rectangles,
+ * completely avoiding bitmap resampling, blurriness, and dithering.
  */
-function getBarcodeSvgString(text: string): string {
+function getBarcodeSvgString(rawText: string): { svgHtml: string; encodedValue: string } {
   try {
+    const fullText = (rawText || 'AHS000000').trim();
+
+    // If text has digits (e.g. AHS464454 -> 464454), encode the numeric digits with 2-dot thick bars
+    // In Code 128 (Code C), numeric pairs use only 11 modules per 2 digits = ultra-compact & thick bars!
+    const digitsOnly = fullText.replace(/\D/g, '');
+    const useNumericCode = digitsOnly.length >= 4;
+    const valueToEncode = useNumericCode ? digitsOnly : fullText;
+
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    JsBarcode(svgNode, text || 'AHS000000', {
+    JsBarcode(svgNode, valueToEncode, {
       format: "CODE128",
-      width: 1.5,      // 1.5 module width fits perfectly in 22mm with generous quiet zone
-      height: 50,      // Tall bar height gives large vertical scanning target
+      width: 2,         // EXACT 2 physical printer dots per module (0.25mm = 10 mil)
+      height: 52,       // Generous vertical bar height for easy laser/CCD scanner capture
       displayValue: false,
-      margin: 12,      // 12 units = ~3mm pure white quiet zone on each side
+      margin: 12,       // Pure white quiet zones on both left and right
       background: "#ffffff",
       lineColor: "#000000"
     });
 
-    svgNode.setAttribute("style", "width: 100%; height: 100%; max-width: 24mm; max-height: 8mm; display: block; margin: 0 auto;");
+    svgNode.setAttribute("style", "width: auto; height: 100%; max-width: 23mm; max-height: 8mm; display: block; margin: 0 auto;");
     svgNode.setAttribute("shape-rendering", "crispEdges");
 
-    return svgNode.outerHTML;
+    return { svgHtml: svgNode.outerHTML, encodedValue: valueToEncode };
   } catch (e) {
     console.error("Barcode SVG generation error:", e);
-    return `<svg viewBox="0 0 100 35"><rect width="100%" height="100%" fill="#fff"/></svg>`;
+    return {
+      svgHtml: `<svg viewBox="0 0 100 35"><rect width="100%" height="100%" fill="#fff"/></svg>`,
+      encodedValue: rawText
+    };
   }
 }
 
@@ -63,13 +75,15 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   useEffect(() => {
     if (isOpen && item && previewSvgRef.current) {
       const barcodeText = (item.barcode || 'AHS000000').trim();
-      previewSvgRef.current.innerHTML = getBarcodeSvgString(barcodeText);
+      const { svgHtml } = getBarcodeSvgString(barcodeText);
+      previewSvgRef.current.innerHTML = svgHtml;
     }
   }, [isOpen, item]);
 
   if (!isOpen || !item) return null;
 
   const barcodeText = (item.barcode || 'AHS000000').trim();
+  const { svgHtml: barcodeSvgHtml, encodedValue } = getBarcodeSvgString(barcodeText);
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -84,8 +98,6 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       '100x15': { width: 100, height: 15, halfW: 27.5, tailW: 45 },
       '100x20': { width: 100, height: 20, halfW: 36, tailW: 28 },
     }[tagSize]!;
-
-    const barcodeSvgHtml = getBarcodeSvgString(barcodeText);
 
     const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
     const W = labelDims.width;
@@ -136,8 +148,8 @@ html, body {
   height: ${H}mm;
   margin: 0 !important;
   padding: 0 !important;
-  background: #fff;
-  color: #000;
+  background: #ffffff;
+  color: #000000;
   font-family: Arial, Helvetica, sans-serif;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
@@ -148,16 +160,17 @@ html, body {
   height: ${H}mm;
   display: flex;
   flex-direction: ${flexDir};
-  align-items: stretch;
+  align-items: center;
+  justify-content: space-between;
   page-break-after: always;
   page-break-inside: avoid;
-  padding: 4mm 1mm 0mm 1mm;
+  padding: 0mm 1mm;
   overflow: hidden;
   box-sizing: border-box;
 }
 .half {
   width: ${HW}mm;
-  height: ${H - 4}mm;
+  height: ${H - 2}mm;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -167,12 +180,16 @@ html, body {
 .left-half {
   padding-left: 3.5mm;
   padding-right: 1mm;
+  padding-top: 1mm;
+  padding-bottom: 1mm;
   align-items: flex-start;
   text-align: left;
 }
 .right-half {
   padding-left: 1.5mm;
   padding-right: 1.5mm;
+  padding-top: 0.5mm;
+  padding-bottom: 0.5mm;
   align-items: center;
   text-align: center;
   justify-content: space-between;
@@ -198,12 +215,12 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: #ffffff;
   overflow: visible;
 }
 .bc-box svg {
   width: 100%;
-  max-width: 24mm;
+  max-width: 23mm;
   height: 8mm;
   display: block;
 }
