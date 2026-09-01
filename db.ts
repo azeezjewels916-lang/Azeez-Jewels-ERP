@@ -661,13 +661,26 @@ export const createExchange = async (exchangeData: any) => {
   }
 
   while (attempts < 5) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('gold_exchanges')
       .insert(currentData)
       .select()
       .single();
 
     if (!error) return data;
+
+    // Fallback if gst_rate or gst_amount column doesn't exist in Supabase table yet
+    if (error.message?.includes('gst_amount') || error.message?.includes('gst_rate')) {
+      const { gst_rate, gst_amount, ...cleanData } = currentData;
+      currentData = cleanData;
+      const retry = await supabase
+        .from('gold_exchanges')
+        .insert(currentData)
+        .select()
+        .single();
+      if (!retry.error) return retry.data;
+      error = retry.error;
+    }
 
     if (error.code === '23505' || error.message?.includes('unique constraint')) {
       attempts++;
@@ -685,12 +698,24 @@ export const createExchange = async (exchangeData: any) => {
 };
 
 export const updateExchange = async (id: string, exchangeData: any) => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('gold_exchanges')
     .update(exchangeData)
     .eq('id', id)
     .select()
     .single();
+
+  if (error && (error.message?.includes('gst_amount') || error.message?.includes('gst_rate'))) {
+    const { gst_rate, gst_amount, ...cleanData } = exchangeData;
+    const retry = await supabase
+      .from('gold_exchanges')
+      .update(cleanData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (!retry.error) return retry.data;
+    throw retry.error;
+  }
 
   if (error) throw error;
   return data;

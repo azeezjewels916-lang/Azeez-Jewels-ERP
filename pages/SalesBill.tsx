@@ -1127,7 +1127,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
               <div className="col-span-4"><Input label="Particulars" value={oldGoldExchange.particulars} onChange={e => setOldGoldExchange({ ...oldGoldExchange, particulars: e.target.value })} /></div>
               <div className="col-span-2"><Input label="HSN" value={oldGoldExchange.hsn_code} isMonospaced onChange={e => setOldGoldExchange({ ...oldGoldExchange, hsn_code: e.target.value })} /></div>
               <div className="col-span-2"><Input label="Wt (g)" type="number" isMonospaced value={oldGoldExchange.weightInput} onChange={e => setOldGoldExchange({ ...oldGoldExchange, weightInput: e.target.value })} /></div>
-              <div className="col-span-2"><Input label="Purity %" type="number" isMonospaced value={oldGoldExchange.purity} onChange={e => setOldGoldExchange({ ...oldGoldExchange, purity: parseFloat(e.target.value) || 0 })} /></div>
+              <div className="col-span-2"><Input label="Purity %" type="number" isMonospaced value={oldGoldExchange.purity} onChange={e => setOldGoldExchange({ ...oldGoldExchange, purity: e.target.value })} /></div>
               <div className="col-span-2"><Input label="Rate" type="number" isMonospaced value={oldGoldExchange.rateInput} onChange={e => setOldGoldExchange({ ...oldGoldExchange, rateInput: e.target.value })} /></div>
               <div className="col-span-12 flex justify-end mt-2"><div className="bg-pink-50 px-4 py-2 rounded text-pink-700 font-bold border border-pink-200">Value: - {formatCurrency(oldGoldExchange.total)}</div></div>
             </div>

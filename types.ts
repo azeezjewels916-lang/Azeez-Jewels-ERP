@@ -59,7 +59,11 @@ export interface BillItem {
   makingChargesInput?: string;
   makingChargesPercentage?: string;
   makingChargesAmount?: string;
+  making_charges_type?: string;
+  making_charges_input?: string;
 }
+
+export type Item = InventoryItem;
 
 export interface OldGoldExchange {
   description: string;
@@ -86,6 +90,8 @@ export interface Customer {
   phone: string;
   email?: string;
   address?: string;
+  gstin?: string;
+  pan?: string;
   notes?: string;
   created_at?: string;
 }

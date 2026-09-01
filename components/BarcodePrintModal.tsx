@@ -1,74 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { X, Printer, Tag, Check, Sliders } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Printer, Tag, Check, Sliders, ScanLine, Eye } from 'lucide-react';
 import JsBarcode from 'jsbarcode';
 import { Button } from './UIComponents';
-import { Item } from '../types';
+import { InventoryItem } from '../types';
 
 interface BarcodePrintModalProps {
   isOpen: boolean;
   onClose: () => void;
-  item: Item | null;
+  item: InventoryItem | null;
 }
 
 export type TagSize = '50x12' | '81x12' | '100x15' | '100x20';
-/**
- * Generate a barcode as a PNG data URL using Canvas rendering.
- *
- * KEY INSIGHT: Chrome's print engine works at 96 CSS DPI internally.
- * If we generate a canvas whose pixel count matches what Chrome expects
- * for the target mm width at 96 DPI, Chrome passes it through 1:1
- * with ZERO resampling. No resampling = no anti-aliasing = scannable barcode.
- *
- * Chrome CSS DPI: 96 DPI = 3.78 pixels per mm
- * Target barcode width: ~25mm on the label
- * Canvas pixels needed: 25mm × 3.78 ≈ 94 pixels
- * JsBarcode width:1 → each module = 1 CSS pixel = 0.264mm (10.4mil) at 96 DPI
- *   → Well above the MJ2818C minimum (7.5mil / 0.19mm)
- */
-function getBarcodePngDataUrl(text: string, targetWidthMm?: number): { dataUrl: string; widthMm: number } {
-  try {
-    const canvas = document.createElement('canvas');
 
-    // JsBarcode with width:1 gives us 1 pixel per module.
-    // margin:4 gives 4px quiet zone on each side (≈1mm at 96 DPI — sufficient).
-    JsBarcode(canvas, text || 'AHS000000', {
+/**
+ * Generate a high-contrast vector SVG barcode for thermal printing.
+ * Vector <rect> elements are sent directly to Windows GDI as black rectangles,
+ * completely avoiding bitmap resampling and dithering.
+ */
+function getBarcodeSvgString(text: string): string {
+  try {
+    const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    JsBarcode(svgNode, text || 'AHS000000', {
       format: "CODE128",
-      width: 1,        // 1 CSS pixel per narrow module
-      height: 80,      // Tall bars = more scan lines = reliable reads
+      width: 1.5,      // 1.5 module width fits perfectly in 22mm with generous quiet zone
+      height: 50,      // Tall bar height gives large vertical scanning target
       displayValue: false,
-      margin: 4,       // 4px margin = ~1mm quiet zone each side at 96 DPI
+      margin: 12,      // 12 units = ~3mm pure white quiet zone on each side
       background: "#ffffff",
       lineColor: "#000000"
     });
 
-    // CRITICAL: Apply binary threshold to eliminate ANY canvas anti-aliasing.
-    // Every pixel becomes either pure black (0,0,0) or pure white (255,255,255).
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-        const val = avg < 128 ? 0 : 255;
-        data[i] = val;
-        data[i + 1] = val;
-        data[i + 2] = val;
-        data[i + 3] = 255;
-      }
-      ctx.putImageData(imageData, 0, 0);
-    }
+    svgNode.setAttribute("style", "width: 100%; height: 100%; max-width: 24mm; max-height: 8mm; display: block; margin: 0 auto;");
+    svgNode.setAttribute("shape-rendering", "crispEdges");
 
-    const dataUrl = canvas.toDataURL('image/png');
-
-    // Convert canvas pixels to mm using Chrome's CSS DPI (96 DPI = 3.78 px/mm)
-    // This ensures Chrome maps our pixels 1:1 during print — zero resampling.
-    const CSS_PX_PER_MM = 96 / 25.4; // ≈ 3.7795
-    const widthMm = canvas.width / CSS_PX_PER_MM;
-
-    return { dataUrl, widthMm };
+    return svgNode.outerHTML;
   } catch (e) {
-    console.error("Barcode canvas generation error:", e);
-    return { dataUrl: '', widthMm: 20 };
+    console.error("Barcode SVG generation error:", e);
+    return `<svg viewBox="0 0 100 35"><rect width="100%" height="100%" fill="#fff"/></svg>`;
   }
 }
 
@@ -82,15 +50,26 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   const [showPrice, setShowPrice] = useState<boolean>(true);
   const [showHUID, setShowHUID] = useState<boolean>(true);
   const [tailPosition, setTailPosition] = useState<'right' | 'left'>('right');
+  const [scannedTestResult, setScannedTestResult] = useState<string>('');
+  const previewSvgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Reset state when modal opens
     if (isOpen) {
       setPrintQuantity(1);
+      setScannedTestResult('');
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (isOpen && item && previewSvgRef.current) {
+      const barcodeText = (item.barcode || 'AHS000000').trim();
+      previewSvgRef.current.innerHTML = getBarcodeSvgString(barcodeText);
+    }
+  }, [isOpen, item]);
+
   if (!isOpen || !item) return null;
+
+  const barcodeText = (item.barcode || 'AHS000000').trim();
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -106,8 +85,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       '100x20': { width: 100, height: 20, halfW: 36, tailW: 28 },
     }[tagSize]!;
 
-    const barcodeText = (item.barcode || 'AHS000000').trim();
-    const barcodePng = getBarcodePngDataUrl(barcodeText);
+    const barcodeSvgHtml = getBarcodeSvgString(barcodeText);
 
     const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
     const W = labelDims.width;
@@ -133,7 +111,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
         <div class="half right-half">
           <div class="brand">AZEEZ JEWELS</div>
           <div class="bc-box">
-            <img src="${barcodePng.dataUrl}" class="bc-img" style="width: ${barcodePng.widthMm.toFixed(2)}mm;" />
+            ${barcodeSvgHtml}
           </div>
           <div class="sku">${barcodeText}</div>
         </div>
@@ -146,7 +124,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     printWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
-<title></title>
+<title>Tag - ${barcodeText}</title>
 <style>
 @page {
   size: ${W}mm ${H}mm;
@@ -173,28 +151,30 @@ html, body {
   align-items: stretch;
   page-break-after: always;
   page-break-inside: avoid;
-  padding: 5mm 1mm 0mm 1mm; /* Pushed down MASSIVELY by 5mm to avoid printer top cutoff */
-  overflow: visible;
+  padding: 4mm 1mm 0mm 1mm;
+  overflow: hidden;
   box-sizing: border-box;
 }
 .half {
   width: ${HW}mm;
-  height: ${H - 5}mm;
+  height: ${H - 4}mm;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   box-sizing: border-box;
-  overflow: visible;
+  overflow: hidden;
 }
 .left-half {
+  padding-left: 3.5mm;
   padding-right: 1mm;
-  padding-left: 4mm; /* Shifted more right to avoid printer dead-zone cutoff */
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
 }
 .right-half {
-  padding-left: 2mm; /* Added more space from the fold line */
-  padding-right: 0.5mm;
+  padding-left: 1.5mm;
+  padding-right: 1.5mm;
+  align-items: center;
+  text-align: center;
   justify-content: space-between;
 }
 .tail {
@@ -202,7 +182,7 @@ html, body {
   flex-shrink: 0;
 }
 .brand {
-  font-size: 1.6mm;
+  font-size: 1.8mm;
   font-weight: 900;
   letter-spacing: 0.1mm;
   line-height: 1;
@@ -214,35 +194,32 @@ html, body {
 }
 .bc-box {
   width: 100%;
-  height: 8.5mm;
+  height: 8mm;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  margin-top: 0.2mm;
-  margin-bottom: 0.2mm;
   background: #fff;
+  overflow: visible;
 }
-.bc-img {
-  height: 100%;
-  /* width is set inline to match exact canvas→mm mapping */
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  -ms-interpolation-mode: nearest-neighbor;
+.bc-box svg {
+  width: 100%;
+  max-width: 24mm;
+  height: 8mm;
+  display: block;
 }
 .sku {
   font-family: monospace, monospace;
-  font-size: 1.5mm;
+  font-size: 1.8mm;
   font-weight: 900;
   text-align: center;
   line-height: 1;
-  letter-spacing: 0.1mm;
+  letter-spacing: 0.2mm;
   white-space: nowrap;
   overflow: hidden;
   width: 100%;
 }
 .purity {
-  font-size: 1.6mm;
+  font-size: 1.8mm;
   font-weight: 900;
   line-height: 1;
   color: #000;
@@ -250,7 +227,7 @@ html, body {
   overflow: hidden;
 }
 .item-name {
-  font-size: 1.7mm;
+  font-size: 1.8mm;
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
@@ -262,7 +239,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 0.3mm;
-  font-size: 1.5mm;
+  font-size: 1.6mm;
   font-weight: bold;
   font-family: monospace, monospace;
   line-height: 1;
@@ -320,17 +297,55 @@ ${labelHtml}
         </div>
 
         {/* MODAL BODY */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          {/* LIVE ON-SCREEN SCANNER TEST CARD */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase tracking-wider">
+                <ScanLine size={16} className="text-amber-600" />
+                Live Scanner Screen Test
+              </div>
+              <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
+                Scan your screen now!
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-800 mb-3">
+              Point your <strong>MJ2818C scanner</strong> directly at the barcode below to verify that it reads instantly:
+            </p>
+
+            <div className="bg-white rounded-lg p-3 border border-amber-200 flex flex-col items-center justify-center shadow-inner">
+              <div className="text-[11px] font-bold text-charcoal-900 tracking-widest uppercase mb-1">AZEEZ JEWELS</div>
+              <div ref={previewSvgRef} className="w-full flex items-center justify-center min-h-[50px]"></div>
+              <div className="text-xs font-mono font-bold text-charcoal-900 tracking-widest mt-1">{barcodeText}</div>
+            </div>
+
+            {/* TEST INPUT FIELD */}
+            <div className="mt-3 flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Click here & trigger scanner to test read..."
+                value={scannedTestResult}
+                onChange={(e) => setScannedTestResult(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs border border-amber-300 rounded-lg font-mono focus:ring-2 focus:ring-amber-500 bg-white"
+              />
+              {scannedTestResult && (
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded whitespace-nowrap">
+                  ✓ Scanned: {scannedTestResult}
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* TAG SIZE SELECTOR */}
           <div>
-            <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
               1. Select Physical Tag / Label Size
             </label>
             <div className="grid grid-cols-4 gap-2">
               {[
                 { id: '50x12', label: '50mm × 12mm', desc: 'Standard Dumbbell' },
                 { id: '81x12', label: '81mm × 12mm', desc: 'Extended Dumbbell' },
-                { id: '100x15', label: '100mm × 15mm', desc: 'Chain / Necklace' },
+                { id: '100x15', label: '100mm × 15mm', desc: 'Chain / Ring Tag' },
                 { id: '100x20', label: '100mm × 20mm', desc: 'Heavy Tag (HUID)' },
               ].map(size => (
                 <button
@@ -376,14 +391,14 @@ ${labelHtml}
           </div>
 
           {/* CRITICAL PRINTER SETTINGS BANNER */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-1.5">
-            <div className="font-bold flex items-center gap-1.5 text-amber-800 uppercase tracking-wider text-[11px]">
-              <Sliders size={14} className="text-amber-600" /> Key Chrome Settings & Printer Calibration (TSC TTP-244 Pro)
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 space-y-1">
+            <div className="font-bold flex items-center gap-1.5 text-slate-900 uppercase tracking-wider text-[11px]">
+              <Sliders size={14} className="text-slate-700" /> Windows TSC Driver & Chrome Print Settings
             </div>
-            <ul className="list-disc list-inside space-y-0.5 text-[11px] font-medium text-amber-800">
-              <li>In Chrome Print: Set <strong>Margins</strong> to <strong>None</strong> & Uncheck <strong>Headers & Footers</strong></li>
-              <li><strong>TSC Driver Setup</strong>: In Windows <i>Devices & Printers → TSC TTP-244 Pro → Preferences</i>, set <strong>Media Type: Labels with Gaps</strong> (Gap: 2mm)</li>
-              <li><strong>Calibrate Gap Sensor</strong>: Turn OFF printer, hold <strong>FEED button</strong>, turn ON until green LED blinks — this aligns physical sticker gaps perfectly!</li>
+            <ul className="list-disc list-inside space-y-0.5 text-[11px] font-medium text-slate-700">
+              <li>In Chrome Print: Set <strong>Margins: None</strong>, <strong>Scale: 100%</strong>, and uncheck <strong>Headers & Footers</strong></li>
+              <li>In Windows <i>TSC Printer Preferences → Stock/Media</i>: Set <strong>Type: Labels with Gaps</strong> (Gap: 2mm)</li>
+              <li>In Windows <i>TSC Printer Preferences → Graphics</i>: Set <strong>Dithering: None</strong> (Threshold) for pitch-black thermal bars</li>
             </ul>
           </div>
 
