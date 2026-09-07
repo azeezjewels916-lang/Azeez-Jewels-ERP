@@ -23,6 +23,7 @@ import { generateBillNo, createBill, createBillItems, updateBill, createCustomer
 import { InvoicePrint } from '../components/InvoicePrint';
 import { ExchangePrint } from '../components/ExchangePrint';
 import { SilverBillPrint } from '../components/SilverBillPrint';
+import { NosePinBillPrint } from '../components/NosePinBillPrint';
 
 // --- HELPERS ---
 
@@ -177,7 +178,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   }, [billId]);
 
   // --- PRINT / PREVIEW STATE ---
-  const [activePrintView, setActivePrintView] = useState<'invoice' | 'exchange' | 'silver'>('invoice');
+  const [activePrintView, setActivePrintView] = useState<'invoice' | 'exchange' | 'silver' | 'nosepin'>('invoice');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [exchangeValuePct, setExchangeValuePct] = useState('40%');
   const [returnValuePct, setReturnValuePct] = useState('50%');
@@ -827,6 +828,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
           />
         )}
+        {activePrintView === 'nosepin' && (
+          <NosePinBillPrint
+            billNo={billNo} billDate={billDate} saleType={saleType}
+            customer={customer} items={items} totals={calculatedTotals}
+            mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+            exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+          />
+        )}
         {activePrintView === 'exchange' && (
           <ExchangePrint
             voucherNo={voucherNo} date={billDate} customer={customer}
@@ -862,6 +871,12 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                       className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'silver' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
                     >
                       Silver Cash Bill
+                    </button>
+                    <button
+                      onClick={() => setActivePrintView('nosepin')}
+                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'nosepin' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
+                    >
+                      Nose Pin Bill
                     </button>
                     <button
                       onClick={() => setActivePrintView('exchange')}
@@ -926,6 +941,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                   />
                 ) : activePrintView === 'silver' ? (
                   <SilverBillPrint
+                    isScreenPreview
+                    billNo={billNo} billDate={billDate} saleType={saleType}
+                    customer={customer} items={items} totals={calculatedTotals}
+                    mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+                    exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+                  />
+                ) : activePrintView === 'nosepin' ? (
+                  <NosePinBillPrint
                     isScreenPreview
                     billNo={billNo} billDate={billDate} saleType={saleType}
                     customer={customer} items={items} totals={calculatedTotals}

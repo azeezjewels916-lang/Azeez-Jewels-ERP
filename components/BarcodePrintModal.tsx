@@ -10,39 +10,38 @@ interface BarcodePrintModalProps {
   item: InventoryItem | null;
 }
 
-export type TagSize = '50x12' | '81x12' | '100x15' | '100x20';
+export type TagSize = '92x15' | '90x15' | '81x12' | '100x15' | '50x12' | '100x20';
 
 /**
  * Generate a high-contrast vector SVG barcode for thermal printing.
- * Supports CODE128 and CODE39 (the standard used on vendor jewellery tags like TV/5554).
+ * Supports CODE128 and CODE39 (standard retail & jewellery barcode formats).
  */
-function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CODE128'): { svgHtml: string; encodedValue: string } {
+function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CODE128', encodeMode: 'full' | 'numeric' = 'full'): { svgHtml: string; encodedValue: string } {
   try {
     const fullText = (rawText || 'AHS000000').trim();
-
-    // For Code 128: extract numeric digits if present for high-density 2-dot Code C pairs
     const digitsOnly = fullText.replace(/\D/g, '');
     let valueToEncode = fullText;
 
-    if (format === 'CODE128' && digitsOnly.length >= 4) {
+    if (encodeMode === 'numeric' && digitsOnly.length >= 3) {
       valueToEncode = digitsOnly;
     } else if (format === 'CODE39') {
-      // Code 39 requires uppercase alphanumeric characters
       valueToEncode = fullText.toUpperCase();
+    } else {
+      valueToEncode = fullText;
     }
 
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, valueToEncode, {
       format: format,
-      width: format === 'CODE39' ? 1.2 : 2, // 2-dot modules for Code 128, 1.2 for Code 39
-      height: 52,       // Generous vertical bar height for easy laser/CCD scanner capture
+      width: format === 'CODE39' ? 1.1 : (encodeMode === 'numeric' ? 1.6 : 1.3), // Calibrated for 203 DPI TVS LP 46 Dlite Plus
+      height: 48,       // Vertical bar height for easy laser/CCD scanner capture
       displayValue: false,
-      margin: 12,       // Pure white quiet zones on both left and right
+      margin: 10,       // Pure white quiet zones on both left and right
       background: "#ffffff",
       lineColor: "#000000"
     });
 
-    svgNode.setAttribute("style", "width: auto; height: 100%; max-width: 23mm; max-height: 8mm; display: block; margin: 0 auto;");
+    svgNode.setAttribute("style", "width: auto; height: 100%; max-width: 24mm; max-height: 8mm; display: block; margin: 0 auto;");
     svgNode.setAttribute("shape-rendering", "crispEdges");
 
     return { svgHtml: svgNode.outerHTML, encodedValue: valueToEncode };
@@ -60,8 +59,9 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   onClose,
   item
 }) => {
-  const [tagSize, setTagSize] = useState<TagSize>('100x15');
+  const [tagSize, setTagSize] = useState<TagSize>('92x15');
   const [barcodeFormat, setBarcodeFormat] = useState<'CODE128' | 'CODE39'>('CODE128');
+  const [encodeMode, setEncodeMode] = useState<'full' | 'numeric'>('full');
   const [printQuantity, setPrintQuantity] = useState<number>(1);
   const [showPrice, setShowPrice] = useState<boolean>(true);
   const [showHUID, setShowHUID] = useState<boolean>(true);
@@ -79,15 +79,15 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   useEffect(() => {
     if (isOpen && item && previewSvgRef.current) {
       const barcodeText = (item.barcode || 'AHS000000').trim();
-      const { svgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat);
+      const { svgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode);
       previewSvgRef.current.innerHTML = svgHtml;
     }
-  }, [isOpen, item, barcodeFormat]);
+  }, [isOpen, item, barcodeFormat, encodeMode]);
 
   if (!isOpen || !item) return null;
 
   const barcodeText = (item.barcode || 'AHS000000').trim();
-  const { svgHtml: barcodeSvgHtml, encodedValue } = getBarcodeSvgString(barcodeText, barcodeFormat);
+  const { svgHtml: barcodeSvgHtml, encodedValue } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode);
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -96,18 +96,21 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       return;
     }
 
-    const labelDims = {
-      '50x12': { width: 50, height: 12, halfW: 16, tailW: 18 },
+    const labelDims: Record<TagSize, { width: number; height: number; halfW: number; tailW: number }> = {
+      '92x15': { width: 92, height: 15, halfW: 26, tailW: 40 },
+      '90x15': { width: 90, height: 15, halfW: 25.5, tailW: 39 },
       '81x12': { width: 81, height: 12, halfW: 26, tailW: 29 },
       '100x15': { width: 100, height: 15, halfW: 27.5, tailW: 45 },
+      '50x12': { width: 50, height: 12, halfW: 16, tailW: 18 },
       '100x20': { width: 100, height: 20, halfW: 36, tailW: 28 },
-    }[tagSize]!;
+    };
 
+    const dims = labelDims[tagSize];
     const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
-    const W = labelDims.width;
-    const H = labelDims.height;
-    const HW = labelDims.halfW;
-    const TW = labelDims.tailW;
+    const W = dims.width;
+    const H = dims.height;
+    const HW = dims.halfW;
+    const TW = dims.tailW;
 
     const labelHtml = Array.from({ length: printQuantity }).map(() => `
       <div class="lc">
@@ -224,7 +227,7 @@ html, body {
 }
 .bc-box svg {
   width: 100%;
-  max-width: 23mm;
+  max-width: 24mm;
   height: 8mm;
   display: block;
 }
@@ -309,7 +312,7 @@ ${labelHtml}
             </div>
             <div>
               <h3 className="font-bold text-base uppercase tracking-wide">Jewellery Barcode Tag Generator</h3>
-              <p className="text-[10px] text-gold-500 uppercase tracking-widest font-bold">TSC TTP-244 Pro Thermal Printer</p>
+              <p className="text-[10px] text-gold-500 uppercase tracking-widest font-bold">TVS LP 46 Dlite Plus & Gobbler MJ2818A</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white rounded-full bg-white/10">
@@ -324,14 +327,14 @@ ${labelHtml}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase tracking-wider">
                 <ScanLine size={16} className="text-amber-600" />
-                Live Scanner Screen Test
+                Live Scanner Screen Test (Gobbler MJ2818A)
               </div>
               <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
                 Scan your screen now!
               </span>
             </div>
             <p className="text-[11px] text-amber-800 mb-3">
-              Point your <strong>MJ2818C scanner</strong> directly at the barcode below to verify that it reads instantly:
+              Point your <strong>Gobbler MJ2818A scanner</strong> directly at the barcode below to verify that it reads instantly:
             </p>
 
             <div className="bg-white rounded-lg p-3 border border-amber-200 flex flex-col items-center justify-center shadow-inner">
@@ -344,7 +347,7 @@ ${labelHtml}
             <div className="mt-3 flex items-center gap-2">
               <input
                 type="text"
-                placeholder="Click here & trigger scanner to test read..."
+                placeholder="Click here & trigger Gobbler scanner to test read..."
                 value={scannedTestResult}
                 onChange={(e) => setScannedTestResult(e.target.value)}
                 className="w-full px-3 py-1.5 text-xs border border-amber-300 rounded-lg font-mono focus:ring-2 focus:ring-amber-500 bg-white"
@@ -357,51 +360,25 @@ ${labelHtml}
             </div>
           </div>
 
-          {/* BARCODE FORMAT SELECTOR */}
-          <div>
-            <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-              1. Barcode Symbology Format
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { id: 'CODE128', label: 'Code 128 (High Density 2-Dot)', desc: 'Standard compact retail format' },
-                { id: 'CODE39', label: 'Code 39 (Universal Retail)', desc: 'Used on vendor tags (e.g. TV/5554)' }
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => setBarcodeFormat(opt.id as any)}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left ${barcodeFormat === opt.id
-                    ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
-                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>{opt.label}</span>
-                    {barcodeFormat === opt.id && <Check size={13} className="text-gold-600" />}
-                  </div>
-                  <p className="text-[9.5px] font-normal text-gray-500 mt-0.5">{opt.desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* TAG SIZE SELECTOR */}
           <div>
             <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-              2. Select Physical Tag / Label Size
+              1. Select Physical Tag / Label Size
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {[
-                { id: '50x12', label: '50mm × 12mm', desc: 'Standard Dumbbell' },
-                { id: '81x12', label: '81mm × 12mm', desc: 'Extended Dumbbell' },
-                { id: '100x15', label: '100mm × 15mm', desc: 'Chain / Ring Tag' },
+                { id: '92x15', label: '92mm × 15mm', desc: 'TVS Standard Roll (Batch PW02072025)', badge: 'Recommended' },
+                { id: '90x15', label: '90mm × 15mm', desc: 'Standard Dumbbell Tag' },
+                { id: '81x12', label: '81mm × 12mm', desc: 'Small Dumbbell Tag' },
+                { id: '100x15', label: '100mm × 15mm', desc: 'Long Tail Tag' },
+                { id: '50x12', label: '50mm × 12mm', desc: 'Compact Flap Tag' },
                 { id: '100x20', label: '100mm × 20mm', desc: 'Heavy Tag (HUID)' },
               ].map(size => (
                 <button
                   key={size.id}
                   onClick={() => setTagSize(size.id as TagSize)}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${tagSize === size.id
-                    ? 'border-gold-500 bg-gold-50/70 shadow-sm ring-1 ring-gold-500'
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${tagSize === size.id
+                    ? 'border-gold-500 bg-gold-50/80 shadow-sm ring-1 ring-gold-500'
                     : 'border-gray-200 hover:bg-gray-50'
                     }`}
                 >
@@ -410,15 +387,75 @@ ${labelHtml}
                     {tagSize === size.id && <Check size={13} className="text-gold-600" />}
                   </div>
                   <p className="text-[9.5px] text-gray-500 mt-0.5 leading-tight">{size.desc}</p>
+                  {size.badge && (
+                    <span className="inline-block mt-1 text-[8.5px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded">
+                      {size.badge}
+                    </span>
+                  )}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* BARCODE FORMAT & ENCODING SELECTOR */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                2. Symbology Format
+              </label>
+              <div className="space-y-1.5">
+                {[
+                  { id: 'CODE128', label: 'Code 128 (High Density)', desc: 'Standard compact retail format' },
+                  { id: 'CODE39', label: 'Code 39 (Universal Retail)', desc: 'Legacy & vendor format' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setBarcodeFormat(opt.id as any)}
+                    className={`w-full py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left ${barcodeFormat === opt.id
+                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{opt.label}</span>
+                      {barcodeFormat === opt.id && <Check size={13} className="text-gold-600" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                3. Encoded SKU Mode
+              </label>
+              <div className="space-y-1.5">
+                {[
+                  { id: 'full', label: 'Full SKU (e.g. AHS00123)', desc: 'Encodes full item code' },
+                  { id: 'numeric', label: 'Digits Only (e.g. 00123)', desc: 'Extra thick bars for fast scan' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setEncodeMode(opt.id as any)}
+                    className={`w-full py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left ${encodeMode === opt.id
+                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{opt.label}</span>
+                      {encodeMode === opt.id && <Check size={13} className="text-gold-600" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* STICKER TAIL DIRECTION */}
           <div>
             <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-              2. Sticker Tail Position
+              4. Sticker Tail Position
             </label>
             <div className="grid grid-cols-2 gap-3">
               {[
@@ -442,12 +479,13 @@ ${labelHtml}
           {/* CRITICAL PRINTER SETTINGS BANNER */}
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 space-y-1">
             <div className="font-bold flex items-center gap-1.5 text-slate-900 uppercase tracking-wider text-[11px]">
-              <Sliders size={14} className="text-slate-700" /> Windows TSC Driver & Chrome Print Settings
+              <Sliders size={14} className="text-slate-700" /> TVS LP 46 Dlite Plus & Browser Print Settings
             </div>
             <ul className="list-disc list-inside space-y-0.5 text-[11px] font-medium text-slate-700">
-              <li>In Chrome Print: Set <strong>Margins: None</strong>, <strong>Scale: 100%</strong>, and uncheck <strong>Headers & Footers</strong></li>
-              <li>In Windows <i>TSC Printer Preferences → Stock/Media</i>: Set <strong>Type: Labels with Gaps</strong> (Gap: 2mm)</li>
-              <li>In Windows <i>TSC Printer Preferences → Graphics</i>: Set <strong>Dithering: None</strong> (Threshold) for pitch-black thermal bars</li>
+              <li>In Chrome / Edge Print Dialog: Set <strong>Margins: None</strong>, <strong>Scale: 100%</strong>, and uncheck <strong>Headers & Footers</strong></li>
+              <li>In Windows <i>TVS Printer Preferences → Page Setup</i>: Select or Create <strong>User Defined: 92mm Width × 15mm Height</strong></li>
+              <li>In Windows <i>TVS Printer Preferences → Stock/Media</i>: Set <strong>Type: Labels with Gaps</strong> (Gap: 2mm)</li>
+              <li>In Windows <i>TVS Printer Preferences → Options</i>: Set <strong>Darkness/Density: 10-12</strong> and <strong>Speed: 2-3 ips</strong> for dark, crisp bars</li>
             </ul>
           </div>
 
@@ -493,10 +531,11 @@ ${labelHtml}
             Cancel
           </button>
           <Button onClick={handlePrint} className="shadow-lg">
-            <Printer size={16} className="mr-2" /> Print Tag on TSC TTP-244 Pro
+            <Printer size={16} className="mr-2" /> Print Tag on TVS LP 46 Dlite Plus
           </Button>
         </div>
       </div>
     </div>
   );
 };
+

@@ -20,6 +20,8 @@ import { Button, Card, toast } from '../components/UIComponents';
 import { supabase } from '../supabaseClient';
 import { deleteBill } from '../db';
 import { InvoicePrint } from '../components/InvoicePrint';
+import { SilverBillPrint } from '../components/SilverBillPrint';
+import { NosePinBillPrint } from '../components/NosePinBillPrint';
 import { exportToExcel } from '../components/exportUtils';
 import { FileSpreadsheet } from 'lucide-react';
 
@@ -56,6 +58,8 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
   // Select & Print State
   const [selectedBillIds, setSelectedBillIds] = useState<string[]>([]);
   const [selectedBillForPrint, setSelectedBillForPrint] = useState<any>(null);
+  const [printFormat, setPrintFormat] = useState<'invoice' | 'silver' | 'nosepin'>('invoice');
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Admin GST Control State
   const [isGstControlEnabled, setIsGstControlEnabled] = useState<boolean>(() => {
@@ -225,8 +229,6 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
   };
 
   const handlePrint = (sale: any) => {
-    // Need to fetch items if they aren't loaded, but they aren't in the main sales list
-    // For simplicity, let's fetch full bill data including items before printing
     const preparePrint = async () => {
       const { data: items, error } = await supabase
         .from('bill_items')
@@ -247,17 +249,25 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
         })),
         totals: {
           itemsSubtotal: sale.subtotal,
-          baseTaxable: sale.subtotal, // Simplified for now
+          baseTaxable: sale.subtotal,
           gstAmount: sale.gst_amount,
           grandTotal: sale.grand_total
         }
       };
 
+      // Auto-detect format if items contain silver or nose pin
+      const hasSilver = items.some(i => i.metal_type?.includes('silver'));
+      const hasNosePin = items.some(i => i.item_name?.toLowerCase().includes('nose'));
+      if (hasNosePin) {
+        setPrintFormat('nosepin');
+      } else if (hasSilver) {
+        setPrintFormat('silver');
+      } else {
+        setPrintFormat('invoice');
+      }
+
       setSelectedBillForPrint(printObj);
-      setTimeout(() => {
-        window.print();
-        setSelectedBillForPrint(null);
-      }, 500);
+      setShowPrintModal(true);
     };
     preparePrint();
   };
@@ -568,21 +578,134 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
 
       {/* 4. PRINT PREVIEW (HIDDEN ON SCREEN) */}
       <div className="hidden print:block">
-        {selectedBillForPrint && (
+        {selectedBillForPrint && printFormat === 'invoice' && (
           <InvoicePrint
             billNo={selectedBillForPrint.bill_no}
             billDate={selectedBillForPrint.bill_date}
             saleType={selectedBillForPrint.sale_type.toUpperCase() === 'GST' ? 'GST' : 'NON GST'}
             customer={selectedBillForPrint.customers}
             items={selectedBillForPrint.items}
-            allMetalRates={{}} // Not strictly needed for printing historical bills if totals are pre-calculated
+            allMetalRates={{}}
             totals={selectedBillForPrint.totals}
-            oldGold={{ weight: 0, purity: 0, rate: 0, total: 0 }} // Simplified for now
-            mcValueAdded={{ weight: 0, rate: 0, total: 0 }} // Simplified for now
-            paymentMethods={[]} // Simplified for now
+            oldGold={{ weight: 0, purity: 0, rate: 0, total: 0 }}
+            mcValueAdded={{ weight: 0, rate: 0, total: 0 }}
+            paymentMethods={[]}
+          />
+        )}
+        {selectedBillForPrint && printFormat === 'silver' && (
+          <SilverBillPrint
+            billNo={selectedBillForPrint.bill_no}
+            billDate={selectedBillForPrint.bill_date}
+            saleType={selectedBillForPrint.sale_type.toUpperCase() === 'GST' ? 'GST' : 'NON GST'}
+            customer={selectedBillForPrint.customers}
+            items={selectedBillForPrint.items}
+            totals={selectedBillForPrint.totals}
+          />
+        )}
+        {selectedBillForPrint && printFormat === 'nosepin' && (
+          <NosePinBillPrint
+            billNo={selectedBillForPrint.bill_no}
+            billDate={selectedBillForPrint.bill_date}
+            saleType={selectedBillForPrint.sale_type.toUpperCase() === 'GST' ? 'GST' : 'NON GST'}
+            customer={selectedBillForPrint.customers}
+            items={selectedBillForPrint.items}
+            totals={selectedBillForPrint.totals}
           />
         )}
       </div>
+
+      {/* 5. ON-SCREEN PRINT MODAL */}
+      {showPrintModal && selectedBillForPrint && (
+        <div className="fixed inset-0 z-[100] bg-charcoal-900/80 backdrop-blur-md flex items-center justify-center p-8 print:hidden">
+          <div className="bg-gray-100 w-full max-w-[1000px] h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+            <div className="bg-charcoal-900 px-8 py-4 flex justify-between items-center text-white shrink-0 shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-gold-500 text-charcoal-900 flex items-center justify-center font-bold">
+                  <Eye size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base tracking-wide uppercase">Print Bill - {selectedBillForPrint.bill_no}</h3>
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      onClick={() => setPrintFormat('invoice')}
+                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${printFormat === 'invoice' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
+                    >
+                      Tax Invoice (Gold)
+                    </button>
+                    <button
+                      onClick={() => setPrintFormat('silver')}
+                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${printFormat === 'silver' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
+                    >
+                      Silver Cash Bill
+                    </button>
+                    <button
+                      onClick={() => setPrintFormat('nosepin')}
+                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${printFormat === 'nosepin' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
+                    >
+                      Nose Pin Bill
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => window.print()}
+                  variant="secondary"
+                  className="bg-gold-500 text-charcoal-900 border-none hover:bg-gold-600 shadow-xl font-bold"
+                >
+                  <Printer size={18} className="mr-2" /> Send to Printer
+                </Button>
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  className="p-2 text-gray-400 hover:text-white transition-colors bg-white/10 rounded-full"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-gray-200 p-8 custom-scrollbar">
+              <div className="scale-90 origin-top">
+                {printFormat === 'invoice' ? (
+                  <InvoicePrint
+                    isScreenPreview
+                    billNo={selectedBillForPrint.bill_no}
+                    billDate={selectedBillForPrint.bill_date}
+                    saleType={selectedBillForPrint.sale_type.toUpperCase() === 'GST' ? 'GST' : 'NON GST'}
+                    customer={selectedBillForPrint.customers}
+                    items={selectedBillForPrint.items}
+                    allMetalRates={{}}
+                    totals={selectedBillForPrint.totals}
+                    oldGold={{ weight: 0, purity: 0, rate: 0, total: 0 }}
+                    mcValueAdded={{ weight: 0, rate: 0, total: 0 }}
+                    paymentMethods={[]}
+                  />
+                ) : printFormat === 'silver' ? (
+                  <SilverBillPrint
+                    isScreenPreview
+                    billNo={selectedBillForPrint.bill_no}
+                    billDate={selectedBillForPrint.bill_date}
+                    saleType={selectedBillForPrint.sale_type.toUpperCase() === 'GST' ? 'GST' : 'NON GST'}
+                    customer={selectedBillForPrint.customers}
+                    items={selectedBillForPrint.items}
+                    totals={selectedBillForPrint.totals}
+                  />
+                ) : (
+                  <NosePinBillPrint
+                    isScreenPreview
+                    billNo={selectedBillForPrint.bill_no}
+                    billDate={selectedBillForPrint.bill_date}
+                    saleType={selectedBillForPrint.sale_type.toUpperCase() === 'GST' ? 'GST' : 'NON GST'}
+                    customer={selectedBillForPrint.customers}
+                    items={selectedBillForPrint.items}
+                    totals={selectedBillForPrint.totals}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
