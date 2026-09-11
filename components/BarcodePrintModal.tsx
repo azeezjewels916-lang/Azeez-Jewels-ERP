@@ -34,15 +34,16 @@ function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CO
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, valueToEncode, {
       format: format,
-      width: format === 'CODE39' ? 1.0 : (encodeMode === 'numeric' ? 1.4 : 1.1), // Calibrated for TVS LP 46 203 DPI
-      height: 38,       // Crisp bar height with quiet zones for Gobbler MJ2818A
+      width: encodeMode === 'numeric' ? 2.2 : (format === 'CODE39' ? 1.2 : 1.4), // Wide module width for thermal contrast
+      height: 46,       // Tall bars for easy laser scan capture
       displayValue: false,
-      margin: 8,        // Clean quiet zones (white margins) on left and right for scanner lock
+      margin: encodeMode === 'numeric' ? 6 : 4, // Clean quiet zones
       background: "#ffffff",
       lineColor: "#000000"
     });
 
-    svgNode.setAttribute("style", "width: auto; height: 100%; max-width: 21mm; max-height: 6.2mm; display: block; margin: 0 auto;");
+    svgNode.setAttribute("style", "width: 100%; height: 6.8mm; display: block; margin: 0 auto;");
+    svgNode.setAttribute("preserveAspectRatio", "none");
     svgNode.setAttribute("shape-rendering", "crispEdges");
 
     return { svgHtml: svgNode.outerHTML, encodedValue: valueToEncode };
@@ -205,13 +206,13 @@ html, body {
   overflow: hidden;
 }
 .col-barcode {
-  width: 25.5mm;
+  width: 27mm;
   align-items: center;
   text-align: center;
-  padding: 0 1mm;
+  padding: 0 0.5mm;
 }
 .col-details {
-  width: 25.5mm;
+  width: 24mm;
   align-items: flex-start;
   text-align: left;
   padding: 0 0.5mm 0 1.5mm;
@@ -230,18 +231,17 @@ html, body {
 }
 .bc-box {
   width: 100%;
-  height: 6.2mm;
+  height: 6.8mm;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #ffffff;
-  overflow: visible;
-  margin: 0.3mm 0;
+  overflow: hidden;
+  margin: 0.2mm 0;
 }
 .bc-box svg {
-  width: auto;
-  max-width: 21mm;
-  height: 6.2mm;
+  width: 100%;
+  height: 6.8mm;
   display: block;
 }
 .sku {
