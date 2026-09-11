@@ -104,8 +104,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     const headW = 52;
     const isTailLeft = tailPosition === 'left';
 
-    const labelHtml = Array.from({ length: printQuantity }).map(() => `
-      <div class="lc ${isTailLeft ? 'tail-left' : 'tail-right'}">
+    const labelHtml = Array.from({ length: printQuantity }).map((_, idx) => `
+      <div class="lc ${isTailLeft ? 'tail-left' : 'tail-right'}" style="${idx === printQuantity - 1 ? 'page-break-after: avoid; page-break-inside: avoid;' : 'page-break-after: always; page-break-inside: avoid;'}">
         <!-- BLANK TAIL SECTION (40mm) -->
         <div class="tail-area"></div>
 
