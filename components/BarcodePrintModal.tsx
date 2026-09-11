@@ -102,16 +102,16 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
 
     const W = 92;
     const H = 15;
-    const tailW = 40;
-    const headW = 52;
+    const tailW = 45;
+    const headW = 47;
     const isTailLeft = tailPosition === 'left';
 
     const labelHtml = Array.from({ length: printQuantity }).map((_, idx) => `
       <div class="lc ${isTailLeft ? 'tail-left' : 'tail-right'}" style="${idx === printQuantity - 1 ? 'page-break-after: avoid; page-break-inside: avoid;' : 'page-break-after: always; page-break-inside: avoid;'}">
-        <!-- BLANK TAIL SECTION (40mm) -->
+        <!-- BLANK TAIL SECTION (45mm buffer prevents neck clipping) -->
         <div class="tail-area"></div>
 
-        <!-- SOLID RECTANGULAR HEAD (52mm x 15mm) -->
+        <!-- SOLID RECTANGULAR HEAD (47mm x 15mm) -->
         <div class="head-area ${isRotated180 ? 'rot180' : ''}">
           <!-- SUB-COL 1: BRAND + BARCODE + SKU -->
           <div class="col col-barcode">
@@ -206,16 +206,16 @@ html, body {
   overflow: hidden;
 }
 .col-barcode {
-  width: 27mm;
+  width: 24.5mm;
   align-items: center;
   text-align: center;
-  padding: 0 0.5mm;
+  padding: 0 1mm;
 }
 .col-details {
-  width: 24mm;
+  width: 22mm;
   align-items: flex-start;
   text-align: left;
-  padding: 0 0.5mm 0 1.5mm;
+  padding: 0 0.5mm 0 1mm;
   border-left: 0.2mm dashed #cccccc;
 }
 .brand {
