@@ -34,15 +34,15 @@ function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CO
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, valueToEncode, {
       format: format,
-      width: format === 'CODE39' ? 1.05 : (encodeMode === 'numeric' ? 1.4 : 1.15), // Calibrated for TVS LP 46 203 DPI
-      height: 42,       // Crisp bar height for Gobbler MJ2818A 1D capture
+      width: format === 'CODE39' ? 1.0 : (encodeMode === 'numeric' ? 1.4 : 1.1), // Calibrated for TVS LP 46 203 DPI
+      height: 38,       // Crisp bar height with quiet zones for Gobbler MJ2818A
       displayValue: false,
-      margin: 4,        // Clean quiet zones
+      margin: 8,        // Clean quiet zones (white margins) on left and right for scanner lock
       background: "#ffffff",
       lineColor: "#000000"
     });
 
-    svgNode.setAttribute("style", "width: auto; height: 100%; max-width: 24.5mm; max-height: 7.2mm; display: block; margin: 0 auto;");
+    svgNode.setAttribute("style", "width: auto; height: 100%; max-width: 21mm; max-height: 6.2mm; display: block; margin: 0 auto;");
     svgNode.setAttribute("shape-rendering", "crispEdges");
 
     return { svgHtml: svgNode.outerHTML, encodedValue: valueToEncode };
@@ -63,11 +63,12 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   const [tagShape, setTagShape] = useState<TagShape>('flag');
   const [tagSize, setTagSize] = useState<TagSize>('92x15');
   const [barcodeFormat, setBarcodeFormat] = useState<'CODE128' | 'CODE39'>('CODE128');
-  const [encodeMode, setEncodeMode] = useState<'full' | 'numeric'>('full');
+  const [encodeMode, setEncodeMode] = useState<'full' | 'numeric'>('numeric');
   const [printQuantity, setPrintQuantity] = useState<number>(1);
   const [showPrice, setShowPrice] = useState<boolean>(true);
   const [showHUID, setShowHUID] = useState<boolean>(true);
   const [tailPosition, setTailPosition] = useState<'left' | 'right'>('left');
+  const [isRotated180, setIsRotated180] = useState<boolean>(false);
   const [scannedTestResult, setScannedTestResult] = useState<string>('');
   const previewSvgRef = useRef<HTMLDivElement>(null);
 
@@ -109,8 +110,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
         <!-- BLANK TAIL SECTION (40mm) -->
         <div class="tail-area"></div>
 
-        <!-- SOLID RECTANGULAR HEAD (52mm x 14.2mm) -->
-        <div class="head-area">
+        <!-- SOLID RECTANGULAR HEAD (52mm x 15mm) -->
+        <div class="head-area ${isRotated180 ? 'rot180' : ''}">
           <!-- SUB-COL 1: BRAND + BARCODE + SKU -->
           <div class="col col-barcode">
             <div class="brand">AZEEZ JEWELS</div>
@@ -146,9 +147,9 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
-  width: ${W}mm;
-  height: 14.5mm;
-  max-height: 14.5mm;
+  width: ${W}mm !important;
+  height: ${H}mm !important;
+  max-height: ${H}mm !important;
   margin: 0 !important;
   padding: 0 !important;
   background: #ffffff;
@@ -156,20 +157,19 @@ html, body {
   font-family: Arial, Helvetica, sans-serif;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
-  overflow: hidden;
+  overflow: hidden !important;
 }
 .lc {
-  width: ${W}mm;
-  height: 14.5mm;
-  max-height: 14.5mm;
+  width: ${W}mm !important;
+  height: ${H}mm !important;
+  max-height: ${H}mm !important;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  page-break-after: always;
-  page-break-inside: avoid;
-  padding: 0.3mm 0.5mm;
-  overflow: hidden;
+  padding: 1.2mm 0.8mm;
+  overflow: hidden !important;
   box-sizing: border-box;
+  page-break-inside: avoid !important;
 }
 .tail-left {
   flex-direction: row;
@@ -179,13 +179,13 @@ html, body {
 }
 .tail-area {
   width: ${tailW}mm;
-  height: 14mm;
+  height: 12.6mm;
   flex-shrink: 0;
 }
 .head-area {
   width: ${headW}mm;
-  height: 14mm;
-  max-height: 14mm;
+  height: 12.6mm;
+  max-height: 12.6mm;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -193,8 +193,11 @@ html, body {
   box-sizing: border-box;
   overflow: hidden;
 }
+.rot180 {
+  transform: rotate(180deg);
+}
 .col {
-  height: 13.8mm;
+  height: 12.6mm;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -205,17 +208,17 @@ html, body {
   width: 25.5mm;
   align-items: center;
   text-align: center;
-  padding: 0.2mm 0.5mm;
+  padding: 0 1mm;
 }
 .col-details {
   width: 25.5mm;
   align-items: flex-start;
   text-align: left;
-  padding: 0.2mm 0.5mm 0.2mm 1.5mm;
+  padding: 0 0.5mm 0 1.5mm;
   border-left: 0.2mm dashed #cccccc;
 }
 .brand {
-  font-size: 1.8mm;
+  font-size: 1.7mm;
   font-weight: 900;
   letter-spacing: 0.1mm;
   line-height: 1;
@@ -227,22 +230,23 @@ html, body {
 }
 .bc-box {
   width: 100%;
-  height: 7.2mm;
+  height: 6.2mm;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #ffffff;
   overflow: visible;
+  margin: 0.3mm 0;
 }
 .bc-box svg {
-  width: 100%;
-  max-width: 24.5mm;
-  height: 7.2mm;
+  width: auto;
+  max-width: 21mm;
+  height: 6.2mm;
   display: block;
 }
 .sku {
   font-family: monospace, monospace;
-  font-size: 1.8mm;
+  font-size: 1.7mm;
   font-weight: 900;
   text-align: center;
   line-height: 1;
@@ -252,7 +256,7 @@ html, body {
   width: 100%;
 }
 .purity {
-  font-size: 1.8mm;
+  font-size: 1.7mm;
   font-weight: 900;
   line-height: 1;
   color: #000;
@@ -260,7 +264,7 @@ html, body {
   overflow: hidden;
 }
 .item-name {
-  font-size: 1.7mm;
+  font-size: 1.6mm;
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
@@ -272,28 +276,28 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 0.2mm;
-  font-size: 1.6mm;
+  font-size: 1.5mm;
   font-weight: bold;
   font-family: monospace, monospace;
   line-height: 1;
 }
 .huid {
-  font-size: 1.5mm;
+  font-size: 1.4mm;
   font-weight: bold;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
 }
 .price {
-  font-size: 1.6mm;
+  font-size: 1.5mm;
   font-weight: 900;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
 }
 @media print {
-  html, body { width: ${W}mm !important; height: 14.5mm !important; }
-  .lc { width: ${W}mm !important; height: 14.5mm !important; }
+  html, body { width: ${W}mm !important; height: ${H}mm !important; }
+  .lc { width: ${W}mm !important; height: ${H}mm !important; }
 }
 </style>
 </head>
@@ -403,48 +407,135 @@ ${labelHtml}
             </div>
           </div>
 
-          {/* STICKER TAIL DIRECTION */}
-          <div>
-            <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-              1. Sticker Tail Orientation
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { id: 'left', label: 'Tail on Left (Head on Right)', desc: 'Standard Roll (Matches your photo)' },
-                { id: 'right', label: 'Tail on Right (Head on Left)', desc: 'Reversed roll loading' }
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => setTailPosition(opt.id as any)}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left ${tailPosition === opt.id
-                    ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
-                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>{opt.label}</span>
-                    {tailPosition === opt.id && <Check size={13} className="text-gold-600" />}
-                  </div>
-                  <p className="text-[9.5px] font-normal text-gray-500 mt-0.5">{opt.desc}</p>
-                </button>
-              ))}
+          {/* CONTROLS: TAIL POSITION & FLIP 180 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                1. Sticker Tail Position
+              </label>
+              <div className="space-y-1.5">
+                {[
+                  { id: 'left', label: 'Tail Left / Head Right' },
+                  { id: 'right', label: 'Tail Right / Head Left' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setTailPosition(opt.id as any)}
+                    className={`w-full py-1.5 px-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${tailPosition === opt.id
+                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{opt.label}</span>
+                      {tailPosition === opt.id && <Check size={12} className="text-gold-600" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                2. Text Rotation (180° Flip)
+              </label>
+              <div className="space-y-1.5">
+                {[
+                  { id: false, label: 'Normal (Brand on Top)' },
+                  { id: true, label: 'Invert 180° (Flip Upside Down)' }
+                ].map((opt) => (
+                  <button
+                    key={String(opt.id)}
+                    onClick={() => setIsRotated180(opt.id)}
+                    className={`w-full py-1.5 px-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${isRotated180 === opt.id
+                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{opt.label}</span>
+                      {isRotated180 === opt.id && <Check size={12} className="text-gold-600" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* CRITICAL HARDWARE & GAP FIX BANNER */}
-          <div className="bg-amber-50/70 border border-amber-300 rounded-xl p-3 text-xs text-slate-800 space-y-1.5">
+          {/* BARCODE ENCODING MODE */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                3. Barcode Density
+              </label>
+              <div className="space-y-1.5">
+                {[
+                  { id: 'numeric', label: 'Numeric (Digits Only - Fast Scan)', desc: 'Thickest bars for instant reading' },
+                  { id: 'full', label: 'Full SKU (Letters + Digits)', desc: 'Encodes full SKU e.g. AHS464454' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setEncodeMode(opt.id as any)}
+                    className={`w-full py-1.5 px-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${encodeMode === opt.id
+                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{opt.label}</span>
+                      {encodeMode === opt.id && <Check size={12} className="text-gold-600" />}
+                    </div>
+                    <p className="text-[9px] font-normal text-gray-500">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                4. Barcode Symbology
+              </label>
+              <div className="space-y-1.5">
+                {[
+                  { id: 'CODE128', label: 'Code 128 (Recommended)', desc: 'Standard retail format' },
+                  { id: 'CODE39', label: 'Code 39 (Universal 1D)', desc: 'Widely supported format' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setBarcodeFormat(opt.id as any)}
+                    className={`w-full py-1.5 px-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${barcodeFormat === opt.id
+                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{opt.label}</span>
+                      {barcodeFormat === opt.id && <Check size={12} className="text-gold-600" />}
+                    </div>
+                    <p className="text-[9px] font-normal text-gray-500">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* CRITICAL WINDOWS DRIVER SETTINGS BANNER */}
+          <div className="bg-amber-50/80 border border-amber-300 rounded-xl p-3 text-xs text-slate-800 space-y-1.5">
             <div className="font-bold flex items-center gap-1.5 text-amber-900 uppercase tracking-wider text-[11px]">
-              <Sliders size={14} className="text-amber-700" /> How to Stop Empty Label Feeding (TVS LP 46 Dlite)
+              <Sliders size={14} className="text-amber-700" /> Fix: Stop Empty Labels on TVS LP 46 Dlite
             </div>
             <ul className="list-disc list-inside space-y-1 text-[11px] font-medium text-slate-700">
               <li>
-                <strong>Move Sensor to Right:</strong> Inside the printer, slide the optical sensor to the <strong>RIGHT side</strong> under the solid rectangular label (not under the thin tail).
+                <strong>Check Height in Windows Stock:</strong> In Windows <i>Printing Preferences $\rightarrow$ Page Setup $\rightarrow$ barcode</i> stock, ensure <strong>Width = 92.0 mm</strong> and <strong>Height = 15.0 mm</strong> (make sure height is NOT 150mm or 15cm!).
               </li>
               <li>
-                <strong>10-Sec Auto Gap Calibration:</strong> Turn printer <strong>OFF</strong> $\rightarrow$ Hold <strong>FEED</strong> button $\rightarrow$ Turn <strong>ON</strong> while holding FEED until it beeps, then release. It will calibrate the gap and stop at 1 label.
+                <strong>Stock Type:</strong> Must be set to <strong>Labels with Gaps / Die-cut</strong> (Gap: <strong>2.0 mm</strong>), NOT "Continuous".
               </li>
               <li>
-                <strong>Windows Driver Setup:</strong> In <i>Printing Preferences $\rightarrow$ Page Setup</i>, set <strong>Width: 92mm, Height: 15mm, Orientation: Landscape</strong>. In <i>Graphics</i>, set <strong>Dithering: None</strong>.
+                <strong>Driver Orientation:</strong> Must be set to <strong>Portrait</strong> (NOT Landscape).
+              </li>
+              <li>
+                <strong>In Chrome Print Dialog:</strong> Destination: <code>SNBC TVSE LP46 Dlite</code>, Paper size: <code>barcode</code>, Margins: <code>None</code>, Scale: <code>100%</code>.
               </li>
             </ul>
           </div>
