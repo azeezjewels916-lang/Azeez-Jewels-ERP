@@ -10,11 +10,12 @@ interface BarcodePrintModalProps {
   item: InventoryItem | null;
 }
 
+export type TagShape = 'flag' | 'dumbbell';
 export type TagSize = '92x15' | '90x15' | '81x12' | '100x15' | '50x12' | '100x20';
 
 /**
  * Generate a high-contrast vector SVG barcode for thermal printing.
- * Supports CODE128 and CODE39 (standard retail & jewellery barcode formats).
+ * Supports CODE128 and CODE39.
  */
 function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CODE128', encodeMode: 'full' | 'numeric' = 'full'): { svgHtml: string; encodedValue: string } {
   try {
@@ -33,15 +34,15 @@ function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CO
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, valueToEncode, {
       format: format,
-      width: format === 'CODE39' ? 1.1 : (encodeMode === 'numeric' ? 1.6 : 1.3), // Calibrated for 203 DPI TVS LP 46 Dlite Plus
-      height: 48,       // Vertical bar height for easy laser/CCD scanner capture
+      width: format === 'CODE39' ? 1.05 : (encodeMode === 'numeric' ? 1.4 : 1.15), // Calibrated for TVS LP 46 203 DPI
+      height: 42,       // Crisp bar height for Gobbler MJ2818A 1D capture
       displayValue: false,
-      margin: 10,       // Pure white quiet zones on both left and right
+      margin: 4,        // Clean quiet zones
       background: "#ffffff",
       lineColor: "#000000"
     });
 
-    svgNode.setAttribute("style", "width: auto; height: 100%; max-width: 24mm; max-height: 8mm; display: block; margin: 0 auto;");
+    svgNode.setAttribute("style", "width: auto; height: 100%; max-width: 24.5mm; max-height: 7.2mm; display: block; margin: 0 auto;");
     svgNode.setAttribute("shape-rendering", "crispEdges");
 
     return { svgHtml: svgNode.outerHTML, encodedValue: valueToEncode };
@@ -59,13 +60,14 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   onClose,
   item
 }) => {
+  const [tagShape, setTagShape] = useState<TagShape>('flag');
   const [tagSize, setTagSize] = useState<TagSize>('92x15');
   const [barcodeFormat, setBarcodeFormat] = useState<'CODE128' | 'CODE39'>('CODE128');
   const [encodeMode, setEncodeMode] = useState<'full' | 'numeric'>('full');
   const [printQuantity, setPrintQuantity] = useState<number>(1);
   const [showPrice, setShowPrice] = useState<boolean>(true);
   const [showHUID, setShowHUID] = useState<boolean>(true);
-  const [tailPosition, setTailPosition] = useState<'right' | 'left'>('right');
+  const [tailPosition, setTailPosition] = useState<'left' | 'right'>('left');
   const [scannedTestResult, setScannedTestResult] = useState<string>('');
   const previewSvgRef = useRef<HTMLDivElement>(null);
 
@@ -96,47 +98,40 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       return;
     }
 
-    const labelDims: Record<TagSize, { width: number; height: number; halfW: number; tailW: number }> = {
-      '92x15': { width: 92, height: 15, halfW: 26, tailW: 40 },
-      '90x15': { width: 90, height: 15, halfW: 25.5, tailW: 39 },
-      '81x12': { width: 81, height: 12, halfW: 26, tailW: 29 },
-      '100x15': { width: 100, height: 15, halfW: 27.5, tailW: 45 },
-      '50x12': { width: 50, height: 12, halfW: 16, tailW: 18 },
-      '100x20': { width: 100, height: 20, halfW: 36, tailW: 28 },
-    };
-
-    const dims = labelDims[tagSize];
-    const flexDir = tailPosition === 'left' ? 'row-reverse' : 'row';
-    const W = dims.width;
-    const H = dims.height;
-    const HW = dims.halfW;
-    const TW = dims.tailW;
+    const W = 92;
+    const H = 15;
+    const tailW = 40;
+    const headW = 52;
+    const isTailLeft = tailPosition === 'left';
 
     const labelHtml = Array.from({ length: printQuantity }).map(() => `
-      <div class="lc">
-        <!-- LEFT HALF (Side 1: Details) -->
-        <div class="half left-half">
-          <div class="purity">${item.purity || '22K 916'}</div>
-          <div class="item-name">${item.item_name}</div>
-          <div class="weights">
-            <div>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</div>
-            <div>Nt: ${(item.net_weight || item.weight || 0).toFixed(3)}g</div>
-          </div>
-          ${showHUID && item.huid ? `<div class="huid">HUID: ${item.huid}</div>` : ''}
-          ${showPrice && item.net_price ? `<div class="price">₹ ${item.net_price.toLocaleString()}</div>` : ''}
-        </div>
+      <div class="lc ${isTailLeft ? 'tail-left' : 'tail-right'}">
+        <!-- BLANK TAIL SECTION (40mm) -->
+        <div class="tail-area"></div>
 
-        <!-- RIGHT HALF (Side 2: Brand, Barcode, SKU) -->
-        <div class="half right-half">
-          <div class="brand">AZEEZ JEWELS</div>
-          <div class="bc-box">
-            ${barcodeSvgHtml}
+        <!-- SOLID RECTANGULAR HEAD (52mm x 14.2mm) -->
+        <div class="head-area">
+          <!-- SUB-COL 1: BRAND + BARCODE + SKU -->
+          <div class="col col-barcode">
+            <div class="brand">AZEEZ JEWELS</div>
+            <div class="bc-box">
+              ${barcodeSvgHtml}
+            </div>
+            <div class="sku">${barcodeText}</div>
           </div>
-          <div class="sku">${barcodeText}</div>
-        </div>
 
-        <!-- TAIL -->
-        <div class="tail"></div>
+          <!-- SUB-COL 2: ITEM DETAILS -->
+          <div class="col col-details">
+            <div class="purity">${item.purity || '22K 916'}</div>
+            <div class="item-name">${item.item_name}</div>
+            <div class="weights">
+              <div>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</div>
+              <div>Nt: ${(item.net_weight || item.weight || 0).toFixed(3)}g</div>
+            </div>
+            ${showHUID && item.huid ? `<div class="huid">HUID: ${item.huid}</div>` : ''}
+            ${showPrice && item.net_price ? `<div class="price">₹ ${item.net_price.toLocaleString()}</div>` : ''}
+          </div>
+        </div>
       </div>
     `).join('');
 
@@ -152,7 +147,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
   width: ${W}mm;
-  height: ${H}mm;
+  height: 14.5mm;
+  max-height: 14.5mm;
   margin: 0 !important;
   padding: 0 !important;
   background: #ffffff;
@@ -164,46 +160,59 @@ html, body {
 }
 .lc {
   width: ${W}mm;
-  height: ${H}mm;
+  height: 14.5mm;
+  max-height: 14.5mm;
   display: flex;
-  flex-direction: ${flexDir};
   align-items: center;
   justify-content: space-between;
   page-break-after: always;
   page-break-inside: avoid;
-  padding: 0mm 1mm;
+  padding: 0.3mm 0.5mm;
   overflow: hidden;
   box-sizing: border-box;
 }
-.half {
-  width: ${HW}mm;
-  height: ${H - 2}mm;
+.tail-left {
+  flex-direction: row;
+}
+.tail-right {
+  flex-direction: row-reverse;
+}
+.tail-area {
+  width: ${tailW}mm;
+  height: 14mm;
+  flex-shrink: 0;
+}
+.head-area {
+  width: ${headW}mm;
+  height: 14mm;
+  max-height: 14mm;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.col {
+  height: 13.8mm;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   box-sizing: border-box;
   overflow: hidden;
 }
-.left-half {
-  padding-left: 3.5mm;
-  padding-right: 1mm;
-  padding-top: 1mm;
-  padding-bottom: 1mm;
-  align-items: flex-start;
-  text-align: left;
-}
-.right-half {
-  padding-left: 1.5mm;
-  padding-right: 1.5mm;
-  padding-top: 0.5mm;
-  padding-bottom: 0.5mm;
+.col-barcode {
+  width: 25.5mm;
   align-items: center;
   text-align: center;
-  justify-content: space-between;
+  padding: 0.2mm 0.5mm;
 }
-.tail {
-  width: ${TW}mm;
-  flex-shrink: 0;
+.col-details {
+  width: 25.5mm;
+  align-items: flex-start;
+  text-align: left;
+  padding: 0.2mm 0.5mm 0.2mm 1.5mm;
+  border-left: 0.2mm dashed #cccccc;
 }
 .brand {
   font-size: 1.8mm;
@@ -218,7 +227,7 @@ html, body {
 }
 .bc-box {
   width: 100%;
-  height: 8mm;
+  height: 7.2mm;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -227,8 +236,8 @@ html, body {
 }
 .bc-box svg {
   width: 100%;
-  max-width: 24mm;
-  height: 8mm;
+  max-width: 24.5mm;
+  height: 7.2mm;
   display: block;
 }
 .sku {
@@ -251,7 +260,7 @@ html, body {
   overflow: hidden;
 }
 .item-name {
-  font-size: 1.8mm;
+  font-size: 1.7mm;
   font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
@@ -262,7 +271,7 @@ html, body {
 .weights {
   display: flex;
   flex-direction: column;
-  gap: 0.3mm;
+  gap: 0.2mm;
   font-size: 1.6mm;
   font-weight: bold;
   font-family: monospace, monospace;
@@ -283,8 +292,8 @@ html, body {
   overflow: hidden;
 }
 @media print {
-  html, body { width: ${W}mm !important; height: ${H}mm !important; }
-  .lc { width: ${W}mm !important; height: ${H}mm !important; }
+  html, body { width: ${W}mm !important; height: 14.5mm !important; }
+  .lc { width: ${W}mm !important; height: 14.5mm !important; }
 }
 </style>
 </head>
@@ -294,7 +303,7 @@ ${labelHtml}
   setTimeout(() => {
     window.print();
     window.close();
-  }, 300);
+  }, 250);
 </script>
 </body>
 </html>`);
@@ -322,28 +331,62 @@ ${labelHtml}
 
         {/* MODAL BODY */}
         <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-          {/* LIVE ON-SCREEN SCANNER TEST CARD */}
+          {/* LIVE ON-SCREEN SCANNER & VISUAL TAG PREVIEW CARD */}
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase tracking-wider">
                 <ScanLine size={16} className="text-amber-600" />
-                Live Scanner Screen Test (Gobbler MJ2818A)
+                Live Tag & Scanner Preview (Gobbler MJ2818A)
               </div>
               <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
                 Scan your screen now!
               </span>
             </div>
             <p className="text-[11px] text-amber-800 mb-3">
-              Point your <strong>Gobbler MJ2818A scanner</strong> directly at the barcode below to verify that it reads instantly:
+              This visual preview matches your physical <strong>92mm × 15mm Flag Roll (Batch PW02072025)</strong>:
             </p>
 
-            <div className="bg-white rounded-lg p-3 border border-amber-200 flex flex-col items-center justify-center shadow-inner">
-              <div className="text-[11px] font-bold text-charcoal-900 tracking-widest uppercase mb-1">AZEEZ JEWELS</div>
-              <div ref={previewSvgRef} className="w-full flex items-center justify-center min-h-[50px]"></div>
-              <div className="text-xs font-mono font-bold text-charcoal-900 tracking-widest mt-1">{barcodeText}</div>
+            {/* VISUAL TAG SIMULATION */}
+            <div className="bg-slate-100 p-2 rounded-lg border border-slate-300 flex items-center justify-center">
+              <div
+                className={`w-full max-w-[460px] h-[72px] bg-white rounded border border-gray-400 shadow flex overflow-hidden ${
+                  tailPosition === 'left' ? 'flex-row' : 'flex-row-reverse'
+                }`}
+              >
+                {/* TAIL (40%) */}
+                <div className="w-[42%] bg-slate-200/90 border-r border-dashed border-slate-300 flex flex-col items-center justify-center p-1 text-center select-none">
+                  <div className="w-full h-3 bg-white rounded-full border border-slate-300 shadow-inner"></div>
+                  <span className="text-[9px] text-slate-500 font-bold mt-1 uppercase tracking-wider">
+                    Tail (40mm)
+                  </span>
+                </div>
+
+                {/* HEAD (58%) */}
+                <div className="w-[58%] h-full p-1.5 flex items-center justify-between bg-white">
+                  {/* COL 1: BARCODE */}
+                  <div className="w-[50%] h-full flex flex-col justify-between items-center text-center pr-1 border-r border-dashed border-gray-200">
+                    <div className="text-[8.5px] font-black uppercase text-charcoal-900 leading-none">AZEEZ JEWELS</div>
+                    <div ref={previewSvgRef} className="w-full flex items-center justify-center max-h-[36px] my-auto"></div>
+                    <div className="text-[9px] font-mono font-black text-charcoal-900 leading-none tracking-tight">{barcodeText}</div>
+                  </div>
+
+                  {/* COL 2: DETAILS */}
+                  <div className="w-[50%] h-full flex flex-col justify-between items-start text-left pl-1.5 text-[8.5px] font-bold text-charcoal-900 leading-tight">
+                    <div className="text-amber-800 font-black">{item.purity || '22K 916'}</div>
+                    <div className="truncate w-full font-bold">{item.item_name}</div>
+                    <div className="font-mono text-[8px] space-y-0.5">
+                      <div>Gr: {(item.gross_weight || item.weight || 0).toFixed(3)}g</div>
+                      <div>Nt: {(item.net_weight || item.weight || 0).toFixed(3)}g</div>
+                    </div>
+                    {showPrice && item.net_price ? (
+                      <div className="font-black text-emerald-800">₹{item.net_price.toLocaleString()}</div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* TEST INPUT FIELD */}
+            {/* TEST INPUT FIELD FOR SCANNER */}
             <div className="mt-3 flex items-center gap-2">
               <input
                 type="text"
@@ -360,107 +403,15 @@ ${labelHtml}
             </div>
           </div>
 
-          {/* TAG SIZE SELECTOR */}
-          <div>
-            <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-              1. Select Physical Tag / Label Size
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: '92x15', label: '92mm × 15mm', desc: 'TVS Standard Roll (Batch PW02072025)', badge: 'Recommended' },
-                { id: '90x15', label: '90mm × 15mm', desc: 'Standard Dumbbell Tag' },
-                { id: '81x12', label: '81mm × 12mm', desc: 'Small Dumbbell Tag' },
-                { id: '100x15', label: '100mm × 15mm', desc: 'Long Tail Tag' },
-                { id: '50x12', label: '50mm × 12mm', desc: 'Compact Flap Tag' },
-                { id: '100x20', label: '100mm × 20mm', desc: 'Heavy Tag (HUID)' },
-              ].map(size => (
-                <button
-                  key={size.id}
-                  onClick={() => setTagSize(size.id as TagSize)}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${tagSize === size.id
-                    ? 'border-gold-500 bg-gold-50/80 shadow-sm ring-1 ring-gold-500'
-                    : 'border-gray-200 hover:bg-gray-50'
-                    }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-charcoal-900">{size.label}</span>
-                    {tagSize === size.id && <Check size={13} className="text-gold-600" />}
-                  </div>
-                  <p className="text-[9.5px] text-gray-500 mt-0.5 leading-tight">{size.desc}</p>
-                  {size.badge && (
-                    <span className="inline-block mt-1 text-[8.5px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded">
-                      {size.badge}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* BARCODE FORMAT & ENCODING SELECTOR */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-                2. Symbology Format
-              </label>
-              <div className="space-y-1.5">
-                {[
-                  { id: 'CODE128', label: 'Code 128 (High Density)', desc: 'Standard compact retail format' },
-                  { id: 'CODE39', label: 'Code 39 (Universal Retail)', desc: 'Legacy & vendor format' }
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => setBarcodeFormat(opt.id as any)}
-                    className={`w-full py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left ${barcodeFormat === opt.id
-                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
-                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{opt.label}</span>
-                      {barcodeFormat === opt.id && <Check size={13} className="text-gold-600" />}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-                3. Encoded SKU Mode
-              </label>
-              <div className="space-y-1.5">
-                {[
-                  { id: 'full', label: 'Full SKU (e.g. AHS00123)', desc: 'Encodes full item code' },
-                  { id: 'numeric', label: 'Digits Only (e.g. 00123)', desc: 'Extra thick bars for fast scan' }
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => setEncodeMode(opt.id as any)}
-                    className={`w-full py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer text-left ${encodeMode === opt.id
-                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
-                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{opt.label}</span>
-                      {encodeMode === opt.id && <Check size={13} className="text-gold-600" />}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
           {/* STICKER TAIL DIRECTION */}
           <div>
             <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-              4. Sticker Tail Position
+              1. Sticker Tail Orientation
             </label>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { id: 'right', label: 'Tail Right (Standard Head Left)' },
-                { id: 'left', label: 'Tail Left (Reversed Head Right)' }
+                { id: 'left', label: 'Tail on Left (Head on Right)', desc: 'Standard Roll (Matches your photo)' },
+                { id: 'right', label: 'Tail on Right (Head on Left)', desc: 'Reversed roll loading' }
               ].map((opt) => (
                 <button
                   key={opt.id}
@@ -470,22 +421,31 @@ ${labelHtml}
                     : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                     }`}
                 >
-                  {opt.label}
+                  <div className="flex items-center justify-between">
+                    <span>{opt.label}</span>
+                    {tailPosition === opt.id && <Check size={13} className="text-gold-600" />}
+                  </div>
+                  <p className="text-[9.5px] font-normal text-gray-500 mt-0.5">{opt.desc}</p>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* CRITICAL PRINTER SETTINGS BANNER */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 space-y-1">
-            <div className="font-bold flex items-center gap-1.5 text-slate-900 uppercase tracking-wider text-[11px]">
-              <Sliders size={14} className="text-slate-700" /> TVS LP 46 Dlite Plus & Browser Print Settings
+          {/* CRITICAL HARDWARE & GAP FIX BANNER */}
+          <div className="bg-amber-50/70 border border-amber-300 rounded-xl p-3 text-xs text-slate-800 space-y-1.5">
+            <div className="font-bold flex items-center gap-1.5 text-amber-900 uppercase tracking-wider text-[11px]">
+              <Sliders size={14} className="text-amber-700" /> How to Stop Empty Label Feeding (TVS LP 46 Dlite)
             </div>
-            <ul className="list-disc list-inside space-y-0.5 text-[11px] font-medium text-slate-700">
-              <li>In Chrome / Edge Print Dialog: Set <strong>Margins: None</strong>, <strong>Scale: 100%</strong>, and uncheck <strong>Headers & Footers</strong></li>
-              <li>In Windows <i>TVS Printer Preferences → Page Setup</i>: Select or Create <strong>User Defined: 92mm Width × 15mm Height</strong></li>
-              <li>In Windows <i>TVS Printer Preferences → Stock/Media</i>: Set <strong>Type: Labels with Gaps</strong> (Gap: 2mm)</li>
-              <li>In Windows <i>TVS Printer Preferences → Options</i>: Set <strong>Darkness/Density: 10-12</strong> and <strong>Speed: 2-3 ips</strong> for dark, crisp bars</li>
+            <ul className="list-disc list-inside space-y-1 text-[11px] font-medium text-slate-700">
+              <li>
+                <strong>Move Sensor to Right:</strong> Inside the printer, slide the optical sensor to the <strong>RIGHT side</strong> under the solid rectangular label (not under the thin tail).
+              </li>
+              <li>
+                <strong>10-Sec Auto Gap Calibration:</strong> Turn printer <strong>OFF</strong> $\rightarrow$ Hold <strong>FEED</strong> button $\rightarrow$ Turn <strong>ON</strong> while holding FEED until it beeps, then release. It will calibrate the gap and stop at 1 label.
+              </li>
+              <li>
+                <strong>Windows Driver Setup:</strong> In <i>Printing Preferences $\rightarrow$ Page Setup</i>, set <strong>Width: 92mm, Height: 15mm, Orientation: Landscape</strong>. In <i>Graphics</i>, set <strong>Dithering: None</strong>.
+              </li>
             </ul>
           </div>
 
