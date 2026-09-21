@@ -14,11 +14,19 @@ interface InvoicePrintProps {
     baseTaxable: number;
     gstAmount: number;
     grandTotal: number;
+    discount?: number;
   };
   oldGold: {
     weight: number;
     purity: number | string;
     rate: number;
+    total: number;
+    description?: string;
+  };
+  oldSilver?: {
+    weight?: number;
+    purity?: number | string;
+    rate?: number;
     total: number;
     description?: string;
   };
@@ -28,6 +36,7 @@ interface InvoicePrintProps {
     total: number;
   };
   paymentMethods: PaymentRecord[];
+  discount?: number;
   isScreenPreview?: boolean;
 }
 
@@ -64,8 +73,10 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({
   allMetalRates,
   totals,
   oldGold,
+  oldSilver,
   mcValueAdded,
   paymentMethods,
+  discount,
   isScreenPreview = false
 }) => {
 
@@ -181,7 +192,14 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({
             {items.map((item, idx) => (
               <tr key={item.id}>
                 <td className="py-1 px-1 border border-charcoal-900">{idx + 1}</td>
-                <td className="py-1 px-1 uppercase border border-charcoal-900">{item.item_name}</td>
+                <td className="py-1 px-1 uppercase border border-charcoal-900">
+                  <div>{item.item_name}</div>
+                  {item.purity && (
+                    <div className="text-[7.5px] font-mono text-charcoal-700 tracking-wider">
+                      PURITY: {item.purity}
+                    </div>
+                  )}
+                </td>
                 <td className="py-1 px-1 font-mono uppercase text-[8px] border border-charcoal-900">{item.huid || '-'}</td>
                 <td className="py-1 px-1 text-right border border-charcoal-900">{item.gross_weight?.toFixed(3) || item.weight.toFixed(3)}</td>
                 <td className="py-1 px-1 text-right border border-charcoal-900">{item.net_weight?.toFixed(3) || item.weight.toFixed(3)}</td>
@@ -207,64 +225,88 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({
       </div>
 
       {/* TOTALS SECTION */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="flex flex-col justify-end">
-          {paymentMethods && paymentMethods.length > 0 && (
-            <div className="bg-white border border-charcoal-900 p-2 rounded-sm w-full">
-              <p className="text-[8px] font-bold text-charcoal-900 uppercase tracking-widest mb-1.5 border-b border-charcoal-900 pb-1">Payment Split</p>
-              <div className="space-y-1">
-                {paymentMethods.map((pm, idx) => {
-                  const amt = parseFloat(pm.amount) || 0;
-                  if (amt <= 0) return null;
-                  return (
-                    <div key={idx} className="flex justify-between items-center text-[10px]">
-                      <span className="text-charcoal-900 capitalize">{pm.type}</span>
-                      <span className="font-mono font-bold text-charcoal-900">₹ {amt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  );
-                })}
+      {(() => {
+        const totalPaid = (paymentMethods || []).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        const discountAmount = discount !== undefined && discount > 0
+          ? discount
+          : (totals.discount || (totalPaid > 0 && totalPaid < totals.grandTotal ? (totals.grandTotal - totalPaid) : 0));
+        const netGrandTotal = Math.max(0, totals.grandTotal - (discountAmount > 0 ? discountAmount : 0));
+
+        return (
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="flex flex-col justify-end">
+              {paymentMethods && paymentMethods.length > 0 && (
+                <div className="bg-white border border-charcoal-900 p-2 rounded-sm w-full">
+                  <p className="text-[8px] font-bold text-charcoal-900 uppercase tracking-widest mb-1.5 border-b border-charcoal-900 pb-1">Payment Split</p>
+                  <div className="space-y-1">
+                    {paymentMethods.map((pm, idx) => {
+                      const amt = parseFloat(pm.amount) || 0;
+                      if (amt <= 0) return null;
+                      return (
+                        <div key={idx} className="flex justify-between items-center text-[10px]">
+                          <span className="text-charcoal-900 capitalize">{pm.type}</span>
+                          <span className="font-mono font-bold text-charcoal-900">₹ {amt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px] items-center">
+                <span className="font-bold text-charcoal-900 uppercase tracking-widest">Subtotal</span>
+                <span className="font-mono font-bold text-charcoal-900 text-[11px]">₹ {(totals.itemsSubtotal + (mcValueAdded.total || 0)).toLocaleString()}</span>
+              </div>
+
+              {oldGold.total > 0 && (
+                <div className="flex justify-between text-[9px] text-charcoal-900 bg-white py-1.5 px-2 rounded border border-charcoal-900">
+                  <span className="font-bold uppercase tracking-widest">Less: Old Gold</span>
+                  <span className="font-mono font-bold text-[11px]">- ₹ {oldGold.total.toLocaleString()}</span>
+                </div>
+              )}
+
+              {oldSilver && oldSilver.total > 0 && (
+                <div className="flex justify-between text-[9px] text-charcoal-900 bg-white py-1.5 px-2 rounded border border-charcoal-900">
+                  <span className="font-bold uppercase tracking-widest">Less: URD Silver{oldSilver.weight ? ` (${oldSilver.weight}g)` : ''}</span>
+                  <span className="font-mono font-bold text-[11px]">- ₹ {oldSilver.total.toLocaleString()}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-[10px] pt-1 items-center border-t border-charcoal-900">
+                <span className="font-bold text-charcoal-900 uppercase tracking-widest">Taxable</span>
+                <span className="font-mono font-bold text-charcoal-900 text-[11px]">₹ {totals.baseTaxable.toLocaleString()}</span>
+              </div>
+
+              {saleType === 'GST' && (
+                <div className="space-y-0.5 text-[10px] bg-white p-1 rounded border border-charcoal-900 mt-1">
+                  <div className="flex justify-between text-charcoal-900">
+                    <span>CGST (1.5%)</span>
+                    <span className="font-mono font-bold">₹ {cgst.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-charcoal-900 border-t border-charcoal-900 pt-0.5">
+                    <span>SGST (1.5%)</span>
+                    <span className="font-mono font-bold">₹ {sgst.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-[9px] text-red-600 bg-white py-1.5 px-2 rounded border border-red-300 font-bold">
+                  <span className="uppercase tracking-widest">Discount</span>
+                  <span className="font-mono text-[11px]">- ₹ {discountAmount.toLocaleString()}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center pt-2 mt-1 border-t-2 border-charcoal-900">
+                <span className="font-serif font-bold text-lg uppercase">{discountAmount > 0 ? 'Net Total' : 'Total'}</span>
+                <span className="font-serif font-bold text-xl text-charcoal-900">₹ {netGrandTotal.toLocaleString()}</span>
               </div>
             </div>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <div className="flex justify-between text-[10px] items-center">
-            <span className="font-bold text-charcoal-900 uppercase tracking-widest">Subtotal</span>
-            <span className="font-mono font-bold text-charcoal-900 text-[11px]">₹ {(totals.itemsSubtotal + (mcValueAdded.total || 0)).toLocaleString()}</span>
           </div>
-
-          {oldGold.total > 0 && (
-            <div className="flex justify-between text-[9px] text-charcoal-900 bg-white py-1.5 px-2 rounded border border-charcoal-900">
-              <span className="font-bold uppercase tracking-widest">Less: Old Gold</span>
-              <span className="font-mono font-bold text-[11px]">- ₹ {oldGold.total.toLocaleString()}</span>
-            </div>
-          )}
-
-          <div className="flex justify-between text-[10px] pt-1 items-center border-t border-charcoal-900">
-            <span className="font-bold text-charcoal-900 uppercase tracking-widest">Taxable</span>
-            <span className="font-mono font-bold text-charcoal-900 text-[11px]">₹ {totals.baseTaxable.toLocaleString()}</span>
-          </div>
-
-          {saleType === 'GST' && (
-            <div className="space-y-0.5 text-[10px] bg-white p-1 rounded border border-charcoal-900 mt-1">
-              <div className="flex justify-between text-charcoal-900">
-                <span>CGST (1.5%)</span>
-                <span className="font-mono font-bold">₹ {cgst.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-charcoal-900 border-t border-charcoal-900 pt-0.5">
-                <span>SGST (1.5%)</span>
-                <span className="font-mono font-bold">₹ {sgst.toFixed(2)}</span>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-between items-center pt-2 mt-1 border-t-2 border-charcoal-900">
-            <span className="font-serif font-bold text-lg uppercase">Total</span>
-            <span className="font-serif font-bold text-xl text-charcoal-900">₹ {totals.grandTotal.toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* FOOTER: TERMS & SIGNATURES */}
       <div className="border-t border-charcoal-900 pt-2">

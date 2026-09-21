@@ -12,11 +12,20 @@ interface NosePinBillPrintProps {
     baseTaxable: number;
     gstAmount: number;
     grandTotal: number;
+    discount?: number;
   };
   mcValueAdded?: {
     total: number;
   };
   paymentMethods?: PaymentRecord[];
+  oldSilver?: {
+    weight?: number;
+    rate?: number;
+    total: number;
+    purity?: string;
+    description?: string;
+  };
+  discount?: number;
   exchangeValuePct?: string;
   returnValuePct?: string;
   isScreenPreview?: boolean;
@@ -31,6 +40,8 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
   totals,
   mcValueAdded,
   paymentMethods,
+  oldSilver,
+  discount,
   exchangeValuePct = '40%',
   returnValuePct = '50%',
   isScreenPreview = false,
@@ -103,7 +114,7 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
           font-weight: 800;
         }
 
-        .nosepin-badge {
+        .cash-bill-badge {
           border: 1px solid #000;
           padding: 1px 8px;
           font-size: 11px;
@@ -298,7 +309,7 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
           {/* HEADER TOP BAR */}
           <div className="nosepin-header-top">
             <div>GSTIN : 29BPSPK1616Q1Z2</div>
-            <div className="nosepin-badge">{saleType === 'GST' ? 'TAX INVOICE / NOSE PIN BILL' : 'NOSE PIN CASH BILL'}</div>
+            <div className="cash-bill-badge">NOSE PIN CASH BILL</div>
             <div className="flex items-center gap-1">
               <span>📞 9916667573</span>
             </div>
@@ -310,7 +321,7 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
               <img src="/logowithoutbg.png" alt="AHS Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="nosepin-title">Azeez Jewels</h1>
-            <div className="nosepin-subtitle">Gold, Diamond & Silver Nose Pins & Ornaments</div>
+            <div className="nosepin-subtitle">Gold and Silver Ornaments</div>
             <div className="nosepin-address-line">
               No. 324, Jumma Masjid Road (O.P.H. Road) Shivaji Nagar, Bangalore - 51
             </div>
@@ -352,8 +363,8 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
                   <tr key={item.id || idx}>
                     <td style={{ textAlign: 'center' }}>{idx + 1}</td>
                     <td className="uppercase">
-                      {item.item_name}
-                      {item.purity && <span className="text-[9px] text-gray-600 block font-mono">Purity: {item.purity}</span>}
+                      <div className="font-bold">{item.item_name}</div>
+                      {item.purity && <span className="text-[9px] text-gray-700 block font-mono font-semibold">Purity: {item.purity}</span>}
                     </td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{wt > 0 ? `${wt.toFixed(3)}g` : '-'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>₹ {item.line_total.toLocaleString()}</td>
@@ -390,6 +401,13 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
 
             const exchVal = Math.round(totalVal * (1 - exchPctNum / 100));
             const retVal = Math.round(totalVal * (1 - retPctNum / 100));
+
+            const totalPaid = (paymentMethods || []).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+            const discountAmount = discount !== undefined && discount > 0
+              ? discount
+              : (totals.discount || (totalPaid > 0 && totalPaid < totalVal ? (totalVal - totalPaid) : 0));
+            const netFinalTotal = Math.max(0, totalVal - (discountAmount > 0 ? discountAmount : 0));
+
             return (
               <div className="nosepin-footer-grid">
                 <div className="footer-left-pct">
@@ -407,6 +425,10 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
                   {saleType === 'GST' ? (
                     <>
                       <div className="totals-row">
+                        <span>Taxable</span>
+                        <span className="font-mono">₹ {totals.baseTaxable.toLocaleString()}</span>
+                      </div>
+                      <div className="totals-row">
                         <span>SGST @ 1.5%</span>
                         <span className="font-mono">₹ {halfGst.toFixed(2)}</span>
                       </div>
@@ -421,10 +443,32 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
                       <span className="font-mono">₹ {totals.itemsSubtotal.toLocaleString()}</span>
                     </div>
                   )}
+
+                  {oldSilver && oldSilver.total > 0 && (
+                    <div className="totals-row font-bold text-gray-800">
+                      <span>Less: URD Silver{oldSilver.weight ? ` (${oldSilver.weight}g)` : ''}</span>
+                      <span className="font-mono">- ₹ {oldSilver.total.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {discountAmount > 0 && (
+                    <div className="totals-row font-bold text-red-600">
+                      <span>Discount</span>
+                      <span className="font-mono">- ₹ {discountAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+
                   <div className="totals-row total-final">
-                    <span>TOTAL</span>
-                    <span className="font-mono">₹ {totals.grandTotal.toLocaleString()}</span>
+                    <span>{discountAmount > 0 ? 'NET TOTAL' : 'TOTAL'}</span>
+                    <span className="font-mono">₹ {netFinalTotal.toLocaleString()}</span>
                   </div>
+
+                  {totalPaid > 0 && (
+                    <div className="totals-row font-bold">
+                      <span>PAID ({paymentMethods && paymentMethods.length > 0 ? paymentMethods.map(p => p.type.toUpperCase()).join(', ') : 'CASH'})</span>
+                      <span className="font-mono">₹ {totalPaid.toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );

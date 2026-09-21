@@ -240,19 +240,30 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
         return;
       }
 
+      let pmList = [];
+      if (sale.payment_method) {
+        try {
+          pmList = JSON.parse(sale.payment_method);
+        } catch (e) {}
+      }
+
       const printObj = {
         ...sale,
+        paymentMethods: pmList,
         items: items.map(item => ({
           ...item,
           weight: item.weight || 0,
-          line_total: item.line_total || 0
+          line_total: item.line_total || 0,
+          purity: item.purity || 'Standard'
         })),
         totals: {
           itemsSubtotal: sale.subtotal,
           baseTaxable: sale.subtotal,
           gstAmount: sale.gst_amount,
-          grandTotal: sale.grand_total
-        }
+          grandTotal: sale.grand_total,
+          discount: sale.discount || 0
+        },
+        discount: sale.discount || 0
       };
 
       // Auto-detect format if items contain silver or nose pin
@@ -589,7 +600,8 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
             totals={selectedBillForPrint.totals}
             oldGold={{ weight: 0, purity: 0, rate: 0, total: 0 }}
             mcValueAdded={{ weight: 0, rate: 0, total: 0 }}
-            paymentMethods={[]}
+            paymentMethods={selectedBillForPrint.paymentMethods || []}
+            discount={selectedBillForPrint.discount || selectedBillForPrint.totals?.discount || 0}
           />
         )}
         {selectedBillForPrint && printFormat === 'silver' && (
@@ -600,6 +612,8 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
             customer={selectedBillForPrint.customers}
             items={selectedBillForPrint.items}
             totals={selectedBillForPrint.totals}
+            paymentMethods={selectedBillForPrint.paymentMethods || []}
+            discount={selectedBillForPrint.discount || selectedBillForPrint.totals?.discount || 0}
           />
         )}
         {selectedBillForPrint && printFormat === 'nosepin' && (
@@ -610,6 +624,8 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
             customer={selectedBillForPrint.customers}
             items={selectedBillForPrint.items}
             totals={selectedBillForPrint.totals}
+            paymentMethods={selectedBillForPrint.paymentMethods || []}
+            discount={selectedBillForPrint.discount || selectedBillForPrint.totals?.discount || 0}
           />
         )}
       </div>
@@ -678,7 +694,8 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
                     totals={selectedBillForPrint.totals}
                     oldGold={{ weight: 0, purity: 0, rate: 0, total: 0 }}
                     mcValueAdded={{ weight: 0, rate: 0, total: 0 }}
-                    paymentMethods={[]}
+                    paymentMethods={selectedBillForPrint.paymentMethods || []}
+                    discount={selectedBillForPrint.discount || selectedBillForPrint.totals?.discount || 0}
                   />
                 ) : printFormat === 'silver' ? (
                   <SilverBillPrint
@@ -689,6 +706,8 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
                     customer={selectedBillForPrint.customers}
                     items={selectedBillForPrint.items}
                     totals={selectedBillForPrint.totals}
+                    paymentMethods={selectedBillForPrint.paymentMethods || []}
+                    discount={selectedBillForPrint.discount || selectedBillForPrint.totals?.discount || 0}
                   />
                 ) : (
                   <NosePinBillPrint
@@ -699,6 +718,8 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
                     customer={selectedBillForPrint.customers}
                     items={selectedBillForPrint.items}
                     totals={selectedBillForPrint.totals}
+                    paymentMethods={selectedBillForPrint.paymentMethods || []}
+                    discount={selectedBillForPrint.discount || selectedBillForPrint.totals?.discount || 0}
                   />
                 )}
               </div>

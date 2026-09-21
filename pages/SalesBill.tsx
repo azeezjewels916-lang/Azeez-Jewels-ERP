@@ -68,10 +68,15 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     setOldGoldExchange({
       weight: 0, weightInput: '', purity: '', rate: 0, rateInput: '', total: 0, hsn_code: '7113', particulars: ''
     });
+    setOldSilverExchange({
+      particulars: '', weight: 0, weightInput: '', purity: '', rate: 0, rateInput: '', amountInput: '', total: 0
+    });
+    setDiscountInput('');
     setMcValueAdded({ weight: 0, weightInput: '', rate: 0, rateInput: '', total: 0 });
     setPaymentMethods([]);
     setAmountPayableInput('');
     setIsOldGoldOpen(false);
+    setIsOldSilverOpen(false);
   };
 
   useEffect(() => {
@@ -203,6 +208,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     selam_silver: 0,
   });
 
+  const getDefaultPurity = (metalType: string) => {
+    if (metalType === 'gold_750') return '18K 750';
+    if (metalType === 'silver_92') return '92.5 Silver';
+    if (metalType === 'silver_70') return '70 Silver';
+    if (metalType === 'selam_silver') return 'Selam Silver';
+    return '22K 916';
+  };
+
   // --- BILL ITEM STATE ---
   const [items, setItems] = useState<BillItem[]>([]);
   const [newItem, setNewItem] = useState({
@@ -223,7 +236,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     makingChargesInput: '',
     makingChargesAmount: '',
     makingChargesPercentage: '',
-    purity: '',
+    purity: '22K 916',
     hsn_code: '711319',
     metal_type: 'gold',
   });
@@ -310,6 +323,22 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     particulars: '',
   });
 
+  // --- URD SILVER / OLD SILVER STATE ---
+  const [isOldSilverOpen, setIsOldSilverOpen] = useState(false);
+  const [oldSilverExchange, setOldSilverExchange] = useState({
+    particulars: '',
+    weight: 0,
+    weightInput: '',
+    purity: '',
+    rate: 0,
+    rateInput: '',
+    amountInput: '',
+    total: 0,
+  });
+
+  // --- DISCOUNT STATE ---
+  const [discountInput, setDiscountInput] = useState<string>('');
+
   // --- VALUE ADDED / MC STATE ---
   const [mcValueAdded, setMcValueAdded] = useState({
     weight: 0,
@@ -333,7 +362,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     itemsSubtotal: 0,
     baseTaxable: 0,
     gstAmount: 0,
-    grandTotal: 0
+    grandTotal: 0,
+    discount: 0
   });
 
   const isReverseCalculating = useRef(false);
@@ -424,6 +454,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       making_charges: item.making_charges || 0,
       makingChargesInput: item.making_charges?.toString() || '',
       metal_type: mType,
+      purity: item.purity || getDefaultPurity(mType),
       hsn_code: item.hsn_code || '711319'
     }));
     setIsCategoryModalOpen(false);
@@ -476,6 +507,26 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     }
   }, [oldGoldExchange.weightInput, oldGoldExchange.rateInput, dailyGoldRate]);
 
+  useEffect(() => {
+    const directAmt = parseFloat(oldSilverExchange.amountInput);
+    if (!isNaN(directAmt) && directAmt > 0) {
+      setOldSilverExchange(prev => ({
+        ...prev,
+        total: directAmt
+      }));
+    } else {
+      const wt = parseFloat(oldSilverExchange.weightInput) || 0;
+      const rt = parseFloat(oldSilverExchange.rateInput) || 0;
+      const calcTotal = Math.round(wt * rt);
+      setOldSilverExchange(prev => ({
+        ...prev,
+        weight: wt,
+        rate: rt,
+        total: calcTotal
+      }));
+    }
+  }, [oldSilverExchange.amountInput, oldSilverExchange.weightInput, oldSilverExchange.rateInput]);
+
   // --- CALCULATION ---
 
   useEffect(() => {
@@ -489,15 +540,25 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     const itemsSubtotal = goldSubtotal + silverSubtotal;
 
     const oldGoldValue = oldGoldExchange.total || 0;
+    const oldSilverValue = oldSilverExchange.total || 0;
     const valueAddedMC = mcValueAdded.total || 0;
 
-    const baseTaxableWithoutMc = itemsSubtotal - oldGoldValue;
-    const preGstTotal = baseTaxableWithoutMc + valueAddedMC;
+    const baseTaxableWithoutMc = itemsSubtotal - oldGoldValue - oldSilverValue;
+    const preGstTotal = Math.max(0, baseTaxableWithoutMc + valueAddedMC);
 
     const gstRaw = saleType === 'GST' ? preGstTotal * GST_RATE : 0;
     const gstAmount = roundToWhole(gstRaw);
 
-    const grandTotal = saleType === 'GST' ? preGstTotal + gstAmount : preGstTotal;
+    const grandTotalBeforeDiscount = saleType === 'GST' ? preGstTotal + gstAmount : preGstTotal;
+
+    // Calculate discount (manual or auto when paid < grand total)
+    const userDiscount = parseFloat(discountInput) || 0;
+    const totalPaidNow = paymentMethods.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+    const autoDiscount = (userDiscount === 0 && totalPaidNow > 0 && totalPaidNow < grandTotalBeforeDiscount)
+      ? (grandTotalBeforeDiscount - totalPaidNow)
+      : 0;
+    const effectiveDiscount = userDiscount > 0 ? userDiscount : autoDiscount;
+    const grandTotal = Math.max(0, grandTotalBeforeDiscount - effectiveDiscount);
 
     setCalculatedTotals({
       goldSubtotal,
@@ -505,14 +566,15 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       itemsSubtotal,
       baseTaxable: preGstTotal,
       gstAmount,
-      grandTotal
+      grandTotal: grandTotalBeforeDiscount,
+      discount: effectiveDiscount
     });
 
     if (Math.abs(grandTotal - (parseFloat(amountPayableInput) || 0)) > 1) {
       setAmountPayableInput(grandTotal > 0 ? grandTotal.toFixed(0) : '');
     }
 
-  }, [items, oldGoldExchange.total, mcValueAdded.total, saleType]);
+  }, [items, oldGoldExchange.total, oldSilverExchange.total, mcValueAdded.total, saleType, discountInput, paymentMethods]);
 
   const handleAmountPayableChange = (val: string) => {
     setAmountPayableInput(val);
@@ -524,7 +586,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
     const itemsSubtotal = items.reduce((sum, item) => sum + item.line_total, 0);
     const oldGoldValue = oldGoldExchange.total || 0;
-    const baseTaxableWithoutMc = itemsSubtotal - oldGoldValue;
+    const oldSilverValue = oldSilverExchange.total || 0;
+    const baseTaxableWithoutMc = itemsSubtotal - oldGoldValue - oldSilverValue;
 
     let targetTaxable = saleType === 'GST' ? targetAmount / (1 + GST_RATE) : targetAmount;
     const requiredMcTotal = targetTaxable - baseTaxableWithoutMc;
@@ -680,14 +743,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       gst_rate: 0, line_total: lineTotal,
       metal_type: newItem.metal_type,
       hsn_code: newItem.hsn_code,
-      purity: newItem.purity || 'Standard'
+      purity: newItem.purity || getDefaultPurity(newItem.metal_type)
     }]);
 
     setNewItem({
       barcode: '', inventory_item_id: '', category: '', item_name: '', huid: '', gross_weight: 0, grossWeightInput: '',
       net_weight: 0, netWeightInput: '', weight: 0, weightInput: '', rate: 0, rateInput: '',
       making_charges: 0, makingChargesInput: '', makingChargesAmount: '',
-      makingChargesPercentage: '', purity: '', hsn_code: '711319', metal_type: 'gold'
+      makingChargesPercentage: '', purity: getDefaultPurity(newItem.metal_type || 'gold'), hsn_code: '711319', metal_type: 'gold'
     });
   };
 
@@ -733,6 +796,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     }
     setLoading(true);
     try {
+      const netGrandTotal = Math.max(0, calculatedTotals.grandTotal - (calculatedTotals.discount || 0));
       const billData = {
         bill_no: billNo || await generateBillNo(),
         bill_date: billDate,
@@ -741,8 +805,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         sale_type: saleType === 'NON GST' ? 'nongst' : 'gst',
         subtotal: calculatedTotals.itemsSubtotal,
         gst_amount: calculatedTotals.gstAmount,
-        grand_total: calculatedTotals.grandTotal,
-        discount: 0,
+        grand_total: netGrandTotal,
+        discount: calculatedTotals.discount || 0,
         payment_method: JSON.stringify(paymentMethods),
         bill_status: 'final'
       };
@@ -759,7 +823,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
       const billItems = items.map((item, idx) => ({
         bill_id: savedBill.id,
-        inventory_item_id: item.inventory_item_id || null,
+        inventory_item_id: (item.inventory_item_id && !isNaN(Number(item.inventory_item_id))) ? Number(item.inventory_item_id) : null,
         category: item.category || null,
         barcode: item.barcode || null,
         item_name: item.item_name,
@@ -767,13 +831,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         gross_weight: item.gross_weight,
         net_weight: item.net_weight,
         weight: item.weight, rate: item.rate, making_charges: item.making_charges,
-        line_total: item.line_total, sl_no: idx + 1, metal_type: item.metal_type
+        line_total: item.line_total, sl_no: idx + 1, metal_type: item.metal_type,
+        purity: item.purity || null
       }));
 
       if (mcValueAdded.total > 0) {
         billItems.push({
           bill_id: savedBill.id,
-          inventory_item_id: '',
+          inventory_item_id: null,
           category: 'Service',
           barcode: '',
           item_name: 'Value Added / MC',
@@ -800,7 +865,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   };
 
   const totalPaid = paymentMethods.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-  const balanceDue = calculatedTotals.grandTotal - totalPaid;
+  const finalPayable = Math.max(0, calculatedTotals.grandTotal - (calculatedTotals.discount || 0));
+  const balanceDue = finalPayable - totalPaid;
 
   return (
     <div className="flex h-full bg-app-bg relative">
@@ -812,11 +878,18 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             billNo={billNo} billDate={billDate} saleType={saleType}
             customer={customer} items={items} allMetalRates={allMetalRates}
             totals={calculatedTotals} mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+            discount={calculatedTotals.discount}
             oldGold={{
               weight: parseFloat(oldGoldExchange.weightInput) || 0,
               rate: parseFloat(oldGoldExchange.rateInput) || 0,
               total: oldGoldExchange.total, purity: oldGoldExchange.purity,
               description: oldGoldExchange.particulars
+            }}
+            oldSilver={{
+              weight: parseFloat(oldSilverExchange.weightInput) || 0,
+              rate: parseFloat(oldSilverExchange.rateInput) || 0,
+              total: oldSilverExchange.total, purity: oldSilverExchange.purity,
+              description: oldSilverExchange.particulars
             }}
           />
         )}
@@ -825,7 +898,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             billNo={billNo} billDate={billDate} saleType={saleType}
             customer={customer} items={items} totals={calculatedTotals}
             mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+            discount={calculatedTotals.discount}
             exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+            oldSilver={{
+              weight: parseFloat(oldSilverExchange.weightInput) || 0,
+              rate: parseFloat(oldSilverExchange.rateInput) || 0,
+              total: oldSilverExchange.total, purity: oldSilverExchange.purity,
+              description: oldSilverExchange.particulars
+            }}
           />
         )}
         {activePrintView === 'nosepin' && (
@@ -833,7 +913,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             billNo={billNo} billDate={billDate} saleType={saleType}
             customer={customer} items={items} totals={calculatedTotals}
             mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+            discount={calculatedTotals.discount}
             exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+            oldSilver={{
+              weight: parseFloat(oldSilverExchange.weightInput) || 0,
+              rate: parseFloat(oldSilverExchange.rateInput) || 0,
+              total: oldSilverExchange.total, purity: oldSilverExchange.purity,
+              description: oldSilverExchange.particulars
+            }}
           />
         )}
         {activePrintView === 'exchange' && (
@@ -932,11 +1019,18 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                     billNo={billNo} billDate={billDate} saleType={saleType}
                     customer={customer} items={items} allMetalRates={allMetalRates}
                     totals={calculatedTotals} mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+                    discount={calculatedTotals.discount}
                     oldGold={{
                       weight: parseFloat(oldGoldExchange.weightInput) || 0,
                       rate: parseFloat(oldGoldExchange.rateInput) || 0,
                       total: oldGoldExchange.total, purity: oldGoldExchange.purity,
                       description: oldGoldExchange.particulars
+                    }}
+                    oldSilver={{
+                      weight: parseFloat(oldSilverExchange.weightInput) || 0,
+                      rate: parseFloat(oldSilverExchange.rateInput) || 0,
+                      total: oldSilverExchange.total, purity: oldSilverExchange.purity,
+                      description: oldSilverExchange.particulars
                     }}
                   />
                 ) : activePrintView === 'silver' ? (
@@ -945,7 +1039,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                     billNo={billNo} billDate={billDate} saleType={saleType}
                     customer={customer} items={items} totals={calculatedTotals}
                     mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+                    discount={calculatedTotals.discount}
                     exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+                    oldSilver={{
+                      weight: parseFloat(oldSilverExchange.weightInput) || 0,
+                      rate: parseFloat(oldSilverExchange.rateInput) || 0,
+                      total: oldSilverExchange.total, purity: oldSilverExchange.purity,
+                      description: oldSilverExchange.particulars
+                    }}
                   />
                 ) : activePrintView === 'nosepin' ? (
                   <NosePinBillPrint
@@ -953,7 +1054,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                     billNo={billNo} billDate={billDate} saleType={saleType}
                     customer={customer} items={items} totals={calculatedTotals}
                     mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
+                    discount={calculatedTotals.discount}
                     exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+                    oldSilver={{
+                      weight: parseFloat(oldSilverExchange.weightInput) || 0,
+                      rate: parseFloat(oldSilverExchange.rateInput) || 0,
+                      total: oldSilverExchange.total, purity: oldSilverExchange.purity,
+                      description: oldSilverExchange.particulars
+                    }}
                   />
                 ) : (
                   <ExchangePrint
@@ -1131,9 +1239,12 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             <div className="col-span-1"><Input label="Gross Wt" type="number" isMonospaced value={newItem.grossWeightInput} onChange={(e) => setNewItem({ ...newItem, grossWeightInput: e.target.value })} /></div>
             <div className="col-span-1"><Input label="Net Wt" type="number" isMonospaced value={newItem.netWeightInput} onChange={(e) => setNewItem({ ...newItem, netWeightInput: e.target.value })} /></div>
             <div className="col-span-1">
-              <Select label="Metal Type" value={newItem.metal_type} options={[{ value: 'gold', label: 'Gold (Std)' }, { value: 'gold_916', label: 'Gold (22k)' }, { value: 'gold_750', label: 'Gold (18k)' }, { value: 'silver_92', label: 'Silver (92.5)' }, { value: 'silver_70', label: 'Silver (70)' }, { value: 'selam_silver', label: 'Selam' }]} onChange={e => setNewItem({ ...newItem, metal_type: e.target.value, rateInput: (allMetalRates[e.target.value] || 0).toString() })} />
+              <Select label="Metal Type" value={newItem.metal_type} options={[{ value: 'gold', label: 'Gold (Std)' }, { value: 'gold_916', label: 'Gold (22k)' }, { value: 'gold_750', label: 'Gold (18k)' }, { value: 'silver_92', label: 'Silver (92.5)' }, { value: 'silver_70', label: 'Silver (70)' }, { value: 'selam_silver', label: 'Selam' }]} onChange={e => setNewItem({ ...newItem, metal_type: e.target.value, purity: getDefaultPurity(e.target.value), rateInput: (allMetalRates[e.target.value] || 0).toString() })} />
             </div>
-            <div className="col-span-2"><Input label="Rate/Gm" type="number" isMonospaced placeholder={dailyGoldRate.toString()} value={newItem.rateInput} onChange={(e) => setNewItem({ ...newItem, rateInput: e.target.value })} /></div>
+            <div className="col-span-1">
+              <Select label="Purity" value={newItem.purity} options={[{ value: '22K 916', label: '22K 916' }, { value: '18K 750', label: '18K 750' }, { value: '24K 999', label: '24K 999' }, { value: '92.5 Silver', label: '92.5 Silver' }, { value: '70 Silver', label: '70 Silver' }, { value: 'Selam Silver', label: 'Selam' }]} onChange={e => setNewItem({ ...newItem, purity: e.target.value })} />
+            </div>
+            <div className="col-span-1"><Input label="Rate/Gm" type="number" isMonospaced placeholder={dailyGoldRate.toString()} value={newItem.rateInput} onChange={(e) => setNewItem({ ...newItem, rateInput: e.target.value })} /></div>
             <div className="col-span-1">
               <label className="block text-xs font-bold text-charcoal-700 mb-1.5 uppercase">MC</label>
               <div className="flex gap-1">
@@ -1149,6 +1260,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                 <tr>
                   <th className="py-3 px-4">Item</th>
                   <th className="py-3 px-4">HUID</th>
+                  <th className="py-3 px-4">Purity</th>
                   <th className="py-3 px-4 text-right">Gross Wt</th>
                   <th className="py-3 px-4 text-right">Net Wt</th>
                   <th className="py-3 px-4 text-right">Rate</th>
@@ -1162,6 +1274,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors text-charcoal-900 font-medium">
                     <td className="py-3 px-4">{item.item_name}</td>
                     <td className="py-3 px-4 font-mono text-xs">{item.huid || '-'}</td>
+                    <td className="py-3 px-4 font-mono text-xs"><span className="bg-gray-100 text-charcoal-900 px-1.5 py-0.5 rounded font-bold">{item.purity || 'Standard'}</span></td>
                     <td className="py-3 px-4 text-right font-mono text-gray-400">{item.gross_weight?.toFixed(3) || '0.000'}</td>
                     <td className="py-3 px-4 text-right font-mono font-bold">{item.net_weight?.toFixed(3) || '0.000'}</td>
                     <td className="py-3 px-4 text-right font-mono">{item.rate.toLocaleString()}</td>
@@ -1199,6 +1312,77 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             </div>
           )}
         </div>
+
+        {/* URD Silver Section */}
+        <div className={`rounded-lg border transition-all duration-200 overflow-hidden ${isOldSilverOpen ? 'border-slate-400 ring-1 ring-slate-300' : 'border-gray-300'}`}>
+          <div onClick={() => setIsOldSilverOpen(!isOldSilverOpen)} className={`flex items-center justify-between p-4 cursor-pointer ${isOldSilverOpen ? 'bg-slate-100' : 'bg-white hover:bg-gray-50'}`}>
+            <div className="flex items-center gap-4">
+              <h3 className={`font-bold uppercase tracking-wide text-sm ${isOldSilverOpen ? 'text-slate-800' : 'text-charcoal-700'}`}>URD Silver Exchange (Deduction)</h3>
+              {oldSilverExchange.total > 0 && (
+                <span className="px-3 py-1 bg-slate-700 text-white text-[10px] font-bold uppercase rounded-full shadow-sm">
+                  - ₹ {oldSilverExchange.total.toLocaleString()}
+                </span>
+              )}
+            </div>
+            {isOldSilverOpen ? <ChevronUp size={20} className="text-slate-800" /> : <ChevronDown size={20} className="text-gray-500" />}
+          </div>
+          {isOldSilverOpen && (
+            <div className="p-5 bg-white border-t border-slate-200 grid grid-cols-12 gap-4">
+              <div className="col-span-4">
+                <Input
+                  label="Particulars (Optional)"
+                  placeholder="e.g. Old Payal / Silver Coins"
+                  value={oldSilverExchange.particulars}
+                  onChange={e => setOldSilverExchange({ ...oldSilverExchange, particulars: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  label="Wt (g) (Optional)"
+                  type="number"
+                  isMonospaced
+                  placeholder="0.000"
+                  value={oldSilverExchange.weightInput}
+                  onChange={e => setOldSilverExchange({ ...oldSilverExchange, weightInput: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  label="Purity (Optional)"
+                  placeholder="e.g. 70%"
+                  value={oldSilverExchange.purity}
+                  onChange={e => setOldSilverExchange({ ...oldSilverExchange, purity: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  label="Rate (Optional)"
+                  type="number"
+                  isMonospaced
+                  placeholder="Rate/g"
+                  value={oldSilverExchange.rateInput}
+                  onChange={e => setOldSilverExchange({ ...oldSilverExchange, rateInput: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  label="Amount (Optional)"
+                  type="number"
+                  isMonospaced
+                  placeholder="Enter direct ₹"
+                  value={oldSilverExchange.amountInput}
+                  onChange={e => setOldSilverExchange({ ...oldSilverExchange, amountInput: e.target.value })}
+                />
+              </div>
+              <div className="col-span-12 flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
+                <span className="text-xs text-gray-500 italic">* All fields are optional. You can enter amount directly without weight/rate.</span>
+                <div className="bg-slate-100 px-4 py-2 rounded text-slate-800 font-bold border border-slate-300">
+                  URD Silver Value: - {formatCurrency(oldSilverExchange.total)}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Action Panel */}
@@ -1218,6 +1402,12 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
           <div className="space-y-3 pb-6 border-b border-gray-200 text-sm">
             <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Subtotal</span><span className="font-mono font-bold">{formatCurrency(calculatedTotals.itemsSubtotal)}</span></div>
             {oldGoldExchange.total > 0 && <div className="flex justify-between items-center py-2 bg-pink-50 px-2 rounded -mx-2 font-bold text-pink-700"><span>Less: Old Gold</span><span className="font-mono">- {formatCurrency(oldGoldExchange.total)}</span></div>}
+            {oldSilverExchange.total > 0 && (
+              <div className="flex justify-between items-center py-2 bg-slate-100 px-2 rounded -mx-2 font-bold text-slate-800">
+                <span>Less: URD Silver{oldSilverExchange.weightInput ? ` (${oldSilverExchange.weightInput}g)` : ''}</span>
+                <span className="font-mono">- {formatCurrency(oldSilverExchange.total)}</span>
+              </div>
+            )}
             <div className="bg-gold-50/50 border border-gold-100 rounded p-3 my-2">
               <span className="text-[10px] font-bold text-gold-600 uppercase mb-2 block">Value Added (MC)</span>
               <div className="grid grid-cols-3 gap-2">
@@ -1230,11 +1420,21 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
               <div className="flex justify-between items-center text-xs text-gray-400"><span>Taxable</span><span className="font-mono">{formatCurrency(calculatedTotals.baseTaxable)}</span></div>
               <div className="flex justify-between items-center font-bold"><span>GST ({saleType === 'GST' ? '3%' : '0%'})</span><span className="font-mono">{formatCurrency(calculatedTotals.gstAmount)}</span></div>
             </div>
+            <div className="flex justify-between items-center py-1 bg-red-50/60 px-2 rounded -mx-2">
+              <span className="text-red-700 font-bold text-xs uppercase">Discount (₹)</span>
+              <input
+                type="number"
+                placeholder="0"
+                className="w-24 text-right font-mono font-bold text-red-600 border border-red-300 rounded px-2 py-0.5 text-xs bg-white outline-none focus:border-red-500 focus:ring-1 focus:ring-red-300"
+                value={discountInput}
+                onChange={e => setDiscountInput(e.target.value)}
+              />
+            </div>
           </div>
           <div className="bg-charcoal-900 rounded p-6 text-center shadow-md">
             <p className="text-xs text-gold-500 font-bold uppercase mb-4">Net Payable</p>
             <div className="inline-flex items-center border-b border-gray-700 pb-2 px-4 gap-3"><span className="text-2xl text-gold-500 opacity-60">₹</span><input type="number" className="bg-transparent text-center text-4xl text-white font-bold outline-none w-64" value={amountPayableInput} onChange={e => handleAmountPayableChange(e.target.value)} /></div>
-            <p className="text-[10px] text-gray-400 mt-4 uppercase">{numberToWords(calculatedTotals.grandTotal)}</p>
+            <p className="text-[10px] text-gray-400 mt-4 uppercase">{numberToWords(finalPayable)}</p>
           </div>
           <div className="bg-gray-50 p-4 rounded border border-gray-200">
             <h4 className="text-xs font-bold uppercase mb-3 flex items-center gap-2"><CreditCard size={14} /> Add Payment</h4>

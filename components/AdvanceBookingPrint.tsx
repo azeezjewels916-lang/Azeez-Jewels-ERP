@@ -100,11 +100,17 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
         <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-charcoal-800 border-y border-charcoal-800 py-[2px] mt-1 inline-block px-4 mb-1">
           Gold and Silver Ornaments
         </div>
-        <div className="text-[9px] font-extrabold leading-tight text-charcoal-900 mt-1 max-w-[70%]">
+        <div className="text-[9px] font-extrabold leading-tight text-charcoal-900 mt-1 max-w-[56%]">
           No. 324, Jumma Masjid Road (O.P.H. Road) Shivaji Nagar, Bangalore - 51
         </div>
         <div className="text-[8.5px] font-extrabold leading-tight text-charcoal-900 mt-[1px]">
           Email : azmathkhan7676@gmail.com
+        </div>
+
+        {/* BIS HALLMARK LOGO (RIGHT) */}
+        <div className="absolute right-2 top-0 bottom-0 w-24 h-full flex flex-col items-center justify-center">
+          <img src="/BIS_PNG.png" alt="BIS Hallmark" className="w-20 h-14 object-contain" />
+          <span className="text-[7px] font-black tracking-wider text-charcoal-900 mt-0.5 leading-none uppercase">BIS HALLMARKED</span>
         </div>
       </div>
 
