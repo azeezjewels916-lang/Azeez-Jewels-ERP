@@ -18,6 +18,13 @@ interface NosePinBillPrintProps {
     total: number;
   };
   paymentMethods?: PaymentRecord[];
+  oldGold?: {
+    weight?: number;
+    rate?: number;
+    total: number;
+    purity?: string;
+    description?: string;
+  };
   oldSilver?: {
     weight?: number;
     rate?: number;
@@ -40,6 +47,7 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
   totals,
   mcValueAdded,
   paymentMethods,
+  oldGold,
   oldSilver,
   discount,
   exchangeValuePct = '40%',
@@ -441,6 +449,13 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
                     <div className="totals-row">
                       <span>Subtotal</span>
                       <span className="font-mono">₹ {totals.itemsSubtotal.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {oldGold && oldGold.total > 0 && (
+                    <div className="totals-row font-bold text-gray-800">
+                      <span>Less: Old Gold{oldGold.weight ? ` (${oldGold.weight}g)` : ''}</span>
+                      <span className="font-mono">- ₹ {oldGold.total.toLocaleString()}</span>
                     </div>
                   )}
 

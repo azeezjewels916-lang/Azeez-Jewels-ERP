@@ -38,6 +38,7 @@ import {
   searchCustomers,
   createCustomer,
   createBill,
+  createBillItems,
   getDailyRates,
   generateBillNo
 } from '../db';
@@ -119,7 +120,7 @@ export const AdvanceBooking: React.FC = () => {
     return () => window.removeEventListener('storage', syncGstControl);
   }, []);
   const [showOldGold, setShowOldGold] = useState(false);
-  const [oldGold, setOldGold] = useState<any>({ particulars: '', weight: 0, rate: 0 });
+  const [oldGold, setOldGold] = useState<any>({ particulars: '', weight: '', rate: '', amount: '' });
   const [isPriceLocked, setIsPriceLocked] = useState(false);
   const [manualTotal, setManualTotal] = useState<string>('');
   const [advanceInput, setAdvanceInput] = useState<string>('');
@@ -175,7 +176,11 @@ export const AdvanceBooking: React.FC = () => {
   // --- DERIVED VALUES ---
   const itemsTotal = useMemo(() => items.reduce((sum, item) => sum + (item.lineTotal || 0), 0), [items]);
   const gstAmount = useMemo(() => saleType === 'GST' ? itemsTotal * 0.03 : 0, [itemsTotal, saleType]);
-  const oldGoldValue = useMemo(() => (oldGold.weight || 0) * (oldGold.rate || 0), [oldGold.weight, oldGold.rate]);
+  const oldGoldValue = useMemo(() => {
+    const direct = parseFloat(oldGold.amount);
+    if (!isNaN(direct) && direct > 0) return direct;
+    return (parseFloat(oldGold.weight) || 0) * (parseFloat(oldGold.rate) || 0);
+  }, [oldGold.amount, oldGold.weight, oldGold.rate]);
   const calculatedGrandTotal = Math.max(0, itemsTotal + gstAmount - oldGoldValue);
   const finalTotal = isPriceLocked ? (parseFloat(manualTotal) || 0) : calculatedGrandTotal;
   const balanceDue = finalTotal - (parseFloat(advanceInput) || 0);
@@ -391,7 +396,7 @@ export const AdvanceBooking: React.FC = () => {
             making_charges_input: item.makingChargesInput,
             line_total: item.lineTotal
           }));
-          await supabase.from('bill_items').insert(itemsToInsert);
+          await createBillItems(booking.bill_id, itemsToInsert);
         }
 
         toast({ title: 'Success', description: 'Booking updated successfully.' });
@@ -444,7 +449,7 @@ export const AdvanceBooking: React.FC = () => {
           making_charges_input: item.makingChargesInput,
           line_total: item.lineTotal
         }));
-        await supabase.from('bill_items').insert(itemsToInsert);
+        await createBillItems(bill.id, itemsToInsert);
       }
 
       toast({ title: 'Success', description: 'Booking created successfully.' });
@@ -1025,9 +1030,9 @@ export const AdvanceBooking: React.FC = () => {
 
                     {showOldGold && (
                       <div className="grid grid-cols-12 gap-3 mt-4 pt-3 border-t border-amber-200/60">
-                        <div className="col-span-5">
+                        <div className="col-span-4">
                           <Input
-                            label="Trade-In Description"
+                            label="Trade-In Description (Optional)"
                             placeholder="e.g. Old Gold Chain / Scrap"
                             value={oldGold.particulars || ''}
                             onChange={e => setOldGold({ ...oldGold, particulars: e.target.value })}
@@ -1035,29 +1040,42 @@ export const AdvanceBooking: React.FC = () => {
                         </div>
                         <div className="col-span-2">
                           <Input
-                            label="Weight (g)"
+                            label="Weight (g) (Optional)"
                             type="number"
                             isMonospaced
                             placeholder="0.000"
                             value={oldGold.weight || ''}
-                            onChange={e => setOldGold({ ...oldGold, weight: parseFloat(e.target.value) || 0 })}
+                            onChange={e => setOldGold({ ...oldGold, weight: e.target.value })}
                           />
                         </div>
                         <div className="col-span-2">
                           <Input
-                            label="Rate / g (₹)"
+                            label="Rate / g (₹) (Optional)"
                             type="number"
                             isMonospaced
                             placeholder="Rate"
                             value={oldGold.rate || ''}
-                            onChange={e => setOldGold({ ...oldGold, rate: parseFloat(e.target.value) || 0 })}
+                            onChange={e => setOldGold({ ...oldGold, rate: e.target.value })}
                           />
                         </div>
-                        <div className="col-span-3 flex items-end">
+                        <div className="col-span-2">
+                          <Input
+                            label="Amount (Optional)"
+                            type="number"
+                            isMonospaced
+                            placeholder="Direct ₹"
+                            value={oldGold.amount || ''}
+                            onChange={e => setOldGold({ ...oldGold, amount: e.target.value })}
+                          />
+                        </div>
+                        <div className="col-span-2 flex items-end">
                           <div className="w-full bg-amber-100 p-2 rounded border border-amber-300 text-right">
                             <span className="text-[10px] text-amber-800 font-bold uppercase block">Deduction Value</span>
                             <span className="font-mono font-bold text-amber-900 text-sm">- ₹ {oldGoldValue.toLocaleString()}</span>
                           </div>
+                        </div>
+                        <div className="col-span-12">
+                          <span className="text-[11px] text-amber-800 italic">* All fields are optional. You can enter amount directly without weight/rate.</span>
                         </div>
                       </div>
                     )}

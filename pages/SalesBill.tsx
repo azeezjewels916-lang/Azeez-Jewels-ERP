@@ -310,17 +310,18 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
 
-  // --- OLD GOLD STATE ---
+  // --- OLD GOLD / URD GOLD STATE ---
   const [isOldGoldOpen, setIsOldGoldOpen] = useState(false);
   const [oldGoldExchange, setOldGoldExchange] = useState({
+    particulars: '',
+    hsn_code: '7113',
     weight: 0,
     weightInput: '',
     purity: '',
     rate: 0,
     rateInput: '',
+    amountInput: '',
     total: 0,
-    hsn_code: '7113',
-    particulars: '',
   });
 
   // --- URD SILVER / OLD SILVER STATE ---
@@ -496,16 +497,24 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   }, [newItem.barcode]);
 
   useEffect(() => {
-    const weight = parseFloat(oldGoldExchange.weightInput) || 0;
-    const rate = parseFloat(oldGoldExchange.rateInput) || (dailyGoldRate || 0);
-    const total = weight * rate;
-
-    if (weight > 0 && !oldGoldExchange.rateInput && dailyGoldRate > 0) {
-      setOldGoldExchange(prev => ({ ...prev, weight, rate, rateInput: dailyGoldRate.toString(), total }));
+    const directAmt = parseFloat(oldGoldExchange.amountInput);
+    if (!isNaN(directAmt) && directAmt > 0) {
+      setOldGoldExchange(prev => ({
+        ...prev,
+        total: directAmt
+      }));
     } else {
-      setOldGoldExchange(prev => ({ ...prev, weight, rate, total }));
+      const weight = parseFloat(oldGoldExchange.weightInput) || 0;
+      const rate = parseFloat(oldGoldExchange.rateInput) || (dailyGoldRate || 0);
+      const total = Math.round(weight * rate);
+
+      if (weight > 0 && !oldGoldExchange.rateInput && dailyGoldRate > 0) {
+        setOldGoldExchange(prev => ({ ...prev, weight, rate, rateInput: dailyGoldRate.toString(), total }));
+      } else {
+        setOldGoldExchange(prev => ({ ...prev, weight, rate, total }));
+      }
     }
-  }, [oldGoldExchange.weightInput, oldGoldExchange.rateInput, dailyGoldRate]);
+  }, [oldGoldExchange.amountInput, oldGoldExchange.weightInput, oldGoldExchange.rateInput, dailyGoldRate]);
 
   useEffect(() => {
     const directAmt = parseFloat(oldSilverExchange.amountInput);
@@ -900,6 +909,12 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
             discount={calculatedTotals.discount}
             exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+            oldGold={{
+              weight: parseFloat(oldGoldExchange.weightInput) || 0,
+              rate: parseFloat(oldGoldExchange.rateInput) || 0,
+              total: oldGoldExchange.total, purity: oldGoldExchange.purity,
+              description: oldGoldExchange.particulars
+            }}
             oldSilver={{
               weight: parseFloat(oldSilverExchange.weightInput) || 0,
               rate: parseFloat(oldSilverExchange.rateInput) || 0,
@@ -915,6 +930,12 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
             discount={calculatedTotals.discount}
             exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+            oldGold={{
+              weight: parseFloat(oldGoldExchange.weightInput) || 0,
+              rate: parseFloat(oldGoldExchange.rateInput) || 0,
+              total: oldGoldExchange.total, purity: oldGoldExchange.purity,
+              description: oldGoldExchange.particulars
+            }}
             oldSilver={{
               weight: parseFloat(oldSilverExchange.weightInput) || 0,
               rate: parseFloat(oldSilverExchange.rateInput) || 0,
@@ -1041,6 +1062,12 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                     mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
                     discount={calculatedTotals.discount}
                     exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+                    oldGold={{
+                      weight: parseFloat(oldGoldExchange.weightInput) || 0,
+                      rate: parseFloat(oldGoldExchange.rateInput) || 0,
+                      total: oldGoldExchange.total, purity: oldGoldExchange.purity,
+                      description: oldGoldExchange.particulars
+                    }}
                     oldSilver={{
                       weight: parseFloat(oldSilverExchange.weightInput) || 0,
                       rate: parseFloat(oldSilverExchange.rateInput) || 0,
@@ -1056,6 +1083,12 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                     mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
                     discount={calculatedTotals.discount}
                     exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
+                    oldGold={{
+                      weight: parseFloat(oldGoldExchange.weightInput) || 0,
+                      rate: parseFloat(oldGoldExchange.rateInput) || 0,
+                      total: oldGoldExchange.total, purity: oldGoldExchange.purity,
+                      description: oldGoldExchange.particulars
+                    }}
                     oldSilver={{
                       weight: parseFloat(oldSilverExchange.weightInput) || 0,
                       rate: parseFloat(oldSilverExchange.rateInput) || 0,
@@ -1292,23 +1325,74 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         <div className={`rounded-lg border transition-all duration-200 overflow-hidden ${isOldGoldOpen ? 'border-pink-300 ring-1 ring-pink-200' : 'border-gray-300'}`}>
           <div onClick={() => setIsOldGoldOpen(!isOldGoldOpen)} className={`flex items-center justify-between p-4 cursor-pointer ${isOldGoldOpen ? 'bg-pink-50' : 'bg-white hover:bg-gray-50'}`}>
             <div className="flex items-center gap-4">
-              <h3 className={`font-bold uppercase tracking-wide text-sm ${isOldGoldOpen ? 'text-pink-700' : 'text-charcoal-700'}`}>Old Gold Exchange (Deduction)</h3>
+              <h3 className={`font-bold uppercase tracking-wide text-sm ${isOldGoldOpen ? 'text-pink-700' : 'text-charcoal-700'}`}>URD / Old Gold Exchange (Deduction)</h3>
               {oldGoldExchange.total > 0 && (
-                <button onClick={(e) => { e.stopPropagation(); handleOpenPreview('exchange'); }} className="flex items-center gap-1.5 px-3 py-1 bg-pink-600 text-white text-[10px] font-bold uppercase rounded-full shadow-sm hover:bg-pink-700 transition-colors">
-                  <Eye size={12} /> Preview Exchange
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-pink-700 text-white text-[10px] font-bold uppercase rounded-full shadow-sm">
+                    - ₹ {oldGoldExchange.total.toLocaleString()}
+                  </span>
+                  <button onClick={(e) => { e.stopPropagation(); handleOpenPreview('exchange'); }} className="flex items-center gap-1.5 px-3 py-1 bg-pink-600 text-white text-[10px] font-bold uppercase rounded-full shadow-sm hover:bg-pink-700 transition-colors">
+                    <Eye size={12} /> Preview Exchange
+                  </button>
+                </div>
               )}
             </div>
             {isOldGoldOpen ? <ChevronUp size={20} className="text-pink-600" /> : <ChevronDown size={20} className="text-gray-500" />}
           </div>
           {isOldGoldOpen && (
             <div className="p-5 bg-white border-t border-pink-100 grid grid-cols-12 gap-4">
-              <div className="col-span-4"><Input label="Particulars" value={oldGoldExchange.particulars} onChange={e => setOldGoldExchange({ ...oldGoldExchange, particulars: e.target.value })} /></div>
-              <div className="col-span-2"><Input label="HSN" value={oldGoldExchange.hsn_code} isMonospaced onChange={e => setOldGoldExchange({ ...oldGoldExchange, hsn_code: e.target.value })} /></div>
-              <div className="col-span-2"><Input label="Wt (g)" type="number" isMonospaced value={oldGoldExchange.weightInput} onChange={e => setOldGoldExchange({ ...oldGoldExchange, weightInput: e.target.value })} /></div>
-              <div className="col-span-2"><Input label="Purity %" type="number" isMonospaced value={oldGoldExchange.purity} onChange={e => setOldGoldExchange({ ...oldGoldExchange, purity: e.target.value })} /></div>
-              <div className="col-span-2"><Input label="Rate" type="number" isMonospaced value={oldGoldExchange.rateInput} onChange={e => setOldGoldExchange({ ...oldGoldExchange, rateInput: e.target.value })} /></div>
-              <div className="col-span-12 flex justify-end mt-2"><div className="bg-pink-50 px-4 py-2 rounded text-pink-700 font-bold border border-pink-200">Value: - {formatCurrency(oldGoldExchange.total)}</div></div>
+              <div className="col-span-4">
+                <Input
+                  label="Particulars (Optional)"
+                  placeholder="e.g. Old Chain / Scrap Gold"
+                  value={oldGoldExchange.particulars}
+                  onChange={e => setOldGoldExchange({ ...oldGoldExchange, particulars: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  label="Wt (g) (Optional)"
+                  type="number"
+                  isMonospaced
+                  placeholder="0.000"
+                  value={oldGoldExchange.weightInput}
+                  onChange={e => setOldGoldExchange({ ...oldGoldExchange, weightInput: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  label="Purity % (Optional)"
+                  placeholder="e.g. 91.6%"
+                  value={oldGoldExchange.purity}
+                  onChange={e => setOldGoldExchange({ ...oldGoldExchange, purity: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  label="Rate (Optional)"
+                  type="number"
+                  isMonospaced
+                  placeholder="Rate/g"
+                  value={oldGoldExchange.rateInput}
+                  onChange={e => setOldGoldExchange({ ...oldGoldExchange, rateInput: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  label="Amount (Optional)"
+                  type="number"
+                  isMonospaced
+                  placeholder="Enter direct ₹"
+                  value={oldGoldExchange.amountInput}
+                  onChange={e => setOldGoldExchange({ ...oldGoldExchange, amountInput: e.target.value })}
+                />
+              </div>
+              <div className="col-span-12 flex justify-between items-center mt-2 pt-2 border-t border-pink-100">
+                <span className="text-xs text-gray-500 italic">* All fields are optional. You can enter amount directly without weight/rate.</span>
+                <div className="bg-pink-50 px-4 py-2 rounded text-pink-700 font-bold border border-pink-200">
+                  Old Gold Value: - {formatCurrency(oldGoldExchange.total)}
+                </div>
+              </div>
             </div>
           )}
         </div>

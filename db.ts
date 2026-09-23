@@ -249,7 +249,27 @@ export const createBillItems = async (billId: number, items: any[]) => {
     .insert(itemsWithBillId)
     .select();
 
-  if (error) throw error;
+  if (error) {
+    // If the database table bill_items does not have the 'purity' column in its schema cache:
+    const errMsg = (error.message || '').toLowerCase();
+    const errDetails = (error.details || '').toLowerCase();
+    const errHint = (error.hint || '').toLowerCase();
+    if (errMsg.includes('purity') || errDetails.includes('purity') || errHint.includes('purity') || errMsg.includes('schema cache')) {
+      console.warn("Retrying bill_items insert without 'purity' column:", error.message);
+      const sanitizedItems = itemsWithBillId.map(({ purity, item_name, ...rest }) => ({
+        ...rest,
+        // Embed purity in item_name if available so it's not lost on re-print
+        item_name: purity && !item_name.includes(purity) ? `${item_name} [${purity}]` : item_name
+      }));
+      const retry = await supabase
+        .from('bill_items')
+        .insert(sanitizedItems)
+        .select();
+      if (retry.error) throw retry.error;
+      return retry.data;
+    }
+    throw error;
+  }
   return data;
 };
 
@@ -326,6 +346,26 @@ export const deleteCustomer = async (id: number) => {
     .from('customers')
     .delete()
     .eq('id', id);
+
+  if (error) throw error;
+};
+
+export const clearAllCustomers = async () => {
+  // Unlink any bills that reference customers
+  const { error: unlinkError } = await supabase
+    .from('bills')
+    .update({ customer_id: null })
+    .not('customer_id', 'is', null);
+
+  if (unlinkError) {
+    console.error('Error unlinking bills:', unlinkError);
+  }
+
+  // Delete all rows from customers
+  const { error } = await supabase
+    .from('customers')
+    .delete()
+    .neq('id', -999999);
 
   if (error) throw error;
 };

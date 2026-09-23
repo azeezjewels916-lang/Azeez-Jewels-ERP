@@ -24,7 +24,7 @@ import { Button, Input, Card, toast } from '../components/UIComponents';
 import { Customer } from '../types';
 import { exportToExcel } from '../components/exportUtils';
 import { FileSpreadsheet } from 'lucide-react';
-import { getCustomers, createCustomer, updateCustomer, deleteCustomer, getCustomerHistory, getCustomerBookings, getCustomerLayaways } from '../db';
+import { getCustomers, createCustomer, updateCustomer, deleteCustomer, clearAllCustomers, getCustomerHistory, getCustomerBookings, getCustomerLayaways } from '../db';
 
 export const Customers: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -115,6 +115,21 @@ export const Customers: React.FC = () => {
     } catch (error: any) {
       console.error('Error deleting customer:', error);
       toast({ title: 'Error', description: error.message || 'Failed to delete customer.', variant: 'destructive' });
+    }
+  };
+
+  const handleClearAllCustomers = async () => {
+    if (!window.confirm('⚠️ Are you sure you want to delete ALL dummy/test customer records? This cannot be undone.')) return;
+    try {
+      setLoading(true);
+      await clearAllCustomers();
+      toast({ title: 'Success', description: 'All customer dummy records have been removed.' });
+      fetchCustomers();
+    } catch (error: any) {
+      console.error('Error clearing customers:', error);
+      toast({ title: 'Error', description: error.message || 'Failed to clear customer records.', variant: 'destructive' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -243,6 +258,15 @@ export const Customers: React.FC = () => {
           >
             <FileSpreadsheet size={14} className="text-white" /> Export Excel
           </button>
+          {customers.length > 0 && (
+            <button
+              onClick={handleClearAllCustomers}
+              className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-2 rounded-md text-xs font-bold tracking-wide flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+              title="Delete all dummy customer records"
+            >
+              <Trash2 size={14} className="text-red-600" /> Clear Dummy Clients
+            </button>
+          )}
           <Button onClick={() => handleOpenModal()} className="bg-charcoal-900 text-white hover:bg-black shadow-lg">
             <Plus size={16} className="mr-2" /> Add New Client
           </Button>
