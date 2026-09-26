@@ -105,7 +105,7 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({
       `}</style>
       {/* HEADER TOP BAR */}
       <div className="flex justify-between items-center px-2 py-1 border-b border-charcoal-900 text-[10px] font-extrabold">
-        <div>GSTIN : 29BPSPK1616Q1Z2</div>
+        {saleType === 'GST' ? <div>GSTIN : 29BPSPK1616Q1Z2</div> : <div></div>}
         <div className="border border-charcoal-900 px-2 py-[1px] text-[11px] font-black">{saleType === 'GST' ? 'TAX INVOICE' : 'ESTIMATE'}</div>
         <div className="flex items-center gap-1">
           <span>📞 9916667573</span>
@@ -275,7 +275,7 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({
               )}
 
               <div className="flex justify-between text-[10px] pt-1 items-center border-t border-charcoal-900">
-                <span className="font-bold text-charcoal-900 uppercase tracking-widest">Taxable</span>
+                <span className="font-bold text-charcoal-900 uppercase tracking-widest">{saleType === 'GST' ? 'Taxable' : 'Amount'}</span>
                 <span className="font-mono font-bold text-charcoal-900 text-[11px]">₹ {totals.baseTaxable.toLocaleString()}</span>
               </div>
 

@@ -603,7 +603,13 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
     let newMcState = { ...mcValueAdded, total: 0 };
 
-    if (requiredMcTotal > 0) {
+    if (requiredMcTotal < 0) {
+      // User entered an amount less than subtotal -> automatically compute discount
+      const calculatedDiscount = Math.abs(requiredMcTotal);
+      setDiscountInput(calculatedDiscount > 0 ? calculatedDiscount.toFixed(0) : '');
+      newMcState.total = 0;
+    } else if (requiredMcTotal > 0) {
+      setDiscountInput('');
       newMcState.total = roundToWhole(requiredMcTotal);
       const currentWeight = parseFloat(mcValueAdded.weightInput) || 0;
       const currentRate = parseFloat(mcValueAdded.rateInput) || 0;
@@ -617,6 +623,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         newMcState.weight = derivedWeight;
         newMcState.weightInput = derivedWeight.toFixed(3);
       }
+    } else {
+      setDiscountInput('');
     }
 
     setMcValueAdded(newMcState);
@@ -624,12 +632,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     const preGstTotal = baseTaxableWithoutMc + newMcState.total;
     const gstRaw = saleType === 'GST' ? preGstTotal * GST_RATE : 0;
     const gstAmount = roundToWhole(gstRaw);
+    const effectiveDiscount = requiredMcTotal < 0 ? Math.abs(requiredMcTotal) : (parseFloat(discountInput) || 0);
 
     setCalculatedTotals(prev => ({
       ...prev,
       baseTaxable: preGstTotal,
       gstAmount,
-      grandTotal: targetAmount
+      grandTotal: preGstTotal + gstAmount,
+      discount: effectiveDiscount
     }));
 
     setTimeout(() => {
@@ -1501,7 +1511,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
               </div>
             </div>
             <div className="border-t border-dashed border-gray-300 pt-2 mt-2">
-              <div className="flex justify-between items-center text-xs text-gray-400"><span>Taxable</span><span className="font-mono">{formatCurrency(calculatedTotals.baseTaxable)}</span></div>
+              <div className="flex justify-between items-center text-xs text-gray-400"><span>{saleType === 'GST' ? 'Taxable' : 'Amount'}</span><span className="font-mono">{formatCurrency(calculatedTotals.baseTaxable)}</span></div>
               <div className="flex justify-between items-center font-bold"><span>GST ({saleType === 'GST' ? '3%' : '0%'})</span><span className="font-mono">{formatCurrency(calculatedTotals.gstAmount)}</span></div>
             </div>
             <div className="flex justify-between items-center py-1 bg-red-50/60 px-2 rounded -mx-2">

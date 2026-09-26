@@ -316,8 +316,8 @@ export const SilverBillPrint: React.FC<SilverBillPrintProps> = ({
         <div className="silver-bill-inner">
           {/* HEADER TOP BAR */}
           <div className="silver-header-top">
-            <div>GSTIN : 29BPSPK1616Q1Z2</div>
-            <div className="cash-bill-badge">CASH BILL</div>
+            {saleType === 'GST' ? <div>GSTIN : 29BPSPK1616Q1Z2</div> : <div></div>}
+            <div className="cash-bill-badge">{saleType === 'GST' ? 'TAX INVOICE' : 'CASH BILL'}</div>
             <div className="flex items-center gap-1">
               <span>📞 9916667573</span>
             </div>
@@ -407,14 +407,16 @@ export const SilverBillPrint: React.FC<SilverBillPrintProps> = ({
             const exchPctNum = parseFloat((exchangeValuePct || '40%').replace('%', '')) || 40;
             const retPctNum = parseFloat((returnValuePct || '50%').replace('%', '')) || 50;
 
-            const exchVal = Math.round(totalVal * (1 - exchPctNum / 100));
-            const retVal = Math.round(totalVal * (1 - retPctNum / 100));
-
             const totalPaid = (paymentMethods || []).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
             const discountAmount = discount !== undefined && discount > 0
               ? discount
               : (totals.discount || (totalPaid > 0 && totalPaid < totalVal ? (totalVal - totalPaid) : 0));
             const netFinalTotal = Math.max(0, totalVal - (discountAmount > 0 ? discountAmount : 0));
+
+            // Exchange & Return Value calculated on ACTUAL amount paid by customer after discount
+            const actualAmt = netFinalTotal > 0 ? netFinalTotal : totalVal;
+            const exchVal = Math.round(actualAmt * (1 - exchPctNum / 100));
+            const retVal = Math.round(actualAmt * (1 - retPctNum / 100));
 
             return (
               <div className="silver-footer-grid">

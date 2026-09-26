@@ -82,7 +82,7 @@ export const AdvanceBookingPrint: React.FC<AdvanceBookingPrintProps> = ({
 
       {/* HEADER TOP BAR */}
       <div className="flex justify-between items-center px-2 py-1 border-b border-charcoal-900 text-[10px] font-extrabold">
-        <div>GSTIN : 29BPSPK1616Q1Z2</div>
+        {saleType.toUpperCase() === 'GST' ? <div>GSTIN : 29BPSPK1616Q1Z2</div> : <div></div>}
         <div className="border border-charcoal-900 px-2 py-[1px] text-[11px] font-black">{saleType.toUpperCase() === 'GST' ? 'ADVANCE BOOKING (GST)' : 'ADVANCE BOOKING'}</div>
         <div className="flex items-center gap-1">
           <span>📞 9916667573</span>
