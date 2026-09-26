@@ -35,14 +35,14 @@ function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CO
     JsBarcode(svgNode, valueToEncode, {
       format: format,
       width: encodeMode === 'numeric' ? 2.2 : (format === 'CODE39' ? 1.2 : 1.4), // Wide module width for thermal contrast
-      height: 46,       // Tall bars for easy laser scan capture
+      height: 38,       // Balanced bar height (5.4mm) leaving room for brand & SKU
       displayValue: false,
       margin: encodeMode === 'numeric' ? 6 : 4, // Clean quiet zones
       background: "#ffffff",
       lineColor: "#000000"
     });
 
-    svgNode.setAttribute("style", "width: 100%; height: 6.8mm; display: block; margin: 0 auto;");
+    svgNode.setAttribute("style", "width: 100%; height: 5.4mm; display: block; margin: 0 auto;");
     svgNode.setAttribute("preserveAspectRatio", "none");
     svgNode.setAttribute("shape-rendering", "crispEdges");
 
@@ -167,7 +167,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.2mm 0.8mm;
+  padding: 2.2mm 0.8mm 1.0mm 0.8mm;
   overflow: hidden !important;
   box-sizing: border-box;
   page-break-inside: avoid !important;
@@ -180,13 +180,13 @@ html, body {
 }
 .tail-area {
   width: ${tailW}mm;
-  height: 12.6mm;
+  height: 11.8mm;
   flex-shrink: 0;
 }
 .head-area {
   width: ${headW}mm;
-  height: 12.6mm;
-  max-height: 12.6mm;
+  height: 11.8mm;
+  max-height: 11.8mm;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -198,7 +198,7 @@ html, body {
   transform: rotate(180deg);
 }
 .col {
-  height: 12.6mm;
+  height: 11.8mm;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -209,20 +209,25 @@ html, body {
   width: 24.5mm;
   align-items: center;
   text-align: center;
-  padding: 0 1mm;
+  padding: 0 0.5mm;
 }
 .col-details {
-  width: 22mm;
+  width: 22.5mm;
   align-items: flex-start;
   text-align: left;
-  padding: 0 0.5mm 0 1mm;
-  border-left: 0.2mm dashed #cccccc;
+  padding: 0 0.5mm 0 1.5mm;
+}
+.brand, .purity, .item-name, .weights, .sku, .huid, .price {
+  color: #000000 !important;
+  -webkit-text-stroke: 0.18px #000000;
+  text-rendering: geometricPrecision;
+  font-family: Arial, 'Segoe UI', Helvetica, sans-serif;
 }
 .brand {
-  font-size: 1.7mm;
+  font-size: 2.0mm;
   font-weight: 900;
-  letter-spacing: 0.1mm;
-  line-height: 1;
+  letter-spacing: 0.15mm;
+  line-height: 1.1;
   text-transform: uppercase;
   text-align: center;
   white-space: nowrap;
@@ -231,67 +236,64 @@ html, body {
 }
 .bc-box {
   width: 100%;
-  height: 6.8mm;
+  height: 5.4mm;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #ffffff;
   overflow: hidden;
-  margin: 0.2mm 0;
+  margin: 0.1mm 0;
 }
 .bc-box svg {
   width: 100%;
-  height: 6.8mm;
+  height: 5.4mm;
   display: block;
 }
 .sku {
-  font-family: monospace, monospace;
-  font-size: 1.7mm;
+  font-size: 1.85mm;
   font-weight: 900;
   text-align: center;
-  line-height: 1;
-  letter-spacing: 0.2mm;
+  line-height: 1.1;
+  letter-spacing: 0.25mm;
   white-space: nowrap;
   overflow: hidden;
   width: 100%;
 }
 .purity {
-  font-size: 1.7mm;
+  font-size: 2.0mm;
   font-weight: 900;
-  line-height: 1;
-  color: #000;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
 }
 .item-name {
-  font-size: 1.6mm;
-  font-weight: bold;
+  font-size: 1.85mm;
+  font-weight: 900;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.1;
+  line-height: 1.15;
   text-transform: capitalize;
 }
 .weights {
   display: flex;
   flex-direction: column;
   gap: 0.2mm;
-  font-size: 1.5mm;
-  font-weight: bold;
-  font-family: monospace, monospace;
-  line-height: 1;
+  font-size: 1.75mm;
+  font-weight: 900;
+  line-height: 1.15;
 }
 .huid {
-  font-size: 1.4mm;
-  font-weight: bold;
-  line-height: 1;
+  font-size: 1.6mm;
+  font-weight: 900;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
 }
 .price {
-  font-size: 1.5mm;
+  font-size: 1.75mm;
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -522,20 +524,23 @@ ${labelHtml}
           {/* CRITICAL WINDOWS DRIVER SETTINGS BANNER */}
           <div className="bg-amber-50/80 border border-amber-300 rounded-xl p-3 text-xs text-slate-800 space-y-1.5">
             <div className="font-bold flex items-center gap-1.5 text-amber-900 uppercase tracking-wider text-[11px]">
-              <Sliders size={14} className="text-amber-700" /> Fix: Stop Empty Labels on TVS LP 46 Dlite
+              <Sliders size={14} className="text-amber-700" /> Key Settings for Sharp, Dark Print (TVSE LP46 Dlite)
             </div>
             <ul className="list-disc list-inside space-y-1 text-[11px] font-medium text-slate-700">
               <li>
-                <strong>Check Height in Windows Stock:</strong> In Windows <i>Printing Preferences $\rightarrow$ Page Setup $\rightarrow$ barcode</i> stock, ensure <strong>Width = 92.0 mm</strong> and <strong>Height = 15.0 mm</strong> (make sure height is NOT 150mm or 15cm!).
+                <strong>Darkness:</strong> Change Darkness to <strong>11 - 13</strong> in Printer Preferences (Darkness 8-9 is too low for synthetic plastic tags with resin ribbon).
               </li>
               <li>
-                <strong>Stock Type:</strong> Must be set to <strong>Labels with Gaps / Die-cut</strong> (Gap: <strong>2.0 mm</strong>), NOT "Continuous".
+                <strong>Print Speed:</strong> Lower Print Speed to <strong>2.0 in/sec (50 mm/sec)</strong> in the <i>Options</i> tab for deep, solid black ink melt.
               </li>
               <li>
-                <strong>Driver Orientation:</strong> Must be set to <strong>Portrait</strong> (NOT Landscape).
+                <strong>Dithering:</strong> Keep set to <strong>None</strong> in the <i>Graphics</i> tab.
               </li>
               <li>
                 <strong>In Chrome Print Dialog:</strong> Destination: <code>SNBC TVSE LP46 Dlite</code>, Paper size: <code>barcode</code>, Margins: <code>None</code>, Scale: <code>100%</code>.
+              </li>
+              <li>
+                <strong>Calibrate Sensor (Stop Empty Labels / Shifting):</strong> Turn OFF printer $\rightarrow$ hold the FEED button $\rightarrow$ turn ON printer $\rightarrow$ wait for light to blink once $\rightarrow$ release FEED.
               </li>
             </ul>
           </div>
