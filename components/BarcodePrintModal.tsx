@@ -15,6 +15,7 @@ export type TagSize = '92x15' | '90x15' | '81x12' | '100x15' | '50x12' | '100x20
 export type FontPreset = 'verdana' | 'consolas' | 'segoe' | 'arial';
 export type FontWeightChoice = '700' | '600' | '800';
 export type TextCaseChoice = 'uppercase' | 'capitalize';
+export type WeightFontSize = 'normal' | 'large' | 'xlarge';
 
 export const getFontFamilyCss = (preset: FontPreset): { primary: string; mono: string } => {
   switch (preset) {
@@ -120,6 +121,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   const [fontPreset, setFontPreset] = useState<FontPreset>('verdana');
   const [fontWeight, setFontWeight] = useState<FontWeightChoice>('700');
   const [textCase, setTextCase] = useState<TextCaseChoice>('uppercase');
+  const [weightFontSize, setWeightFontSize] = useState<WeightFontSize>('large');
   const [scannedTestResult, setScannedTestResult] = useState<string>('');
   const previewSvgRef = useRef<HTMLDivElement>(null);
   const previewBackSvgRef = useRef<HTMLDivElement>(null);
@@ -142,7 +144,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
         previewBackSvgRef.current.innerHTML = svgHtml;
       }
     }
-  }, [isOpen, item, barcodeFormat, encodeMode, tagLayout, foldGapMm, leftBrandStyle, fontPreset, fontWeight, textCase]);
+  }, [isOpen, item, barcodeFormat, encodeMode, tagLayout, foldGapMm, leftBrandStyle, fontPreset, fontWeight, textCase, weightFontSize]);
 
   if (!isOpen || !item) return null;
 
@@ -262,6 +264,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     `).join('');
 
     const fontFamilies = getFontFamilyCss(fontPreset);
+    const weightFontSizeMm = weightFontSize === 'normal' ? '1.55mm' : weightFontSize === 'xlarge' ? '1.95mm' : '1.75mm';
 
     printWindow.document.write(`<!DOCTYPE html>
 <html>
@@ -272,6 +275,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   --primary-font: ${fontFamilies.primary};
   --mono-font: ${fontFamilies.mono};
   --font-weight: ${fontWeight};
+  --weight-font-size: ${weightFontSizeMm};
 }
 @page {
   size: ${W}mm ${H}mm;
@@ -452,9 +456,9 @@ html, body {
   align-items: center;
   width: 100%;
   font-family: var(--primary-font);
-  font-size: 1.45mm;
+  font-size: var(--weight-font-size);
   font-weight: var(--font-weight);
-  letter-spacing: 0.12mm;
+  letter-spacing: 0.1mm;
   line-height: 1.0;
   color: #000000 !important;
 }
@@ -539,9 +543,9 @@ html, body {
   flex-direction: column;
   gap: 0.2mm;
   font-family: var(--primary-font);
-  font-size: 1.45mm;
+  font-size: var(--weight-font-size);
   font-weight: var(--font-weight);
-  letter-spacing: 0.12mm;
+  letter-spacing: 0.1mm;
   line-height: 1.05;
   color: #000000 !important;
 }
@@ -675,7 +679,9 @@ window.onload = function() {
                       )}
                     </div>
                     <div
-                      className="w-full flex justify-between items-center text-[7.5px] font-bold text-charcoal-800 px-0.5 leading-none"
+                      className={`w-full flex justify-between items-center font-bold text-charcoal-800 px-0.5 leading-none ${
+                        weightFontSize === 'xlarge' ? 'text-[9.5px]' : weightFontSize === 'large' ? 'text-[8.5px]' : 'text-[7.5px]'
+                      }`}
                       style={{
                         fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
                         letterSpacing: '0.2px'
@@ -993,6 +999,34 @@ window.onload = function() {
                           {textCase === opt.id && <Check size={12} className="text-gold-600" />}
                         </div>
                         <p className="text-[9px] font-normal text-gray-500">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                    Net & Gross Weight Size
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'normal', label: '1.55mm' },
+                      { id: 'large', label: '1.75mm (Large)' },
+                      { id: 'xlarge', label: '1.95mm (Max)' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setWeightFontSize(opt.id as any)}
+                        className={`py-1.5 px-1 rounded-lg text-xs font-bold border transition-all cursor-pointer text-center ${
+                          weightFontSize === opt.id
+                            ? 'border-gold-500 bg-gold-50 text-gold-900 shadow-sm ring-1 ring-gold-500'
+                            : 'border-gray-200 text-gray-700 bg-white hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-0.5">
+                          <span className="truncate">{opt.label}</span>
+                          {weightFontSize === opt.id && <Check size={11} className="text-gold-600 shrink-0" />}
+                        </div>
                       </button>
                     ))}
                   </div>
