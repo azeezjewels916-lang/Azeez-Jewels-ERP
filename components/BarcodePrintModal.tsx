@@ -54,7 +54,12 @@ const AZEEZ_LOGO_THERMAL_BASE64 = `iVBORw0KGgoAAAANSUhEUgAAAeEAAAECCAAAAADs8TD+A
  * Generate a high-contrast vector SVG barcode for thermal printing.
  * Configured for instant reading on 203 DPI handheld laser & CCD barcode scanners.
  */
-function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CODE128', encodeMode: 'full' | 'numeric' = 'numeric'): { svgHtml: string; encodedValue: string } {
+function getBarcodeSvgString(
+  rawText: string,
+  format: 'CODE128' | 'CODE39' = 'CODE128',
+  encodeMode: 'full' | 'numeric' = 'numeric',
+  heightMm: number = 4.0
+): { svgHtml: string; encodedValue: string } {
   try {
     const fullText = (rawText || 'AHS000000').trim();
     const digitsOnly = fullText.replace(/\D/g, '');
@@ -68,11 +73,12 @@ function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CO
       valueToEncode = fullText;
     }
 
+    const isLarge = heightMm >= 6.0;
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, valueToEncode, {
       format: format,
-      width: encodeMode === 'numeric' ? 1.55 : (format === 'CODE39' ? 1.1 : 1.3),
-      height: 32,
+      width: encodeMode === 'numeric' ? (isLarge ? 1.65 : 1.55) : (format === 'CODE39' ? (isLarge ? 1.15 : 1.1) : (isLarge ? 1.4 : 1.3)),
+      height: isLarge ? 52 : 32,
       displayValue: false,
       margin: 0,
       background: "#ffffff",
@@ -82,7 +88,7 @@ function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CO
     // Remove fixed width/height attributes so CSS width: 100% controls size
     svgNode.removeAttribute("width");
     svgNode.removeAttribute("height");
-    svgNode.setAttribute("style", "width: 100%; height: 4.0mm; display: block; margin: 0 auto;");
+    svgNode.setAttribute("style", `width: 100%; height: ${heightMm}mm; display: block; margin: 0 auto;`);
     svgNode.setAttribute("preserveAspectRatio", "none");
     svgNode.setAttribute("shape-rendering", "crispEdges");
 
@@ -96,7 +102,7 @@ function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CO
   }
 }
 
-export type TagLayout = 'brand-left-details-right' | 'barcode-left-details-right' | 'duplicate';
+export type TagLayout = 'details-left-barcode-right' | 'brand-left-details-right' | 'barcode-left-details-right' | 'duplicate';
 
 export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   isOpen,
@@ -112,7 +118,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   const [showHUID, setShowHUID] = useState<boolean>(true);
   // Default tailPosition to 'right' (Head Left, Tail Right) as physically mounted on the TVSE LP46 Dlite
   const [tailPosition, setTailPosition] = useState<'left' | 'right'>('right');
-  const [tagLayout, setTagLayout] = useState<TagLayout>('brand-left-details-right');
+  const [tagLayout, setTagLayout] = useState<TagLayout>('details-left-barcode-right');
   const [leftBrandStyle, setLeftBrandStyle] = useState<'logo' | 'text'>('logo');
   // Fold clearance gap in mm between Left Flap and Right Flap (protects the physical fold line)
   const [foldGapMm, setFoldGapMm] = useState<number>(7.0);
@@ -136,7 +142,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   useEffect(() => {
     if (isOpen && item) {
       const barcodeText = (item.barcode || 'AHS000000').trim();
-      const { svgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode);
+      const isBigBarcode = tagLayout === 'details-left-barcode-right';
+      const { svgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode, isBigBarcode ? 6.8 : 4.0);
       if (previewSvgRef.current) {
         previewSvgRef.current.innerHTML = svgHtml;
       }
@@ -165,7 +172,44 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     const H = 15;
     const isTailOnRight = tailPosition === 'right';
 
-    // 1. FLAP BRAND ONLY (Only Brand Name on Left - NOTHING ELSE ON LEFT!)
+    const { svgHtml: barcodeSvgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode, 4.0);
+    const { svgHtml: largeBarcodeSvgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode, 7.2);
+
+    // 1. FLAP PRODUCT DETAILS (LEFT FLAP - NO BRAND NAME: Product Name, Purity, Weights, Price/HUID)
+    const flapProductDetailsHtml = `
+      <div class="flap flap-left flap-product-details">
+        <div class="details-top-row">
+          <span class="item-name">${cleanItemName}</span>
+          <span class="purity">${item.purity || '22K (916)'}</span>
+        </div>
+        <div class="wt-line">
+          <span class="wt-label">Gr:</span>
+          <span class="wt-val">${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
+        </div>
+        <div class="wt-line">
+          <span class="wt-label">Nt:</span>
+          <span class="wt-val">${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
+        </div>
+        ${(showPrice && item.net_price) || (showHUID && item.huid) ? `
+          <div class="extra-row">
+            ${showPrice && item.net_price ? `<span class="price">₹${item.net_price.toLocaleString('en-IN')}</span>` : '<span></span>'}
+            ${showHUID && item.huid ? `<span class="huid">H:${item.huid}</span>` : '<span></span>'}
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    // 2. FLAP HERO BARCODE (RIGHT FLAP - JUST BARCODE WITH APPROPRIATE BIGGER SIZING + SKU)
+    const flapBarcodeHeroHtml = `
+      <div class="flap flap-right flap-barcode-hero">
+        <div class="bc-container-hero">
+          ${largeBarcodeSvgHtml}
+        </div>
+        <div class="barcode-sku-hero">${barcodeText}</div>
+      </div>
+    `;
+
+    // 3. FLAP BRAND ONLY (Alternative layout: Brand only on Left)
     const flapBrandHtml = leftBrandStyle === 'logo' ? `
       <div class="flap flap-left flap-brand">
         <img src="data:image/png;base64,${AZEEZ_LOGO_THERMAL_BASE64}" class="brand-logo-img" alt="Azeez Jewels" />
@@ -176,7 +220,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       </div>
     `;
 
-    // 2. FLAP ALL DETAILS (All Info on Single Fold Face: Item, Purity, Barcode, SKU, Weights)
+    // 4. FLAP ALL DETAILS COMPACT (Alternative layout: Right flap with compact barcode & details)
     const flapDetailsHtml = `
       <div class="flap flap-right flap-details">
         <div class="details-top-row">
@@ -198,43 +242,19 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       </div>
     `;
 
-    // 3. FLAP BARCODE ONLY (For alternative classic split layout: Brand + Barcode on Left)
-    const flapBarcodeLeftHtml = `
-      <div class="flap flap-left flap-barcode-only">
-        <div class="brand-header">AZEEZ JEWELS</div>
-        <div class="bc-container-lg">
-          ${barcodeSvgHtml}
-        </div>
-        <div class="sku-bottom">${barcodeText}</div>
-      </div>
-    `;
-
-    // 4. FLAP TEXT DETAILS ONLY (For alternative classic split layout: Purity + Item + Weights on Right)
-    const flapTextDetailsRightHtml = `
-      <div class="flap flap-right flap-text-details">
-        <div class="purity-header">${item.purity || '22K (916)'}</div>
-        <div class="item-title">${cleanItemName}</div>
-        <div class="weights-block">
-          <div>Gr: ${(item.gross_weight || item.weight || 0).toFixed(3)}g</div>
-          <div>Nt: ${(item.net_weight || item.weight || 0).toFixed(3)}g</div>
-        </div>
-        ${showPrice && item.net_price ? `<div class="price-bottom">₹ ${item.net_price.toLocaleString('en-IN')}</div>` : ''}
-      </div>
-    `;
-
     // Determine left and right flaps based on selected layout
-    let leftFlap = flapBrandHtml;
-    let rightFlap = flapDetailsHtml;
+    let leftFlap = flapProductDetailsHtml;
+    let rightFlap = flapBarcodeHeroHtml;
 
-    if (tagLayout === 'brand-left-details-right') {
+    if (tagLayout === 'details-left-barcode-right') {
+      leftFlap = flapProductDetailsHtml;
+      rightFlap = flapBarcodeHeroHtml;
+    } else if (tagLayout === 'brand-left-details-right') {
       leftFlap = flapBrandHtml;
       rightFlap = flapDetailsHtml;
-    } else if (tagLayout === 'barcode-left-details-right') {
-      leftFlap = flapBarcodeLeftHtml;
-      rightFlap = flapTextDetailsRightHtml;
     } else if (tagLayout === 'duplicate') {
-      leftFlap = flapDetailsHtml;
-      rightFlap = flapDetailsHtml;
+      leftFlap = flapProductDetailsHtml;
+      rightFlap = flapProductDetailsHtml;
     }
 
     const labelHtml = Array.from({ length: printQuantity }).map((_, idx) => `
@@ -376,6 +396,83 @@ html, body {
   text-transform: uppercase;
   color: #000000 !important;
   width: 100%;
+}
+/* FLAP: PRODUCT DETAILS ONLY (LEFT FLAP - NO BRAND NAME) */
+.flap-product-details {
+  width: 20.0mm;
+  height: 11.2mm;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  align-items: stretch !important;
+  padding: 0.2mm 0.5mm 0.2mm 0.5mm;
+  font-family: var(--primary-font);
+  box-sizing: border-box;
+}
+/* FLAP: HERO BARCODE ONLY (RIGHT FLAP - BIGGER SIZING) */
+.flap-barcode-hero {
+  width: 21.0mm;
+  height: 11.2mm;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 0.2mm 0.4mm 0.2mm 0.4mm;
+  box-sizing: border-box;
+}
+.bc-container-hero {
+  width: 100%;
+  height: 7.2mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  overflow: hidden;
+}
+.bc-container-hero svg {
+  width: 100% !important;
+  height: 7.2mm !important;
+  display: block;
+}
+.barcode-sku-hero {
+  font-family: var(--mono-font);
+  font-size: 1.75mm;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.35mm;
+  text-align: center;
+  line-height: 1.0;
+  margin-top: 0.4mm;
+  white-space: nowrap;
+  color: #000000 !important;
+}
+.wt-line {
+  display: flex;
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: 0.8mm;
+  width: 100%;
+  font-family: var(--primary-font);
+  font-size: var(--weight-font-size);
+  font-weight: var(--font-weight);
+  letter-spacing: 0.12mm;
+  line-height: 1.0;
+  color: #000000 !important;
+}
+.wt-label {
+  font-weight: var(--font-weight);
+  color: #000000 !important;
+}
+.wt-val {
+  font-family: var(--primary-font);
+  font-weight: var(--font-weight);
+  color: #000000 !important;
+}
+.extra-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  line-height: 1.0;
 }
 /* FLAP 2 (RIGHT): ALL DETAILS ON SINGLE FACE */
 .flap-right {
@@ -612,11 +709,15 @@ window.onload = function() {
                 Tag Preview & Fold Inspection
               </div>
               <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">
-                Brand Left • Details Right (Protected Fold)
+                {tagLayout === 'details-left-barcode-right' ? 'Left: Details • Right: Big Barcode (Protected Fold)' : 'Brand Left • Details Right (Protected Fold)'}
               </span>
             </div>
             <p className="text-[11px] text-amber-800 mb-2">
-              Matches your physical roll: <strong>Left flap has Brand only, Right flap has All Details</strong>. The green dashed line marks your fold:
+              {tagLayout === 'details-left-barcode-right' ? (
+                <>Configured as requested: <strong>Left flap has Product Details only (no brand name), Right flap has Large Barcode</strong>. The green dashed line marks your fold:</>
+              ) : (
+                <>Matches your physical roll: <strong>Left flap has Brand only, Right flap has All Details</strong>. The green dashed line marks your fold:</>
+              )}
             </p>
 
             {/* VISUAL TAG SIMULATION WITH ACCURATE FOLD GAP */}
@@ -628,20 +729,79 @@ window.onload = function() {
               >
                 {/* SOLID RECTANGULAR HEAD (55%) */}
                 <div className="w-[58%] h-full flex bg-white relative">
-                  {/* FLAP 1 (LEFT SIDE OF HEAD: BRAND ONLY) */}
-                  <div className="w-[43%] h-full p-1.5 flex flex-col items-center justify-center text-center bg-amber-50/20">
-                    {leftBrandStyle === 'logo' ? (
-                      <img
-                        src={`data:image/png;base64,${AZEEZ_LOGO_THERMAL_BASE64}`}
-                        alt="Azeez Jewels"
-                        className="max-h-[46px] max-w-[95%] object-contain"
-                      />
-                    ) : (
-                      <div className="font-serif font-black text-[10px] tracking-wider uppercase text-charcoal-900">
-                        AZEEZ JEWELS
+                  {/* FLAP 1 (LEFT SIDE OF HEAD) */}
+                  {tagLayout === 'details-left-barcode-right' ? (
+                    <div
+                      className="w-[43%] h-full p-1.5 flex flex-col justify-between text-left bg-white"
+                      style={{ fontFamily: getFontFamilyCss(fontPreset).primary }}
+                    >
+                      {/* Product Name & Purity */}
+                      <div
+                        className="w-full flex justify-between items-baseline text-[8px] text-charcoal-900 leading-none"
+                        style={{
+                          fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
+                          letterSpacing: '0.2px'
+                        }}
+                      >
+                        <span className={`truncate max-w-[55%] ${textCase === 'uppercase' ? 'uppercase font-bold' : 'capitalize font-bold'}`}>
+                          {cleanItemName}
+                        </span>
+                        <span className="text-amber-800 font-bold text-[7.5px]">
+                          {item.purity || '22K (916)'}
+                        </span>
                       </div>
-                    )}
-                  </div>
+
+                      {/* Gross Weight */}
+                      <div
+                        className={`w-full flex items-baseline gap-1 text-charcoal-900 leading-none ${
+                          weightFontSize === 'xlarge' ? 'text-[9.5px]' : weightFontSize === 'large' ? 'text-[8.5px]' : 'text-[7.5px]'
+                        }`}
+                        style={{
+                          fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
+                          letterSpacing: '0.2px'
+                        }}
+                      >
+                        <span className="font-bold text-charcoal-600">Gr:</span>
+                        <span className="font-bold">{(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
+                      </div>
+
+                      {/* Net Weight */}
+                      <div
+                        className={`w-full flex items-baseline gap-1 text-charcoal-900 leading-none ${
+                          weightFontSize === 'xlarge' ? 'text-[9.5px]' : weightFontSize === 'large' ? 'text-[8.5px]' : 'text-[7.5px]'
+                        }`}
+                        style={{
+                          fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
+                          letterSpacing: '0.2px'
+                        }}
+                      >
+                        <span className="font-bold text-charcoal-600">Nt:</span>
+                        <span className="font-bold">{(item.net_weight || item.weight || 0).toFixed(3)}g</span>
+                      </div>
+
+                      {/* Price and/or HUID if present */}
+                      {((showPrice && item.net_price) || (showHUID && item.huid)) && (
+                        <div className="w-full flex justify-between items-center text-[7px] leading-none text-emerald-800 font-bold">
+                          {showPrice && item.net_price ? <span>₹{item.net_price.toLocaleString()}</span> : <span />}
+                          {showHUID && item.huid && <span className="font-mono text-charcoal-600">H:{item.huid}</span>}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-[43%] h-full p-1.5 flex flex-col items-center justify-center text-center bg-amber-50/20">
+                      {leftBrandStyle === 'logo' ? (
+                        <img
+                          src={`data:image/png;base64,${AZEEZ_LOGO_THERMAL_BASE64}`}
+                          alt="Azeez Jewels"
+                          className="max-h-[46px] max-w-[95%] object-contain"
+                        />
+                      ) : (
+                        <div className="font-serif font-black text-[10px] tracking-wider uppercase text-charcoal-900">
+                          AZEEZ JEWELS
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* FOLD BUFFER ZONE WITH GREEN DASHED LINE */}
                   <div className="w-[14%] h-full bg-emerald-50/60 border-x border-dashed border-emerald-300 relative flex items-center justify-center">
@@ -652,45 +812,63 @@ window.onload = function() {
                     </div>
                   </div>
 
-                  {/* FLAP 2 (RIGHT SIDE OF HEAD: ALL DETAILS ON SINGLE FACE) */}
-                  <div className="w-[43%] h-full p-1 flex flex-col justify-between items-center text-center" style={{ fontFamily: getFontFamilyCss(fontPreset).primary }}>
-                    <div
-                      className="w-full flex justify-between items-center text-[7.5px] text-charcoal-900 px-0.5 leading-none"
-                      style={{
-                        fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
-                        letterSpacing: '0.2px'
-                      }}
-                    >
-                      <span className={`truncate max-w-[55%] ${textCase === 'uppercase' ? 'uppercase font-bold' : 'capitalize font-bold'}`}>{cleanItemName}</span>
-                      <span className="text-amber-800 font-bold">{item.purity || '22K (916)'}</span>
+                  {/* FLAP 2 (RIGHT SIDE OF HEAD) */}
+                  {tagLayout === 'details-left-barcode-right' ? (
+                    <div className="w-[43%] h-full p-1 flex flex-col justify-center items-center text-center bg-white">
+                      <div
+                        ref={previewBackSvgRef}
+                        className="w-full flex items-center justify-center max-h-[48px] my-auto [&>svg]:!h-[48px] [&>svg]:!w-full"
+                      ></div>
+                      <div
+                        className="w-full text-center text-[8.5px] text-charcoal-900 leading-none mt-1 font-mono tracking-wider font-bold"
+                        style={{
+                          fontFamily: getFontFamilyCss(fontPreset).mono,
+                          fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
+                        }}
+                      >
+                        {barcodeText}
+                      </div>
                     </div>
-                    <div ref={previewBackSvgRef} className="w-full flex items-center justify-center max-h-[26px] my-auto"></div>
-                    <div
-                      className="w-full flex justify-between items-center text-[7.5px] text-charcoal-900 px-0.5 leading-none"
-                      style={{
-                        fontFamily: getFontFamilyCss(fontPreset).mono,
-                        fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
-                        letterSpacing: '0.6px'
-                      }}
-                    >
-                      <span className="font-bold">{barcodeText}</span>
-                      {showPrice && item.net_price && (
-                        <span className="text-emerald-800 font-bold" style={{ fontFamily: getFontFamilyCss(fontPreset).primary }}>₹{item.net_price.toLocaleString()}</span>
-                      )}
+                  ) : (
+                    <div className="w-[43%] h-full p-1 flex flex-col justify-between items-center text-center" style={{ fontFamily: getFontFamilyCss(fontPreset).primary }}>
+                      <div
+                        className="w-full flex justify-between items-center text-[7.5px] text-charcoal-900 px-0.5 leading-none"
+                        style={{
+                          fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
+                          letterSpacing: '0.2px'
+                        }}
+                      >
+                        <span className={`truncate max-w-[55%] ${textCase === 'uppercase' ? 'uppercase font-bold' : 'capitalize font-bold'}`}>{cleanItemName}</span>
+                        <span className="text-amber-800 font-bold">{item.purity || '22K (916)'}</span>
+                      </div>
+                      <div ref={previewBackSvgRef} className="w-full flex items-center justify-center max-h-[26px] my-auto [&>svg]:!h-[24px] [&>svg]:!w-full"></div>
+                      <div
+                        className="w-full flex justify-between items-center text-[7.5px] text-charcoal-900 px-0.5 leading-none"
+                        style={{
+                          fontFamily: getFontFamilyCss(fontPreset).mono,
+                          fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
+                          letterSpacing: '0.6px'
+                        }}
+                      >
+                        <span className="font-bold">{barcodeText}</span>
+                        {showPrice && item.net_price && (
+                          <span className="text-emerald-800 font-bold" style={{ fontFamily: getFontFamilyCss(fontPreset).primary }}>₹{item.net_price.toLocaleString()}</span>
+                        )}
+                      </div>
+                      <div
+                        className={`w-full flex justify-between items-center font-bold text-charcoal-800 px-0.5 leading-none ${
+                          weightFontSize === 'xlarge' ? 'text-[9.5px]' : weightFontSize === 'large' ? 'text-[8.5px]' : 'text-[7.5px]'
+                        }`}
+                        style={{
+                          fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
+                          letterSpacing: '0.2px'
+                        }}
+                      >
+                        <span>Gr: {(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
+                        <span>Nt: {(item.net_weight || item.weight || 0).toFixed(3)}g</span>
+                      </div>
                     </div>
-                    <div
-                      className={`w-full flex justify-between items-center font-bold text-charcoal-800 px-0.5 leading-none ${
-                        weightFontSize === 'xlarge' ? 'text-[9.5px]' : weightFontSize === 'large' ? 'text-[8.5px]' : 'text-[7.5px]'
-                      }`}
-                      style={{
-                        fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
-                        letterSpacing: '0.2px'
-                      }}
-                    >
-                      <span>Gr: {(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
-                      <span>Nt: {(item.net_weight || item.weight || 0).toFixed(3)}g</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* TAIL LOOP (42%) */}
@@ -728,6 +906,61 @@ window.onload = function() {
             </div>
           </div>
 
+          {/* TAG LAYOUT SELECTION */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-bold text-charcoal-800 uppercase tracking-wider">
+                Tag Layout & Face Organization
+              </label>
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                Fold Protected (7mm Gap)
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setTagLayout('details-left-barcode-right')}
+                className={`p-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${
+                  tagLayout === 'details-left-barcode-right'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-950 shadow-sm ring-1 ring-emerald-500'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    Left: Details • Right: Big Barcode
+                  </span>
+                  {tagLayout === 'details-left-barcode-right' && <Check size={13} className="text-emerald-600 shrink-0" />}
+                </div>
+                <p className="text-[10px] font-normal text-emerald-900/80">
+                  Left: Item name, purity & weights (no brand). Right: Dedicated big barcode for quick scanning.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTagLayout('brand-left-details-right')}
+                className={`p-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${
+                  tagLayout === 'brand-left-details-right'
+                    ? 'border-gold-500 bg-gold-50 text-gold-900 shadow-sm ring-1 ring-gold-500'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-gold-500"></span>
+                    Left: Brand • Right: Details
+                  </span>
+                  {tagLayout === 'brand-left-details-right' && <Check size={13} className="text-gold-600 shrink-0" />}
+                </div>
+                <p className="text-[10px] font-normal text-gray-500">
+                  Left: Azeez Jewels hallmark. Right: Item details and compact barcode together.
+                </p>
+              </button>
+            </div>
+          </div>
+
           {/* FOLD CLEARANCE GAP CONTROLLER */}
           <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3">
             <div className="flex items-center justify-between mb-1.5">
@@ -760,34 +993,43 @@ window.onload = function() {
             </div>
           </div>
 
-          {/* BRAND DISPLAY STYLE ON LEFT FLAP */}
-          <div>
-            <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
-              Brand Style on Left Flap (Nothing else will be printed on left)
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'logo', label: 'Official Brand Emblem', desc: 'AHS Royal Crest + AZEEZ JEWELS hallmark' },
-                { id: 'text', label: 'Brand Name Text Only', desc: 'Bold serif AZEEZ JEWELS' }
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => setLeftBrandStyle(opt.id as any)}
-                  className={`p-2 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${
-                    leftBrandStyle === opt.id
-                      ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
-                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span>{opt.label}</span>
-                    {leftBrandStyle === opt.id && <Check size={12} className="text-gold-600" />}
-                  </div>
-                  <p className="text-[9px] font-normal text-gray-500">{opt.desc}</p>
-                </button>
-              ))}
+          {/* BRAND DISPLAY STYLE ON LEFT FLAP (Shown when brand layout is active) */}
+          {tagLayout === 'brand-left-details-right' ? (
+            <div>
+              <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                Brand Style on Left Flap
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'logo', label: 'Official Brand Emblem', desc: 'AHS Royal Crest + AZEEZ JEWELS hallmark' },
+                  { id: 'text', label: 'Brand Name Text Only', desc: 'Bold serif AZEEZ JEWELS' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setLeftBrandStyle(opt.id as any)}
+                    className={`p-2 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${
+                      leftBrandStyle === opt.id
+                        ? 'border-gold-500 bg-gold-50 text-gold-800 shadow-sm ring-1 ring-gold-500'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span>{opt.label}</span>
+                      {leftBrandStyle === opt.id && <Check size={12} className="text-gold-600" />}
+                    </div>
+                    <p className="text-[9px] font-normal text-gray-500">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-700 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Check size={13} className="text-emerald-600 shrink-0" />
+                <span><strong>No Brand on Tag:</strong> Left flap shows product details only, and Right flap has the big barcode.</span>
+              </span>
+            </div>
+          )}
 
           {/* CONTROLS: TAIL POSITION & FLIP 180 */}
           <div className="grid grid-cols-2 gap-3">
