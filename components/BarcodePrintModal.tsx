@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Printer, Tag, Check, Sliders, ScanLine, Eye, Copy, Layers, ShieldCheck } from 'lucide-react';
+import { X, Printer, Tag, Check, Sliders, ScanLine, Eye, Copy, Layers, ShieldCheck, Type } from 'lucide-react';
 import JsBarcode from 'jsbarcode';
 import { Button } from './UIComponents';
 import { InventoryItem } from '../types';
@@ -12,6 +12,39 @@ interface BarcodePrintModalProps {
 
 export type TagShape = 'flag' | 'dumbbell';
 export type TagSize = '92x15' | '90x15' | '81x12' | '100x15' | '50x12' | '100x20';
+export type FontPreset = 'verdana' | 'consolas' | 'segoe' | 'arial';
+export type FontWeightChoice = '700' | '600' | '800';
+export type TextCaseChoice = 'uppercase' | 'capitalize';
+
+export const getFontFamilyCss = (preset: FontPreset): { primary: string; mono: string } => {
+  switch (preset) {
+    case 'verdana':
+      return {
+        primary: "Verdana, Geneva, 'DejaVu Sans', sans-serif",
+        mono: "Consolas, 'Segoe UI Mono', monospace"
+      };
+    case 'consolas':
+      return {
+        primary: "Consolas, 'Segoe UI Mono', monospace",
+        mono: "Consolas, 'Segoe UI Mono', monospace"
+      };
+    case 'segoe':
+      return {
+        primary: "'Segoe UI', Arial, sans-serif",
+        mono: "Consolas, 'Segoe UI Mono', monospace"
+      };
+    case 'arial':
+      return {
+        primary: "Arial, Helvetica, sans-serif",
+        mono: "Consolas, 'Segoe UI Mono', monospace"
+      };
+    default:
+      return {
+        primary: "Verdana, Geneva, sans-serif",
+        mono: "Consolas, 'Segoe UI Mono', monospace"
+      };
+  }
+};
 
 // High-contrast 1-bit monochrome thermal brand logo for Azeez Jewels (AHS crest + flourish)
 const AZEEZ_LOGO_THERMAL_BASE64 = `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`;
@@ -37,7 +70,7 @@ function getBarcodeSvgString(rawText: string, format: 'CODE128' | 'CODE39' = 'CO
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, valueToEncode, {
       format: format,
-      width: encodeMode === 'numeric' ? 1.75 : (format === 'CODE39' ? 1.15 : 1.35),
+      width: encodeMode === 'numeric' ? 1.55 : (format === 'CODE39' ? 1.1 : 1.3),
       height: 32,
       displayValue: false,
       margin: 0,
@@ -83,6 +116,10 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   // Fold clearance gap in mm between Left Flap and Right Flap (protects the physical fold line)
   const [foldGapMm, setFoldGapMm] = useState<number>(7.0);
   const [isRotated180, setIsRotated180] = useState<boolean>(false);
+  // Typography & Sharpness Options for Anti-Blobbing
+  const [fontPreset, setFontPreset] = useState<FontPreset>('verdana');
+  const [fontWeight, setFontWeight] = useState<FontWeightChoice>('700');
+  const [textCase, setTextCase] = useState<TextCaseChoice>('uppercase');
   const [scannedTestResult, setScannedTestResult] = useState<string>('');
   const previewSvgRef = useRef<HTMLDivElement>(null);
   const previewBackSvgRef = useRef<HTMLDivElement>(null);
@@ -105,7 +142,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
         previewBackSvgRef.current.innerHTML = svgHtml;
       }
     }
-  }, [isOpen, item, barcodeFormat, encodeMode, tagLayout, foldGapMm, leftBrandStyle]);
+  }, [isOpen, item, barcodeFormat, encodeMode, tagLayout, foldGapMm, leftBrandStyle, fontPreset, fontWeight, textCase]);
 
   if (!isOpen || !item) return null;
 
@@ -224,11 +261,18 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
       </div>
     `).join('');
 
+    const fontFamilies = getFontFamilyCss(fontPreset);
+
     printWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
 <title>Tag - ${barcodeText}</title>
 <style>
+:root {
+  --primary-font: ${fontFamilies.primary};
+  --mono-font: ${fontFamilies.mono};
+  --font-weight: ${fontWeight};
+}
 @page {
   size: ${W}mm ${H}mm;
   margin: 0mm !important;
@@ -242,10 +286,12 @@ html, body {
   padding: 0 !important;
   background: #ffffff;
   color: #000000;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--primary-font);
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
   overflow: hidden !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 .lc {
   width: ${W}mm !important;
@@ -318,14 +364,13 @@ html, body {
 }
 .brand-text-name {
   font-family: 'Times New Roman', Georgia, serif;
-  font-size: 2.3mm;
-  font-weight: 900;
-  letter-spacing: 0.18mm;
+  font-size: 2.2mm;
+  font-weight: 700;
+  letter-spacing: 0.2mm;
   text-align: center;
   line-height: 1.1;
   text-transform: uppercase;
   color: #000000 !important;
-  -webkit-text-stroke: 0.18px #000000;
   width: 100%;
 }
 /* FLAP 2 (RIGHT): ALL DETAILS ON SINGLE FACE */
@@ -335,6 +380,7 @@ html, body {
   flex-direction: column;
   justify-content: space-between;
   padding: 0 0.4mm;
+  font-family: var(--primary-font);
 }
 .details-top-row {
   display: flex;
@@ -344,23 +390,25 @@ html, body {
   line-height: 1.0;
 }
 .item-name {
-  font-size: 1.6mm;
-  font-weight: 900;
+  font-family: var(--primary-font);
+  font-size: 1.65mm;
+  font-weight: var(--font-weight);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-transform: capitalize;
+  text-transform: ${textCase};
   max-width: 12.0mm;
+  letter-spacing: 0.15mm;
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 .purity {
-  font-size: 1.6mm;
-  font-weight: 900;
+  font-family: var(--primary-font);
+  font-size: 1.65mm;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.15mm;
   white-space: nowrap;
   text-align: right;
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 .bc-container {
   width: 100%;
@@ -386,32 +434,35 @@ html, body {
 }
 .sku {
   font-size: 1.55mm;
-  font-weight: 900;
-  font-family: 'Courier New', monospace;
-  letter-spacing: 0.15mm;
+  font-weight: var(--font-weight);
+  font-family: var(--mono-font);
+  letter-spacing: 0.3mm;
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 .price {
+  font-family: var(--primary-font);
   font-size: 1.45mm;
-  font-weight: 900;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.1mm;
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 .weights-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  font-size: 1.5mm;
-  font-weight: 900;
+  font-family: var(--primary-font);
+  font-size: 1.45mm;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.12mm;
   line-height: 1.0;
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 .huid {
+  font-family: var(--mono-font);
   font-size: 1.3mm;
-  font-weight: 900;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.15mm;
   color: #000000 !important;
 }
 .flap-barcode-only {
@@ -423,9 +474,10 @@ html, body {
   text-align: center;
 }
 .brand-header {
+  font-family: var(--primary-font);
   font-size: 1.7mm;
-  font-weight: 900;
-  letter-spacing: 0.12mm;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.15mm;
   line-height: 1.0;
   text-transform: uppercase;
   text-align: center;
@@ -433,7 +485,6 @@ html, body {
   overflow: hidden;
   width: 100%;
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 .bc-container-lg {
   width: 100%;
@@ -450,55 +501,59 @@ html, body {
   display: block;
 }
 .sku-bottom {
+  font-family: var(--mono-font);
   font-size: 1.55mm;
-  font-weight: 900;
-  letter-spacing: 0.2mm;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.25mm;
   text-align: center;
   line-height: 1.0;
   white-space: nowrap;
   overflow: hidden;
   width: 100%;
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 .purity-header {
+  font-family: var(--primary-font);
   font-size: 1.7mm;
-  font-weight: 900;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.15mm;
   line-height: 1.0;
   white-space: nowrap;
   overflow: hidden;
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 .item-title {
+  font-family: var(--primary-font);
   font-size: 1.6mm;
-  font-weight: 900;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.15mm;
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-transform: capitalize;
+  text-transform: ${textCase};
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 .weights-block {
   display: flex;
   flex-direction: column;
   gap: 0.2mm;
-  font-size: 1.5mm;
-  font-weight: 900;
+  font-family: var(--primary-font);
+  font-size: 1.45mm;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.12mm;
   line-height: 1.05;
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 .price-bottom {
+  font-family: var(--primary-font);
   font-size: 1.5mm;
-  font-weight: 900;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.1mm;
   line-height: 1.0;
   white-space: nowrap;
   overflow: hidden;
   color: #000000 !important;
-  -webkit-text-stroke: 0.15px #000000;
 }
 </style>
 </head>
@@ -594,19 +649,38 @@ window.onload = function() {
                   </div>
 
                   {/* FLAP 2 (RIGHT SIDE OF HEAD: ALL DETAILS ON SINGLE FACE) */}
-                  <div className="w-[43%] h-full p-1 flex flex-col justify-between items-center text-center">
-                    <div className="w-full flex justify-between items-center text-[7.5px] font-black text-charcoal-900 px-0.5 leading-none">
-                      <span className="truncate max-w-[55%]">{cleanItemName}</span>
-                      <span className="text-amber-800">{item.purity || '22K (916)'}</span>
+                  <div className="w-[43%] h-full p-1 flex flex-col justify-between items-center text-center" style={{ fontFamily: getFontFamilyCss(fontPreset).primary }}>
+                    <div
+                      className="w-full flex justify-between items-center text-[7.5px] text-charcoal-900 px-0.5 leading-none"
+                      style={{
+                        fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
+                        letterSpacing: '0.2px'
+                      }}
+                    >
+                      <span className={`truncate max-w-[55%] ${textCase === 'uppercase' ? 'uppercase font-bold' : 'capitalize font-bold'}`}>{cleanItemName}</span>
+                      <span className="text-amber-800 font-bold">{item.purity || '22K (916)'}</span>
                     </div>
                     <div ref={previewBackSvgRef} className="w-full flex items-center justify-center max-h-[26px] my-auto"></div>
-                    <div className="w-full flex justify-between items-center text-[7.5px] font-black font-mono text-charcoal-900 px-0.5 leading-none">
-                      <span>{barcodeText}</span>
+                    <div
+                      className="w-full flex justify-between items-center text-[7.5px] text-charcoal-900 px-0.5 leading-none"
+                      style={{
+                        fontFamily: getFontFamilyCss(fontPreset).mono,
+                        fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
+                        letterSpacing: '0.6px'
+                      }}
+                    >
+                      <span className="font-bold">{barcodeText}</span>
                       {showPrice && item.net_price && (
-                        <span className="text-emerald-800 font-sans">₹{item.net_price.toLocaleString()}</span>
+                        <span className="text-emerald-800 font-bold" style={{ fontFamily: getFontFamilyCss(fontPreset).primary }}>₹{item.net_price.toLocaleString()}</span>
                       )}
                     </div>
-                    <div className="w-full flex justify-between items-center text-[7.5px] font-mono font-bold text-charcoal-800 px-0.5 leading-none">
+                    <div
+                      className="w-full flex justify-between items-center text-[7.5px] font-bold text-charcoal-800 px-0.5 leading-none"
+                      style={{
+                        fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
+                        letterSpacing: '0.2px'
+                      }}
+                    >
                       <span>Gr: {(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
                       <span>Nt: {(item.net_weight || item.weight || 0).toFixed(3)}g</span>
                     </div>
@@ -821,6 +895,112 @@ window.onload = function() {
             </div>
           </div>
 
+          {/* FONT & CLARITY SETTINGS (ANTI-BLOBBING CONTROLS) */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <Type size={15} className="text-gold-600" />
+                Font Style & Print Sharpness (Anti-Blobbing)
+              </div>
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                Zero Stroke • Open Counters
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* FONT PRESET */}
+              <div>
+                <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                  Font Family
+                </label>
+                <div className="space-y-1.5">
+                  {[
+                    { id: 'verdana', label: 'Verdana (Recommended)', desc: 'Large open loops in e, g, 9, 6, 8, 0 (stops ink fill-in)' },
+                    { id: 'consolas', label: 'Consolas (Clean Mono)', desc: 'Uniform width, distinct open zeros and digits' },
+                    { id: 'segoe', label: 'Segoe UI', desc: 'Modern crisp Windows sans-serif' },
+                    { id: 'arial', label: 'Arial Clean', desc: 'Standard sans-serif without heavy stroke' }
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setFontPreset(opt.id as any)}
+                      className={`w-full py-1.5 px-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${
+                        fontPreset === opt.id
+                          ? 'border-gold-500 bg-gold-50 text-gold-900 shadow-sm ring-1 ring-gold-500'
+                          : 'border-gray-200 text-gray-700 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{opt.label}</span>
+                        {fontPreset === opt.id && <Check size={12} className="text-gold-600" />}
+                      </div>
+                      <p className="text-[9px] font-normal text-gray-500">{opt.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* FONT WEIGHT & CASE */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                    Print Thickness (Weight)
+                  </label>
+                  <div className="space-y-1.5">
+                    {[
+                      { id: '700', label: 'Bold 700 (Recommended)', desc: 'Dark solid black with open interior loops' },
+                      { id: '600', label: 'Semi-Bold 600 (Extra Sharp)', desc: 'Thinner strokes if hot ribbon causes dot spread' },
+                      { id: '800', label: 'Extra Bold 800', desc: 'For lighter ribbons or low darkness' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setFontWeight(opt.id as any)}
+                        className={`w-full py-1.5 px-2.5 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${
+                          fontWeight === opt.id
+                            ? 'border-gold-500 bg-gold-50 text-gold-900 shadow-sm ring-1 ring-gold-500'
+                            : 'border-gray-200 text-gray-700 bg-white hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{opt.label}</span>
+                          {fontWeight === opt.id && <Check size={12} className="text-gold-600" />}
+                        </div>
+                        <p className="text-[9px] font-normal text-gray-500">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wider mb-1.5">
+                    Item Name Format
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'uppercase', label: 'RING (All Caps)', desc: 'No descenders' },
+                      { id: 'capitalize', label: 'Ring (Title Case)', desc: 'Mixed case' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setTextCase(opt.id as any)}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all cursor-pointer text-left ${
+                          textCase === opt.id
+                            ? 'border-gold-500 bg-gold-50 text-gold-900 shadow-sm ring-1 ring-gold-500'
+                            : 'border-gray-200 text-gray-700 bg-white hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{opt.label}</span>
+                          {textCase === opt.id && <Check size={12} className="text-gold-600" />}
+                        </div>
+                        <p className="text-[9px] font-normal text-gray-500">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* CRITICAL WINDOWS DRIVER SETTINGS BANNER */}
           <div className="bg-amber-50/80 border border-amber-300 rounded-xl p-3 text-xs text-slate-800 space-y-1.5">
             <div className="font-bold flex items-center gap-1.5 text-amber-900 uppercase tracking-wider text-[11px]">
@@ -828,10 +1008,10 @@ window.onload = function() {
             </div>
             <ul className="list-disc list-inside space-y-1 text-[11px] font-medium text-slate-700">
               <li>
-                <strong>Darkness:</strong> Set Darkness to <strong>11 - 13</strong> in Printer Preferences.
+                <strong>Darkness:</strong> Keep Darkness around <strong>8 - 10</strong> in Printer Preferences. If letters start filling in, drop by 1 level.
               </li>
               <li>
-                <strong>Print Speed:</strong> Lower Print Speed to <strong>2.0 in/sec (50 mm/sec)</strong> in the <i>Options</i> tab for deep, solid black ink melt.
+                <strong>Print Speed:</strong> Lower Print Speed to <strong>2.0 in/sec (50 mm/sec)</strong> in the <i>Options</i> tab for deep, solid black ink melt without smear.
               </li>
               <li>
                 <strong>Dithering:</strong> Keep set to <strong>None</strong> in the <i>Graphics</i> tab.
