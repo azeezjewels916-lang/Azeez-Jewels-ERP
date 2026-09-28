@@ -85,8 +85,8 @@ export const Customers: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!formData.name || !formData.phone) {
-      toast({ title: 'Validation Error', description: 'Name and Phone are required.', variant: 'destructive' });
+    if (!formData.name?.trim()) {
+      toast({ title: 'Validation Error', description: 'Name is required.', variant: 'destructive' });
       return;
     }
 
@@ -157,7 +157,7 @@ export const Customers: React.FC = () => {
   const filteredCustomers = useMemo(() => {
     return customers.filter(c =>
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.phone.includes(searchTerm) ||
+      (c.phone && c.phone.includes(searchTerm)) ||
       (c.customer_code && c.customer_code.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [customers, searchTerm]);
@@ -411,7 +411,7 @@ export const Customers: React.FC = () => {
                   placeholder="Enter customer name"
                 />
                 <Input
-                  label="Phone Number *"
+                  label="Phone Number (Optional)"
                   value={formData.phone}
                   onChange={e => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="Enter phone number"

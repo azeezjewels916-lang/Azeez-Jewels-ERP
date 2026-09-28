@@ -831,28 +831,44 @@ export const Inventory: React.FC = () => {
                                  <Select
                                     label="Metal Type"
                                     value={formData.metal_type}
-                                    onChange={e => handleInputChange('metal_type', e.target.value)}
+                                    onChange={e => {
+                                       const val = e.target.value;
+                                       handleInputChange('metal_type', val);
+                                       if (val === 'Other') {
+                                          handleInputChange('purity', '');
+                                       }
+                                    }}
                                     options={[
                                        { value: 'Gold', label: 'Gold' },
                                        { value: 'Silver', label: 'Silver' },
                                        { value: 'Platinum', label: 'Platinum' },
                                        { value: 'Rose Gold', label: 'Rose Gold' },
+                                       { value: 'Other', label: 'Other' },
                                     ]}
                                  />
-                                 <Select
-                                    label="Purity"
-                                    value={formData.purity}
-                                    onChange={e => handleInputChange('purity', e.target.value)}
-                                    options={[
-                                       { value: '24K (Pure)', label: '24K (Pure)' },
-                                       { value: '22K (916)', label: '22K (916)' },
-                                       { value: '18K (750)', label: '18K (750)' },
-                                       { value: '14K (585)', label: '14K (585)' },
-                                       { value: 'Silver (925)', label: 'Silver (925)' },
-                                       { value: 'Silver (70)', label: 'Silver (70)' },
-                                       { value: 'Selam', label: 'Selam' },
-                                    ]}
-                                 />
+                                 {formData.metal_type === 'Other' ? (
+                                    <Input
+                                       label="Purity"
+                                       placeholder="Type purity..."
+                                       value={formData.purity}
+                                       onChange={e => handleInputChange('purity', e.target.value)}
+                                    />
+                                 ) : (
+                                    <Select
+                                       label="Purity"
+                                       value={formData.purity}
+                                       onChange={e => handleInputChange('purity', e.target.value)}
+                                       options={[
+                                          { value: '24K (Pure)', label: '24K (Pure)' },
+                                          { value: '22K (916)', label: '22K (916)' },
+                                          { value: '18K (750)', label: '18K (750)' },
+                                          { value: '14K (585)', label: '14K (585)' },
+                                          { value: 'Silver (925)', label: 'Silver (925)' },
+                                          { value: 'Silver (70)', label: 'Silver (70)' },
+                                          { value: 'Selam', label: 'Selam' },
+                                       ]}
+                                    />
+                                 )}
                               </div>
                               <div className="grid grid-cols-2 gap-4">
                                  <Input

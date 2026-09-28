@@ -209,6 +209,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   });
 
   const getDefaultPurity = (metalType: string) => {
+    if (metalType === 'other') return '';
     if (metalType === 'gold_750') return '18K 750';
     if (metalType === 'silver_92') return '92.5 Silver';
     if (metalType === 'silver_70') return '70 Silver';
@@ -546,7 +547,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
     const goldSubtotal = goldItems.reduce((sum, item) => sum + item.line_total, 0);
     const silverSubtotal = silverItems.reduce((sum, item) => sum + item.line_total, 0);
-    const itemsSubtotal = goldSubtotal + silverSubtotal;
+    const itemsSubtotal = items.reduce((sum, item) => sum + item.line_total, 0);
 
     const oldGoldValue = oldGoldExchange.total || 0;
     const oldSilverValue = oldSilverExchange.total || 0;
@@ -656,9 +657,16 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   };
 
   const handleAddNewCustomer = async () => {
-    if (!newCustomerData.name || !newCustomerData.phone) return;
+    if (!newCustomerData.name?.trim()) {
+      toast({ title: "Validation Error", description: "Customer name is required", variant: 'destructive' });
+      return;
+    }
     try {
-      const data = await createCustomer({ name: newCustomerData.name, phone: newCustomerData.phone, address: newCustomerData.address });
+      const data = await createCustomer({
+        name: newCustomerData.name.trim(),
+        phone: newCustomerData.phone?.trim() || null,
+        address: newCustomerData.address?.trim() || null
+      });
       if (data) {
         setCustomer(data as Customer);
         setShowAddCustomerForm(false);
@@ -713,7 +721,9 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       return;
     }
     const customRate = parseFloat(newItem.rateInput) || 0;
-    const defaultRate = (newItem.metal_type.includes('gold') ? allMetalRates['gold'] : dailyGoldRate) || 0;
+    const defaultRate = newItem.metal_type === 'other'
+      ? 0
+      : (newItem.metal_type.includes('gold') ? allMetalRates['gold'] : dailyGoldRate) || 0;
     const finalRate = customRate > 0 ? customRate : (defaultRate > 0 ? defaultRate : newItem.rate);
 
     if (finalRate <= 0) {
@@ -762,14 +772,17 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       gst_rate: 0, line_total: lineTotal,
       metal_type: newItem.metal_type,
       hsn_code: newItem.hsn_code,
-      purity: newItem.purity || getDefaultPurity(newItem.metal_type)
+      purity: newItem.purity || (newItem.metal_type === 'other' ? 'Custom' : getDefaultPurity(newItem.metal_type))
     }]);
 
     setNewItem({
       barcode: '', inventory_item_id: '', category: '', item_name: '', huid: '', gross_weight: 0, grossWeightInput: '',
       net_weight: 0, netWeightInput: '', weight: 0, weightInput: '', rate: 0, rateInput: '',
       making_charges: 0, makingChargesInput: '', makingChargesAmount: '',
-      makingChargesPercentage: '', purity: getDefaultPurity(newItem.metal_type || 'gold'), hsn_code: '711319', metal_type: 'gold'
+      makingChargesPercentage: '',
+      purity: newItem.metal_type === 'other' ? '' : getDefaultPurity(newItem.metal_type || 'gold'),
+      hsn_code: '711319',
+      metal_type: newItem.metal_type || 'gold'
     });
   };
 
@@ -1233,8 +1246,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
               <div className="space-y-3 p-1">
                 <h4 className="text-xs font-bold uppercase text-gold-600">Add New Customer</h4>
                 <div className="flex gap-2">
-                  <Input placeholder="Name" value={newCustomerData.name} onChange={e => setNewCustomerData({ ...newCustomerData, name: e.target.value })} />
-                  <Input placeholder="Phone" value={newCustomerData.phone} onChange={e => setNewCustomerData({ ...newCustomerData, phone: e.target.value })} />
+                  <Input placeholder="Name *" value={newCustomerData.name} onChange={e => setNewCustomerData({ ...newCustomerData, name: e.target.value })} />
+                  <Input placeholder="Phone (Optional)" value={newCustomerData.phone} onChange={e => setNewCustomerData({ ...newCustomerData, phone: e.target.value })} />
                 </div>
                 <Input placeholder="Address (Optional)" value={newCustomerData.address} onChange={e => setNewCustomerData({ ...newCustomerData, address: e.target.value })} />
                 <div className="flex gap-2">
@@ -1247,7 +1260,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
               <div className="mt-3 p-3 bg-gold-100/50 rounded border border-gold-500/20 flex justify-between items-center">
                 <div>
                   <p className="font-bold text-charcoal-900">{customer.name}</p>
-                  <p className="text-xs text-gray-600 font-mono">{customer.phone}</p>
+                  <p className="text-xs text-gray-600 font-mono">{customer.phone || customer.address || 'Walk-in / No phone'}</p>
                 </div>
                 <button onClick={() => setCustomer(null)} className="text-xs text-red-500 hover:underline">Change</button>
               </div>
@@ -1282,10 +1295,53 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             <div className="col-span-1"><Input label="Gross Wt" type="number" isMonospaced value={newItem.grossWeightInput} onChange={(e) => setNewItem({ ...newItem, grossWeightInput: e.target.value })} /></div>
             <div className="col-span-1"><Input label="Net Wt" type="number" isMonospaced value={newItem.netWeightInput} onChange={(e) => setNewItem({ ...newItem, netWeightInput: e.target.value })} /></div>
             <div className="col-span-1">
-              <Select label="Metal Type" value={newItem.metal_type} options={[{ value: 'gold', label: 'Gold (Std)' }, { value: 'gold_916', label: 'Gold (22k)' }, { value: 'gold_750', label: 'Gold (18k)' }, { value: 'silver_92', label: 'Silver (92.5)' }, { value: 'silver_70', label: 'Silver (70)' }, { value: 'selam_silver', label: 'Selam' }]} onChange={e => setNewItem({ ...newItem, metal_type: e.target.value, purity: getDefaultPurity(e.target.value), rateInput: (allMetalRates[e.target.value] || 0).toString() })} />
+              <Select
+                label="Metal Type"
+                value={newItem.metal_type}
+                options={[
+                  { value: 'gold', label: 'Gold (Std)' },
+                  { value: 'gold_916', label: 'Gold (22k)' },
+                  { value: 'gold_750', label: 'Gold (18k)' },
+                  { value: 'silver_92', label: 'Silver (92.5)' },
+                  { value: 'silver_70', label: 'Silver (70)' },
+                  { value: 'selam_silver', label: 'Selam' },
+                  { value: 'other', label: 'Other' },
+                ]}
+                onChange={e => {
+                  const val = e.target.value;
+                  const isOther = val === 'other';
+                  setNewItem({
+                    ...newItem,
+                    metal_type: val,
+                    purity: isOther ? '' : getDefaultPurity(val),
+                    rateInput: isOther ? '' : (allMetalRates[val] || 0).toString()
+                  });
+                }}
+              />
             </div>
             <div className="col-span-1">
-              <Select label="Purity" value={newItem.purity} options={[{ value: '22K 916', label: '22K 916' }, { value: '18K 750', label: '18K 750' }, { value: '24K 999', label: '24K 999' }, { value: '92.5 Silver', label: '92.5 Silver' }, { value: '70 Silver', label: '70 Silver' }, { value: 'Selam Silver', label: 'Selam' }]} onChange={e => setNewItem({ ...newItem, purity: e.target.value })} />
+              {newItem.metal_type === 'other' ? (
+                <Input
+                  label="Purity"
+                  placeholder="Type purity..."
+                  value={newItem.purity}
+                  onChange={e => setNewItem({ ...newItem, purity: e.target.value })}
+                />
+              ) : (
+                <Select
+                  label="Purity"
+                  value={newItem.purity}
+                  options={[
+                    { value: '22K 916', label: '22K 916' },
+                    { value: '18K 750', label: '18K 750' },
+                    { value: '24K 999', label: '24K 999' },
+                    { value: '92.5 Silver', label: '92.5 Silver' },
+                    { value: '70 Silver', label: '70 Silver' },
+                    { value: 'Selam Silver', label: 'Selam' },
+                  ]}
+                  onChange={e => setNewItem({ ...newItem, purity: e.target.value })}
+                />
+              )}
             </div>
             <div className="col-span-1"><Input label="Rate/Gm" type="number" isMonospaced placeholder={dailyGoldRate.toString()} value={newItem.rateInput} onChange={(e) => setNewItem({ ...newItem, rateInput: e.target.value })} /></div>
             <div className="col-span-1">
