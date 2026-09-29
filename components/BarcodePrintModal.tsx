@@ -181,15 +181,17 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   };
   const cleanPurity = formatTagPurity(item.purity);
 
-  // Format Weight matching reference (e.g. "1.59 gm." or "1.595 gm.")
-  const itemWeightVal = Number(item.net_weight || item.gross_weight || item.weight || 0);
+  // Format Weight matching reference (strictly 3 decimals: e.g. "1.910 gm.", never stripped or truncated)
+  const parseNum = (v: any): number => {
+    if (typeof v === 'number') return isNaN(v) ? 0 : v;
+    if (!v) return 0;
+    const n = parseFloat(String(v).replace(/[^0-9.]/g, ''));
+    return isNaN(n) ? 0 : n;
+  };
+  const itemWeightVal = parseNum(item.net_weight) || parseNum(item.gross_weight) || parseNum(item.weight) || 0;
   const formatTagWeight = (val: number) => {
-    if (!val || val <= 0) return '0.00 gm.';
-    const str3 = val.toFixed(3);
-    if (str3.endsWith('0')) {
-      return `${val.toFixed(2)} gm.`;
-    }
-    return `${str3} gm.`;
+    if (!val || val <= 0) return '0.000 gm.';
+    return `${val.toFixed(3)} gm.`;
   };
   const cleanWeight = formatTagWeight(itemWeightVal);
 
@@ -361,11 +363,11 @@ html, body {
   page-break-inside: avoid !important;
 }
 .head-left-tail-right {
-  padding: 2.8mm 1.0mm 0.8mm 2.0mm;
+  padding: 2.8mm 1.0mm 0.8mm 2.2mm;
   justify-content: flex-start;
 }
 .tail-left-head-right {
-  padding: 2.8mm 2.0mm 0.8mm 1.0mm;
+  padding: 2.8mm 2.2mm 0.8mm 1.0mm;
   justify-content: flex-end;
 }
 .head-area {
@@ -431,13 +433,13 @@ html, body {
 }
 /* FLAP: PRODUCT DETAILS ONLY (LEFT FLAP - EXACT 3-LINE PHOTO REFERENCE) */
 .flap-product-details {
-  width: 20.5mm;
+  width: 21.0mm;
   height: 11.2mm;
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-evenly !important;
   align-items: flex-start !important;
-  padding: 0.3mm 0.6mm 0.3mm 0.8mm;
+  padding: 0.4mm 0.4mm 0.4mm 2.2mm;
   font-family: var(--primary-font);
   box-sizing: border-box;
   overflow: hidden;
@@ -446,26 +448,23 @@ html, body {
   display: flex;
   align-items: baseline;
   width: 100%;
-  line-height: 1.15;
+  line-height: 1.2;
   font-family: var(--primary-font);
-  font-size: 2.1mm;
+  font-size: 1.75mm;
   font-weight: 700;
-  letter-spacing: 0.08mm;
+  letter-spacing: 0.02mm;
   color: #000000 !important;
   white-space: nowrap;
-  overflow: hidden;
 }
 .ref-lbl {
   font-weight: 700;
   flex-shrink: 0;
-  margin-right: 0.8mm;
+  margin-right: 0.5mm;
   color: #000000 !important;
 }
 .ref-val {
   font-weight: 700;
   color: #000000 !important;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .ref-extra-line {
@@ -473,10 +472,47 @@ html, body {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  font-size: 1.4mm;
+  font-size: 1.35mm;
   font-weight: 700;
   color: #000000 !important;
   line-height: 1.0;
+}
+/* FLAP: HERO BARCODE ONLY (RIGHT FLAP - BIGGER SIZING) */
+.flap-barcode-hero {
+  width: 21.0mm;
+  height: 11.2mm;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 0.2mm 0.4mm 0.2mm 0.4mm;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.bc-container-hero {
+  width: 100%;
+  height: 7.2mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  overflow: hidden;
+}
+.bc-container-hero svg {
+  width: 100% !important;
+  height: 7.2mm !important;
+  display: block;
+}
+.barcode-sku-hero {
+  font-family: var(--mono-font);
+  font-size: 1.75mm;
+  font-weight: var(--font-weight);
+  letter-spacing: 0.35mm;
+  text-align: center;
+  line-height: 1.0;
+  margin-top: 0.4mm;
+  white-space: nowrap;
+  color: #000000 !important;
 }
 /* FLAP 2 (RIGHT): ALL DETAILS ON SINGLE FACE */
 .flap-right {
@@ -736,23 +772,23 @@ window.onload = function() {
                   {/* FLAP 1 (LEFT SIDE OF HEAD - EXACT 3-LINE PHOTO REFERENCE) */}
                   {tagLayout === 'details-left-barcode-right' ? (
                     <div
-                      className="w-[43%] h-full py-1.5 px-2 flex flex-col justify-evenly text-left bg-white"
+                      className="w-[43%] h-full py-1.5 pl-3 pr-1 flex flex-col justify-evenly text-left bg-white"
                       style={{ fontFamily: getFontFamilyCss(fontPreset).primary }}
                     >
                       {/* Line 1: Purity : 750 */}
-                      <div className="w-full flex items-baseline text-[9.5px] leading-tight text-charcoal-950 font-bold">
+                      <div className="w-full flex items-baseline text-[9px] leading-tight text-charcoal-950 font-bold whitespace-nowrap">
                         <span className="shrink-0 mr-1 text-charcoal-800 font-extrabold">Purity :</span>
                         <span className="font-extrabold text-charcoal-950">{cleanPurity}</span>
                       </div>
 
-                      {/* Line 2: Item : Earrings */}
-                      <div className="w-full flex items-baseline text-[9.5px] leading-tight text-charcoal-950 font-bold">
+                      {/* Line 2: Item : Ring */}
+                      <div className="w-full flex items-baseline text-[9px] leading-tight text-charcoal-950 font-bold whitespace-nowrap">
                         <span className="shrink-0 mr-1 text-charcoal-800 font-extrabold">Item :</span>
-                        <span className="font-extrabold text-charcoal-950 truncate capitalize">{cleanItemName}</span>
+                        <span className="font-extrabold text-charcoal-950 capitalize">{cleanItemName}</span>
                       </div>
 
-                      {/* Line 3: Weight : 1.59 gm. */}
-                      <div className="w-full flex items-baseline text-[9.5px] leading-tight text-charcoal-950 font-bold">
+                      {/* Line 3: Weight : 1.910 gm. */}
+                      <div className="w-full flex items-baseline text-[9px] leading-tight text-charcoal-950 font-bold whitespace-nowrap">
                         <span className="shrink-0 mr-1 text-charcoal-800 font-extrabold">Weight :</span>
                         <span className="font-extrabold text-charcoal-950">{cleanWeight}</span>
                       </div>
