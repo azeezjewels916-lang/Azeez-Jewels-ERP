@@ -14,7 +14,8 @@ import {
   Eye,
   CheckCircle,
   RefreshCw,
-  Tag
+  Tag,
+  Sparkles
 } from 'lucide-react';
 import { Input, Button, Select, Card, toast } from '../components/UIComponents';
 import { BillItem, PaymentRecord, Customer } from '../types';
@@ -206,6 +207,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     silver_92: 0,
     silver_70: 0,
     selam_silver: 0,
+    nose_pin: 0,
   });
 
   const getDefaultPurity = (metalType: string) => {
@@ -241,6 +243,23 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     hsn_code: '711319',
     metal_type: 'gold',
   });
+
+  // --- DEDICATED NOSE PIN SECTION STATE ---
+  const [isNosePinSectionOpen, setIsNosePinSectionOpen] = useState(true);
+  const [nosePinItem, setNosePinItem] = useState({
+    item_name: 'Plain Nose Pin',
+    metal_type: 'gold_750',
+    purity: '18K 750',
+    rateInput: '',
+    rate: 0,
+    grossWeightInput: '',
+    netWeightInput: '',
+    weight: 0,
+    makingChargesAmount: '',
+    makingChargesPercentage: '',
+    huid: '',
+  });
+
   const [isLoadingItem, setIsLoadingItem] = useState(false);
   const [matchedBarcodeItems, setMatchedBarcodeItems] = useState<any[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -250,7 +269,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   const [billNo, setBillNo] = useState('');
   const [voucherNo, setVoucherNo] = useState('');
   const [saleType, setSaleType] = useState<'GST' | 'NON GST'>('GST');
-  const [billMode, setBillMode] = useState<'gold' | 'silver'>('gold');
+  const [billMode, setBillMode] = useState<'gold' | 'silver' | 'nosepin'>('gold');
   const GST_RATE = 0.03;
 
   // --- GST CONTROL STATE FROM ADMIN ---
@@ -382,6 +401,15 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         rate: currentTypeRate
       }));
     }
+
+    const currentNosePinRate = allMetalRates['nose_pin'] || allMetalRates['gold_750'] || 0;
+    if (currentNosePinRate > 0 && !nosePinItem.rateInput) {
+      setNosePinItem(prev => ({
+        ...prev,
+        rateInput: currentNosePinRate.toString(),
+        rate: currentNosePinRate
+      }));
+    }
   }, [allMetalRates, newItem.metal_type]);
 
   useEffect(() => {
@@ -394,7 +422,8 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
         const ratesMap: Record<string, number> = {
           gold: 0, gold_916: 0, gold_750: 0,
-          silver_92: 0, silver_70: 0, selam_silver: 0
+          silver_92: 0, silver_70: 0, selam_silver: 0,
+          nose_pin: 0
         };
 
         if (data && data.length > 0) {
@@ -694,6 +723,13 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         rate: rate
       }));
     }
+    if (metalKey === 'nose_pin') {
+      setNosePinItem(prev => ({
+        ...prev,
+        rateInput: value,
+        rate: rate
+      }));
+    }
 
     // 2. Persist to DB
     if (!isNaN(numValue) && numValue > 0) {
@@ -786,6 +822,72 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     });
   };
 
+  const handleAddNosePinItem = () => {
+    const netWeight = parseFloat(nosePinItem.netWeightInput) || parseFloat(nosePinItem.grossWeightInput) || 0;
+    const grossWeight = parseFloat(nosePinItem.grossWeightInput) || netWeight;
+    const manualRate = parseFloat(nosePinItem.rateInput);
+    const finalRate = !isNaN(manualRate) && manualRate > 0
+      ? manualRate
+      : (allMetalRates['nose_pin'] || allMetalRates['gold_750'] || dailyGoldRate || 0);
+
+    if (netWeight <= 0) {
+      toast({ title: "Validation Error", description: "Weight is required for Nose Pin", variant: 'destructive' });
+      return;
+    }
+    if (finalRate <= 0) {
+      toast({ title: "Validation Error", description: "Rate is required for Nose Pin", variant: 'destructive' });
+      return;
+    }
+
+    let making = 0;
+    let mcType = 'amt';
+    let mcInput = '';
+
+    if (nosePinItem.makingChargesAmount) {
+      making = parseFloat(nosePinItem.makingChargesAmount) || 0;
+      mcType = 'amt';
+      mcInput = nosePinItem.makingChargesAmount;
+    } else if (nosePinItem.makingChargesPercentage) {
+      making = (netWeight * finalRate) * (parseFloat(nosePinItem.makingChargesPercentage) / 100);
+      mcType = 'pct';
+      mcInput = nosePinItem.makingChargesPercentage;
+    }
+
+    const lineTotal = (netWeight * finalRate) + making;
+    setItems(prev => [...prev, {
+      id: Date.now().toString(),
+      barcode: '',
+      category: 'Nose Pin',
+      item_name: nosePinItem.item_name || 'Nose Pin',
+      huid: nosePinItem.huid,
+      gross_weight: grossWeight,
+      net_weight: netWeight,
+      weight: netWeight,
+      rate: finalRate,
+      making_charges: making,
+      making_charges_type: mcType,
+      making_charges_input: mcInput,
+      gst_rate: 0,
+      line_total: lineTotal,
+      metal_type: nosePinItem.metal_type,
+      hsn_code: '711319',
+      purity: nosePinItem.purity || '18K 750'
+    }]);
+
+    toast({
+      title: "Nose Pin Added",
+      description: `${nosePinItem.item_name || 'Nose Pin'} (${netWeight.toFixed(3)}g @ ₹${finalRate.toLocaleString()})`
+    });
+
+    setNosePinItem(prev => ({
+      ...prev,
+      grossWeightInput: '',
+      netWeightInput: '',
+      makingChargesAmount: '',
+      makingChargesPercentage: ''
+    }));
+  };
+
   const handleRemoveItem = (id: string) => setItems(items.filter(i => i.id !== id));
 
   const handleAddPayment = () => {
@@ -807,7 +909,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
   // --- PRINT / PREVIEW LOGIC ---
 
-  const handleOpenPreview = (type: 'invoice' | 'exchange' | 'silver') => {
+  const handleOpenPreview = (type: 'invoice' | 'exchange' | 'silver' | 'nosepin') => {
     setActivePrintView(type);
     setShowPreviewModal(true);
   };
@@ -888,7 +990,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       await createBillItems(savedBill.id, billItems);
       await deductInventoryStock(billItems);
       toast({ title: "Success", description: billId ? "Bill updated successfully!" : "Bill saved successfully!" });
-      handleOpenPreview('invoice');
+      handleOpenPreview(billMode === 'silver' ? 'silver' : billMode === 'nosepin' ? 'nosepin' : 'invoice');
     } catch (err: any) {
       toast({ title: "Error Saving", description: err.message, variant: 'destructive' });
     } finally {
@@ -1149,10 +1251,11 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             <span className="w-2.5 h-2.5 rounded-full bg-gold-500 animate-pulse"></span>
             <span className="text-gold-600 font-bold uppercase text-xs tracking-wider">Live Rates (₹/g)</span>
           </div>
-          <div className="flex-1 grid grid-cols-6 gap-3">
+          <div className="flex-1 grid grid-cols-7 gap-3">
             {Object.entries({
               'Gold (Std)': 'gold', 'Gold (22k)': 'gold_916', 'Gold (18k)': 'gold_750',
-              'Silver (925)': 'silver_92', 'Silver (70)': 'silver_70', 'Selam': 'selam_silver'
+              'Silver (925)': 'silver_92', 'Silver (70)': 'silver_70', 'Selam': 'selam_silver',
+              'Nose Pin': 'nose_pin'
             }).map(([label, key]) => (
               <div key={key} className="text-center bg-gold-50/40 rounded-lg p-1.5 border border-gold-500/15">
                 <label className="block text-[10px] uppercase text-charcoal-700 font-bold mb-1 tracking-wider">{label}</label>
@@ -1204,11 +1307,37 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                 <Tag size={14} />
                 <span>SILVER CASH BILL</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setBillMode('nosepin');
+                  setActivePrintView('nosepin');
+                  setIsNosePinSectionOpen(true);
+                  const npRate = allMetalRates['nose_pin'] || allMetalRates['gold_750'] || dailyGoldRate || 0;
+                  setNosePinItem(prev => ({
+                    ...prev,
+                    rateInput: npRate > 0 ? npRate.toString() : prev.rateInput,
+                    rate: npRate > 0 ? npRate : prev.rate
+                  }));
+                }}
+                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${billMode === 'nosepin'
+                    ? 'bg-amber-600 text-white shadow-md font-extrabold'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+              >
+                <Sparkles size={14} />
+                <span>NOSE PIN CASH BILL</span>
+              </button>
             </div>
           </div>
 
           <span className="text-xs font-bold text-gray-500">
-            {billMode === 'silver' ? 'Silver Mode Active (GSTIN: 29BPSPK1616Q1Z2)' : 'Gold Mode Active'}
+            {billMode === 'silver'
+              ? 'Silver Mode Active (GSTIN: 29BPSPK1616Q1Z2)'
+              : billMode === 'nosepin'
+              ? 'Nose Pin Mode Active (Dedicated Slip Bill)'
+              : 'Gold Mode Active'}
           </span>
         </div>
 
@@ -1284,6 +1413,200 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
               </div>
             </div>
           </Card>
+        </div>
+
+        {/* Dedicated Nose Pin Section */}
+        <div className={`rounded-xl border transition-all duration-200 overflow-hidden ${isNosePinSectionOpen ? 'border-amber-300 ring-1 ring-amber-200 bg-white' : 'border-gray-300 bg-white'}`}>
+          <div
+            onClick={() => setIsNosePinSectionOpen(!isNosePinSectionOpen)}
+            className={`flex items-center justify-between p-4 cursor-pointer select-none ${isNosePinSectionOpen ? 'bg-gradient-to-r from-amber-50 to-orange-50/50 border-b border-amber-200' : 'bg-white hover:bg-gray-50'}`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold shadow-sm">
+                <Sparkles size={16} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold uppercase tracking-wide text-sm text-charcoal-900">Nose Pin Section</h3>
+                  <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full border border-amber-300 uppercase">Dedicated Section</span>
+                </div>
+                <p className="text-[11px] text-gray-500 font-medium">Distinct Item Name, Metal Type, Purity & Daily Rate for Nose Pins</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <span className="text-[10px] uppercase font-bold text-gray-400 block">Nose Pin Rate</span>
+                <span className="text-xs font-mono font-bold text-amber-800">
+                  ₹{(allMetalRates['nose_pin'] || allMetalRates['gold_750'] || dailyGoldRate || 0).toLocaleString()}/g
+                </span>
+              </div>
+              {isNosePinSectionOpen ? <ChevronUp size={20} className="text-amber-700" /> : <ChevronDown size={20} className="text-gray-500" />}
+            </div>
+          </div>
+
+          {isNosePinSectionOpen && (
+            <div className="p-5 space-y-4">
+              {/* Quick Preset Buttons for Item Name */}
+              <div>
+                <label className="block text-[11px] font-bold text-charcoal-700 mb-1.5 uppercase tracking-wide">Quick Select Item Name:</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Plain Nose Pin', 'Stone Nose Pin', 'Diamond Nose Pin', 'Screw Nose Pin', 'Pressing Nose Pin', 'Mukku Pudaka'].map(name => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => setNosePinItem(prev => ({ ...prev, item_name: name }))}
+                      className={`px-3 py-1 text-xs font-bold rounded-md border transition-all cursor-pointer ${
+                        nosePinItem.item_name === name
+                          ? 'bg-amber-500 text-charcoal-950 border-amber-600 shadow-sm font-extrabold'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50 hover:border-amber-300'
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Grid with Item Name, Metal Type, Purity, Rate, Weights, MC & Add Button */}
+              <div className="grid grid-cols-12 gap-3 items-end">
+                {/* 1. Item Name Input */}
+                <div className="col-span-3">
+                  <Input
+                    label="Item Name"
+                    placeholder="e.g. Plain Nose Pin"
+                    value={nosePinItem.item_name}
+                    onChange={e => setNosePinItem({ ...nosePinItem, item_name: e.target.value })}
+                  />
+                </div>
+
+                {/* 2. Metal Type Select */}
+                <div className="col-span-2">
+                  <Select
+                    label="Metal Type"
+                    value={nosePinItem.metal_type}
+                    options={[
+                      { value: 'gold_750', label: 'Gold (18k / 750)' },
+                      { value: 'gold_916', label: 'Gold (22k / 916)' },
+                      { value: 'gold', label: 'Gold (Std)' },
+                      { value: 'silver_92', label: 'Silver (92.5)' },
+                      { value: 'other', label: 'Other' },
+                    ]}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const isOther = val === 'other';
+                      let newPurity = '18K 750';
+                      if (val === 'gold_916') newPurity = '22K 916';
+                      else if (val === 'silver_92') newPurity = '92.5 Silver';
+                      else if (isOther) newPurity = '';
+
+                      const newRate = allMetalRates['nose_pin'] || allMetalRates[val] || 0;
+                      setNosePinItem({
+                        ...nosePinItem,
+                        metal_type: val,
+                        purity: newPurity,
+                        rateInput: newRate > 0 ? newRate.toString() : nosePinItem.rateInput
+                      });
+                    }}
+                  />
+                </div>
+
+                {/* 3. Purity Input / Select */}
+                <div className="col-span-2">
+                  {nosePinItem.metal_type === 'other' ? (
+                    <Input
+                      label="Purity"
+                      placeholder="Type purity..."
+                      value={nosePinItem.purity}
+                      onChange={e => setNosePinItem({ ...nosePinItem, purity: e.target.value })}
+                    />
+                  ) : (
+                    <Select
+                      label="Purity"
+                      value={nosePinItem.purity}
+                      options={[
+                        { value: '18K 750', label: '18K 750 (Std)' },
+                        { value: '750', label: '750' },
+                        { value: '22K 916', label: '22K 916' },
+                        { value: '916', label: '916' },
+                        { value: '92.5 Silver', label: '92.5 Silver' },
+                      ]}
+                      onChange={e => setNosePinItem({ ...nosePinItem, purity: e.target.value })}
+                    />
+                  )}
+                </div>
+
+                {/* 4. Dedicated Rate/Gm */}
+                <div className="col-span-2">
+                  <Input
+                    label="Rate/Gm"
+                    type="number"
+                    isMonospaced
+                    placeholder={(allMetalRates['nose_pin'] || allMetalRates['gold_750'] || dailyGoldRate || 0).toString()}
+                    value={nosePinItem.rateInput}
+                    onChange={e => setNosePinItem({ ...nosePinItem, rateInput: e.target.value })}
+                  />
+                </div>
+
+                {/* Gross Wt */}
+                <div className="col-span-1">
+                  <Input
+                    label="Gross Wt"
+                    type="number"
+                    isMonospaced
+                    placeholder="0.000"
+                    value={nosePinItem.grossWeightInput}
+                    onChange={e => setNosePinItem({ ...nosePinItem, grossWeightInput: e.target.value })}
+                  />
+                </div>
+
+                {/* Net Wt */}
+                <div className="col-span-1">
+                  <Input
+                    label="Net Wt"
+                    type="number"
+                    isMonospaced
+                    placeholder="0.000"
+                    value={nosePinItem.netWeightInput}
+                    onChange={e => setNosePinItem({ ...nosePinItem, netWeightInput: e.target.value })}
+                  />
+                </div>
+
+                {/* Making Charges */}
+                <div className="col-span-1">
+                  <label className="block text-xs font-bold text-charcoal-700 mb-1.5 uppercase">MC</label>
+                  <div className="flex gap-1">
+                    <input
+                      type="number"
+                      placeholder="₹"
+                      className="w-full bg-white border border-gray-300 rounded focus:border-amber-500 outline-none p-2 text-xs font-mono"
+                      value={nosePinItem.makingChargesAmount}
+                      onChange={e => setNosePinItem({ ...nosePinItem, makingChargesAmount: e.target.value, makingChargesPercentage: '' })}
+                    />
+                  </div>
+                </div>
+
+                {/* Add Nose Pin Button */}
+                <div className="col-span-12 flex justify-between items-center pt-2 border-t border-amber-100">
+                  <span className="text-xs text-gray-500 italic">
+                    Calculated: {(() => {
+                      const w = parseFloat(nosePinItem.netWeightInput) || parseFloat(nosePinItem.grossWeightInput) || 0;
+                      const r = parseFloat(nosePinItem.rateInput) || allMetalRates['nose_pin'] || allMetalRates['gold_750'] || dailyGoldRate || 0;
+                      const mc = parseFloat(nosePinItem.makingChargesAmount) || 0;
+                      return `₹ ${((w * r) + mc).toLocaleString()}`;
+                    })()}
+                  </span>
+                  <Button
+                    type="button"
+                    onClick={handleAddNosePinItem}
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider px-5 py-2 shadow-sm flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    <span>Add Nose Pin to Bill</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Add Items */}
@@ -1607,8 +1930,9 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
           </div>
         </div>
         <div className="p-6 bg-white border-t border-gray-200 space-y-3">
-          <div className="grid grid-cols-3 gap-2 mb-2">
+          <div className="grid grid-cols-4 gap-2 mb-2">
             <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('silver')} className="text-xs border-gold-500/30 text-gold-700 bg-gold-50/40 hover:bg-gold-100/60"><Eye size={14} className="mr-1" /> Silver Bill</Button>
+            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('nosepin')} className="text-xs border-amber-300 text-amber-700 bg-amber-50/50 hover:bg-amber-100/60"><Eye size={14} className="mr-1" /> Nose Pin Bill</Button>
             <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('exchange')} className="text-xs border-pink-200 text-pink-600 hover:bg-pink-50"><Eye size={14} className="mr-1" /> Exchange</Button>
             <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('invoice')} className="text-xs border-gray-200 text-gray-600 hover:bg-gray-50"><Eye size={14} className="mr-1" /> Tax Invoice</Button>
           </div>

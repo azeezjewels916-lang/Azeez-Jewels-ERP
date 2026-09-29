@@ -114,8 +114,8 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   const [barcodeFormat, setBarcodeFormat] = useState<'CODE128' | 'CODE39'>('CODE128');
   const [encodeMode, setEncodeMode] = useState<'full' | 'numeric'>('numeric');
   const [printQuantity, setPrintQuantity] = useState<number>(1);
-  const [showPrice, setShowPrice] = useState<boolean>(true);
-  const [showHUID, setShowHUID] = useState<boolean>(true);
+  const [showPrice, setShowPrice] = useState<boolean>(false);
+  const [showHUID, setShowHUID] = useState<boolean>(false);
   // Default tailPosition to 'right' (Head Left, Tail Right) as physically mounted on the TVSE LP46 Dlite
   const [tailPosition, setTailPosition] = useState<'left' | 'right'>('right');
   const [tagLayout, setTagLayout] = useState<TagLayout>('details-left-barcode-right');
@@ -126,7 +126,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   // Typography & Sharpness Options for Anti-Blobbing
   const [fontPreset, setFontPreset] = useState<FontPreset>('verdana');
   const [fontWeight, setFontWeight] = useState<FontWeightChoice>('700');
-  const [textCase, setTextCase] = useState<TextCaseChoice>('uppercase');
+  const [textCase, setTextCase] = useState<TextCaseChoice>('capitalize');
   const [weightFontSize, setWeightFontSize] = useState<WeightFontSize>('large');
   const [scannedTestResult, setScannedTestResult] = useState<string>('');
   const previewSvgRef = useRef<HTMLDivElement>(null);
@@ -158,8 +158,40 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
   const barcodeText = (item.barcode || 'AHS000000').trim();
   const { svgHtml: barcodeSvgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode);
 
-  // Clean item name for crisp printing (remove redundant [Bracket] category if present)
-  const cleanItemName = (item.item_name || 'Jewelry').replace(/\[.*?\]/g, '').trim() || item.item_name;
+  // Clean item name for crisp printing (Title Case, e.g. "Earrings", "Nose Pin")
+  const rawItemName = (item.item_name || 'Jewelry').replace(/\[.*?\]/g, '').trim() || item.item_name || 'Jewelry';
+  const cleanItemName = rawItemName
+    .split(' ')
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+
+  // Format Purity matching reference (e.g., 750, 916, 999, 925)
+  const formatTagPurity = (purityStr?: string) => {
+    if (!purityStr) return '750';
+    const trimmed = purityStr.trim();
+    const match = trimmed.match(/\b(750|916|999|925|585|840)\b/);
+    if (match) return match[1];
+    const lower = trimmed.toLowerCase();
+    if (lower.includes('18k')) return '750';
+    if (lower.includes('22k')) return '916';
+    if (lower.includes('24k')) return '999';
+    if (lower.includes('14k')) return '585';
+    return trimmed;
+  };
+  const cleanPurity = formatTagPurity(item.purity);
+
+  // Format Weight matching reference (e.g. "1.59 gm." or "1.595 gm.")
+  const itemWeightVal = Number(item.net_weight || item.gross_weight || item.weight || 0);
+  const formatTagWeight = (val: number) => {
+    if (!val || val <= 0) return '0.00 gm.';
+    const str3 = val.toFixed(3);
+    if (str3.endsWith('0')) {
+      return `${val.toFixed(2)} gm.`;
+    }
+    return `${str3} gm.`;
+  };
+  const cleanWeight = formatTagWeight(itemWeightVal);
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -175,25 +207,25 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     const { svgHtml: barcodeSvgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode, 4.0);
     const { svgHtml: largeBarcodeSvgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode, 7.2);
 
-    // 1. FLAP PRODUCT DETAILS (LEFT FLAP - NO BRAND NAME: Product Name, Purity, Weights, Price/HUID)
+    // 1. FLAP PRODUCT DETAILS (LEFT FLAP - EXACT 3-LINE PHOTO REFERENCE: Purity, Item, Weight)
     const flapProductDetailsHtml = `
       <div class="flap flap-left flap-product-details">
-        <div class="details-top-row">
-          <span class="item-name">${cleanItemName}</span>
-          <span class="purity">${item.purity || '22K (916)'}</span>
+        <div class="ref-line">
+          <span class="ref-lbl">Purity :</span>
+          <span class="ref-val">${cleanPurity}</span>
         </div>
-        <div class="wt-line">
-          <span class="wt-label">Gr:</span>
-          <span class="wt-val">${(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
+        <div class="ref-line">
+          <span class="ref-lbl">Item :</span>
+          <span class="ref-val">${cleanItemName}</span>
         </div>
-        <div class="wt-line">
-          <span class="wt-label">Nt:</span>
-          <span class="wt-val">${(item.net_weight || item.weight || 0).toFixed(3)}g</span>
+        <div class="ref-line">
+          <span class="ref-lbl">Weight :</span>
+          <span class="ref-val">${cleanWeight}</span>
         </div>
-        ${(showPrice && item.net_price) || (showHUID && item.huid) ? `
-          <div class="extra-row">
-            ${showPrice && item.net_price ? `<span class="price">₹${item.net_price.toLocaleString('en-IN')}</span>` : '<span></span>'}
-            ${showHUID && item.huid ? `<span class="huid">H:${item.huid}</span>` : '<span></span>'}
+        ${((showPrice && item.net_price) || (showHUID && item.huid)) ? `
+          <div class="ref-extra-line">
+            ${showPrice && item.net_price ? `<span>₹${item.net_price.toLocaleString('en-IN')}</span>` : '<span></span>'}
+            ${showHUID && item.huid ? `<span>H:${item.huid}</span>` : '<span></span>'}
           </div>
         ` : ''}
       </div>
@@ -397,81 +429,53 @@ html, body {
   color: #000000 !important;
   width: 100%;
 }
-/* FLAP: PRODUCT DETAILS ONLY (LEFT FLAP - NO BRAND NAME) */
+/* FLAP: PRODUCT DETAILS ONLY (LEFT FLAP - EXACT 3-LINE PHOTO REFERENCE) */
 .flap-product-details {
-  width: 20.0mm;
+  width: 20.5mm;
   height: 11.2mm;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: space-between !important;
-  align-items: stretch !important;
-  padding: 0.2mm 0.5mm 0.2mm 0.5mm;
+  justify-content: space-evenly !important;
+  align-items: flex-start !important;
+  padding: 0.3mm 0.6mm 0.3mm 0.8mm;
   font-family: var(--primary-font);
   box-sizing: border-box;
-}
-/* FLAP: HERO BARCODE ONLY (RIGHT FLAP - BIGGER SIZING) */
-.flap-barcode-hero {
-  width: 21.0mm;
-  height: 11.2mm;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  align-items: center !important;
-  padding: 0.2mm 0.4mm 0.2mm 0.4mm;
-  box-sizing: border-box;
-}
-.bc-container-hero {
-  width: 100%;
-  height: 7.2mm;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
   overflow: hidden;
 }
-.bc-container-hero svg {
-  width: 100% !important;
-  height: 7.2mm !important;
-  display: block;
-}
-.barcode-sku-hero {
-  font-family: var(--mono-font);
-  font-size: 1.75mm;
-  font-weight: var(--font-weight);
-  letter-spacing: 0.35mm;
-  text-align: center;
-  line-height: 1.0;
-  margin-top: 0.4mm;
-  white-space: nowrap;
-  color: #000000 !important;
-}
-.wt-line {
+.ref-line {
   display: flex;
-  justify-content: flex-start;
   align-items: baseline;
-  gap: 0.8mm;
   width: 100%;
+  line-height: 1.15;
   font-family: var(--primary-font);
-  font-size: var(--weight-font-size);
-  font-weight: var(--font-weight);
-  letter-spacing: 0.12mm;
-  line-height: 1.0;
+  font-size: 2.1mm;
+  font-weight: 700;
+  letter-spacing: 0.08mm;
+  color: #000000 !important;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ref-lbl {
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-right: 0.8mm;
   color: #000000 !important;
 }
-.wt-label {
-  font-weight: var(--font-weight);
+.ref-val {
+  font-weight: 700;
   color: #000000 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.wt-val {
-  font-family: var(--primary-font);
-  font-weight: var(--font-weight);
-  color: #000000 !important;
-}
-.extra-row {
+.ref-extra-line {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  font-size: 1.4mm;
+  font-weight: 700;
+  color: #000000 !important;
   line-height: 1.0;
 }
 /* FLAP 2 (RIGHT): ALL DETAILS ON SINGLE FACE */
@@ -729,59 +733,33 @@ window.onload = function() {
               >
                 {/* SOLID RECTANGULAR HEAD (55%) */}
                 <div className="w-[58%] h-full flex bg-white relative">
-                  {/* FLAP 1 (LEFT SIDE OF HEAD) */}
+                  {/* FLAP 1 (LEFT SIDE OF HEAD - EXACT 3-LINE PHOTO REFERENCE) */}
                   {tagLayout === 'details-left-barcode-right' ? (
                     <div
-                      className="w-[43%] h-full p-1.5 flex flex-col justify-between text-left bg-white"
+                      className="w-[43%] h-full py-1.5 px-2 flex flex-col justify-evenly text-left bg-white"
                       style={{ fontFamily: getFontFamilyCss(fontPreset).primary }}
                     >
-                      {/* Product Name & Purity */}
-                      <div
-                        className="w-full flex justify-between items-baseline text-[8px] text-charcoal-900 leading-none"
-                        style={{
-                          fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
-                          letterSpacing: '0.2px'
-                        }}
-                      >
-                        <span className={`truncate max-w-[55%] ${textCase === 'uppercase' ? 'uppercase font-bold' : 'capitalize font-bold'}`}>
-                          {cleanItemName}
-                        </span>
-                        <span className="text-amber-800 font-bold text-[7.5px]">
-                          {item.purity || '22K (916)'}
-                        </span>
+                      {/* Line 1: Purity : 750 */}
+                      <div className="w-full flex items-baseline text-[9.5px] leading-tight text-charcoal-950 font-bold">
+                        <span className="shrink-0 mr-1 text-charcoal-800 font-extrabold">Purity :</span>
+                        <span className="font-extrabold text-charcoal-950">{cleanPurity}</span>
                       </div>
 
-                      {/* Gross Weight */}
-                      <div
-                        className={`w-full flex items-baseline gap-1 text-charcoal-900 leading-none ${
-                          weightFontSize === 'xlarge' ? 'text-[9.5px]' : weightFontSize === 'large' ? 'text-[8.5px]' : 'text-[7.5px]'
-                        }`}
-                        style={{
-                          fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
-                          letterSpacing: '0.2px'
-                        }}
-                      >
-                        <span className="font-bold text-charcoal-600">Gr:</span>
-                        <span className="font-bold">{(item.gross_weight || item.weight || 0).toFixed(3)}g</span>
+                      {/* Line 2: Item : Earrings */}
+                      <div className="w-full flex items-baseline text-[9.5px] leading-tight text-charcoal-950 font-bold">
+                        <span className="shrink-0 mr-1 text-charcoal-800 font-extrabold">Item :</span>
+                        <span className="font-extrabold text-charcoal-950 truncate capitalize">{cleanItemName}</span>
                       </div>
 
-                      {/* Net Weight */}
-                      <div
-                        className={`w-full flex items-baseline gap-1 text-charcoal-900 leading-none ${
-                          weightFontSize === 'xlarge' ? 'text-[9.5px]' : weightFontSize === 'large' ? 'text-[8.5px]' : 'text-[7.5px]'
-                        }`}
-                        style={{
-                          fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,
-                          letterSpacing: '0.2px'
-                        }}
-                      >
-                        <span className="font-bold text-charcoal-600">Nt:</span>
-                        <span className="font-bold">{(item.net_weight || item.weight || 0).toFixed(3)}g</span>
+                      {/* Line 3: Weight : 1.59 gm. */}
+                      <div className="w-full flex items-baseline text-[9.5px] leading-tight text-charcoal-950 font-bold">
+                        <span className="shrink-0 mr-1 text-charcoal-800 font-extrabold">Weight :</span>
+                        <span className="font-extrabold text-charcoal-950">{cleanWeight}</span>
                       </div>
 
-                      {/* Price and/or HUID if present */}
+                      {/* Price and/or HUID if explicitly checked */}
                       {((showPrice && item.net_price) || (showHUID && item.huid)) && (
-                        <div className="w-full flex justify-between items-center text-[7px] leading-none text-emerald-800 font-bold">
+                        <div className="w-full flex justify-between items-center text-[7.5px] leading-none text-emerald-800 font-bold pt-0.5">
                           {showPrice && item.net_price ? <span>₹{item.net_price.toLocaleString()}</span> : <span />}
                           {showHUID && item.huid && <span className="font-mono text-charcoal-600">H:{item.huid}</span>}
                         </div>
@@ -934,7 +912,7 @@ window.onload = function() {
                   {tagLayout === 'details-left-barcode-right' && <Check size={13} className="text-emerald-600 shrink-0" />}
                 </div>
                 <p className="text-[10px] font-normal text-emerald-900/80">
-                  Left: Item name, purity & weights (no brand). Right: Dedicated big barcode for quick scanning.
+                  Left: 3-Line Details (Purity, Item, Weight gm.). Right: Dedicated big barcode for quick scanning.
                 </p>
               </button>
 
