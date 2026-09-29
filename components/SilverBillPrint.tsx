@@ -317,7 +317,7 @@ export const SilverBillPrint: React.FC<SilverBillPrintProps> = ({
           {/* HEADER TOP BAR */}
           <div className="silver-header-top">
             {saleType === 'GST' ? <div>GSTIN : 29BPSPK1616Q1Z2</div> : <div></div>}
-            <div className="cash-bill-badge">{saleType === 'GST' ? 'TAX INVOICE' : 'CASH BILL'}</div>
+            <div className="cash-bill-badge">{saleType === 'GST' ? 'TAX INVOICE' : 'ESTIMATE'}</div>
             <div className="flex items-center gap-1">
               <span>📞 9916667573</span>
             </div>

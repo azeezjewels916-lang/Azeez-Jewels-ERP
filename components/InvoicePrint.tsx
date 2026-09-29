@@ -142,7 +142,7 @@ export const InvoicePrint: React.FC<InvoicePrintProps> = ({
 
       {/* BILL INFO BAR */}
       <div className="flex justify-between items-center bg-charcoal-900 text-white px-3 py-1 mb-2 rounded-sm">
-        <h3 className="text-xs font-bold tracking-widest">{saleType === 'GST' ? 'TAX INVOICE' : 'RETAIL INVOICE'}</h3>
+        <h3 className="text-xs font-bold tracking-widest">{saleType === 'GST' ? 'TAX INVOICE' : 'ESTIMATE'}</h3>
         <div className="flex gap-4 font-mono text-[10px]">
           <p>NO: {billNo}</p>
           <p>DATE: {formatDate(billDate)}</p>

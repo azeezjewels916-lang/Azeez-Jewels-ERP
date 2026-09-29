@@ -317,7 +317,7 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
           {/* HEADER TOP BAR */}
           <div className="nosepin-header-top">
             {saleType === 'GST' ? <div>GSTIN : 29BPSPK1616Q1Z2</div> : <div></div>}
-            <div className="cash-bill-badge">{saleType === 'GST' ? 'TAX INVOICE' : 'NOSE PIN CASH BILL'}</div>
+            <div className="cash-bill-badge">{saleType === 'GST' ? 'TAX INVOICE' : 'ESTIMATE'}</div>
             <div className="flex items-center gap-1">
               <span>📞 9916667573</span>
             </div>
@@ -372,7 +372,6 @@ export const NosePinBillPrint: React.FC<NosePinBillPrintProps> = ({
                     <td style={{ textAlign: 'center' }}>{idx + 1}</td>
                     <td className="uppercase">
                       <div className="font-bold">{item.item_name}</div>
-                      {item.purity && <span className="text-[9px] text-gray-700 block font-mono font-semibold">Purity: {item.purity}</span>}
                     </td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{wt > 0 ? `${wt.toFixed(3)}g` : '-'}</td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>₹ {item.line_total.toLocaleString()}</td>

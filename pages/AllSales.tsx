@@ -646,19 +646,19 @@ export const AllSales: React.FC<AllSalesProps> = ({ onEdit }) => {
                       onClick={() => setPrintFormat('invoice')}
                       className={`px-3 py-1 rounded text-xs font-bold transition-all ${printFormat === 'invoice' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
                     >
-                      Tax Invoice (Gold)
+                      {selectedBillForPrint.sale_type.toUpperCase() === 'GST' ? 'Tax Invoice (Gold)' : 'Estimate (Gold)'}
                     </button>
                     <button
                       onClick={() => setPrintFormat('silver')}
                       className={`px-3 py-1 rounded text-xs font-bold transition-all ${printFormat === 'silver' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
                     >
-                      Silver Cash Bill
+                      {selectedBillForPrint.sale_type.toUpperCase() === 'GST' ? 'Silver Tax Invoice' : 'Silver Estimate'}
                     </button>
                     <button
                       onClick={() => setPrintFormat('nosepin')}
                       className={`px-3 py-1 rounded text-xs font-bold transition-all ${printFormat === 'nosepin' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
                     >
-                      Nose Pin Bill
+                      {selectedBillForPrint.sale_type.toUpperCase() === 'GST' ? 'Nose Pin Tax Invoice' : 'Nose Pin Estimate'}
                     </button>
                   </div>
                 </div>

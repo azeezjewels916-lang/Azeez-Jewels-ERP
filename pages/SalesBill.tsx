@@ -1085,19 +1085,19 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                       onClick={() => setActivePrintView('invoice')}
                       className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'invoice' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
                     >
-                      Tax Invoice
+                      {saleType === 'GST' ? 'Tax Invoice' : 'Estimate'}
                     </button>
                     <button
                       onClick={() => setActivePrintView('silver')}
                       className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'silver' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
                     >
-                      Silver Cash Bill
+                      {saleType === 'GST' ? 'Silver Tax Invoice' : 'Silver Estimate'}
                     </button>
                     <button
                       onClick={() => setActivePrintView('nosepin')}
                       className={`px-3 py-1 rounded text-xs font-bold transition-all ${activePrintView === 'nosepin' ? 'bg-gold-500 text-charcoal-900' : 'bg-charcoal-800 text-gray-300 hover:text-white'}`}
                     >
-                      Nose Pin Bill
+                      {saleType === 'GST' ? 'Nose Pin Tax Invoice' : 'Nose Pin Estimate'}
                     </button>
                     <button
                       onClick={() => setActivePrintView('exchange')}
@@ -1277,7 +1277,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                   }`}
               >
                 <Tag size={14} />
-                <span>GOLD TAX INVOICE</span>
+                <span>{saleType === 'GST' ? 'GOLD TAX INVOICE' : 'GOLD ESTIMATE'}</span>
               </button>
 
               <button
@@ -1293,7 +1293,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                   }`}
               >
                 <Tag size={14} />
-                <span>SILVER CASH BILL</span>
+                <span>{saleType === 'GST' ? 'SILVER TAX INVOICE' : 'SILVER ESTIMATE'}</span>
               </button>
 
               <button
@@ -1315,7 +1315,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                   }`}
               >
                 <Sparkles size={14} />
-                <span>NOSE PIN CASH BILL</span>
+                <span>{saleType === 'GST' ? 'NOSE PIN TAX INVOICE' : 'NOSE PIN ESTIMATE'}</span>
               </button>
             </div>
           </div>
@@ -1845,10 +1845,10 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
         </div>
         <div className="p-6 bg-white border-t border-gray-200 space-y-3">
           <div className="grid grid-cols-4 gap-2 mb-2">
-            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('silver')} className="text-xs border-gold-500/30 text-gold-700 bg-gold-50/40 hover:bg-gold-100/60"><Eye size={14} className="mr-1" /> Silver Bill</Button>
-            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('nosepin')} className="text-xs border-amber-300 text-amber-700 bg-amber-50/50 hover:bg-amber-100/60"><Eye size={14} className="mr-1" /> Nose Pin Bill</Button>
+            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('silver')} className="text-xs border-gold-500/30 text-gold-700 bg-gold-50/40 hover:bg-gold-100/60"><Eye size={14} className="mr-1" /> {saleType === 'GST' ? 'Silver Bill' : 'Silver Estimate'}</Button>
+            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('nosepin')} className="text-xs border-amber-300 text-amber-700 bg-amber-50/50 hover:bg-amber-100/60"><Eye size={14} className="mr-1" /> {saleType === 'GST' ? 'Nose Pin Bill' : 'Nose Pin Estimate'}</Button>
             <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('exchange')} className="text-xs border-pink-200 text-pink-600 hover:bg-pink-50"><Eye size={14} className="mr-1" /> Exchange</Button>
-            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('invoice')} className="text-xs border-gray-200 text-gray-600 hover:bg-gray-50"><Eye size={14} className="mr-1" /> Tax Invoice</Button>
+            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview('invoice')} className="text-xs border-gray-200 text-gray-600 hover:bg-gray-50"><Eye size={14} className="mr-1" /> {saleType === 'GST' ? 'Tax Invoice' : 'Estimate'}</Button>
           </div>
           <Button fullWidth onClick={handleSaveBill} className="h-14 text-base shadow-lg" disabled={loading}>
             {loading ? <RefreshCw className="animate-spin mr-2" size={20} /> : <Printer size={20} className="mr-2" />}
