@@ -73,12 +73,12 @@ function getBarcodeSvgString(
       valueToEncode = fullText;
     }
 
-    const isLarge = heightMm >= 6.0;
+    const isLarge = heightMm >= 5.0;
     const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     JsBarcode(svgNode, valueToEncode, {
       format: format,
-      width: encodeMode === 'numeric' ? (isLarge ? 1.65 : 1.55) : (format === 'CODE39' ? (isLarge ? 1.15 : 1.1) : (isLarge ? 1.4 : 1.3)),
-      height: isLarge ? 52 : 32,
+      width: encodeMode === 'numeric' ? (isLarge ? 1.4 : 1.35) : (format === 'CODE39' ? (isLarge ? 1.05 : 1.0) : (isLarge ? 1.25 : 1.15)),
+      height: isLarge ? 40 : 30,
       displayValue: false,
       margin: 0,
       background: "#ffffff",
@@ -143,7 +143,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     if (isOpen && item) {
       const barcodeText = (item.barcode || 'AHS000000').trim();
       const isBigBarcode = tagLayout === 'details-left-barcode-right';
-      const { svgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode, isBigBarcode ? 6.8 : 4.0);
+      const { svgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode, isBigBarcode ? 5.5 : 4.0);
       if (previewSvgRef.current) {
         previewSvgRef.current.innerHTML = svgHtml;
       }
@@ -207,7 +207,7 @@ export const BarcodePrintModal: React.FC<BarcodePrintModalProps> = ({
     const isTailOnRight = tailPosition === 'right';
 
     const { svgHtml: barcodeSvgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode, 4.0);
-    const { svgHtml: largeBarcodeSvgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode, 7.2);
+    const { svgHtml: largeBarcodeSvgHtml } = getBarcodeSvgString(barcodeText, barcodeFormat, encodeMode, 5.5);
 
     // 1. FLAP PRODUCT DETAILS (LEFT FLAP - EXACT 3-LINE PHOTO REFERENCE: Purity, Item, Weight)
     const flapProductDetailsHtml = `
@@ -477,7 +477,7 @@ html, body {
   color: #000000 !important;
   line-height: 1.0;
 }
-/* FLAP: HERO BARCODE ONLY (RIGHT FLAP - BIGGER SIZING) */
+/* FLAP: HERO BARCODE ONLY (RIGHT FLAP - CLEAN PROPORTIONATE SIZING) */
 .flap-barcode-hero {
   width: 21.0mm;
   height: 11.2mm;
@@ -485,32 +485,34 @@ html, body {
   flex-direction: column !important;
   justify-content: center !important;
   align-items: center !important;
-  padding: 0.2mm 0.4mm 0.2mm 0.4mm;
+  padding: 0.3mm 0.6mm 0.3mm 0.6mm;
   box-sizing: border-box;
   overflow: hidden;
 }
 .bc-container-hero {
-  width: 100%;
-  height: 7.2mm;
+  width: 90%;
+  max-width: 18.5mm;
+  height: 5.5mm;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #ffffff;
   overflow: hidden;
+  margin: 0 auto;
 }
 .bc-container-hero svg {
   width: 100% !important;
-  height: 7.2mm !important;
+  height: 5.5mm !important;
   display: block;
 }
 .barcode-sku-hero {
   font-family: var(--mono-font);
-  font-size: 1.75mm;
+  font-size: 1.6mm;
   font-weight: var(--font-weight);
-  letter-spacing: 0.35mm;
+  letter-spacing: 0.3mm;
   text-align: center;
   line-height: 1.0;
-  margin-top: 0.4mm;
+  margin-top: 0.5mm;
   white-space: nowrap;
   color: #000000 !important;
 }
@@ -828,13 +830,13 @@ window.onload = function() {
 
                   {/* FLAP 2 (RIGHT SIDE OF HEAD) */}
                   {tagLayout === 'details-left-barcode-right' ? (
-                    <div className="w-[43%] h-full p-1 flex flex-col justify-center items-center text-center bg-white">
+                    <div className="w-[43%] h-full py-1 px-1.5 flex flex-col justify-center items-center text-center bg-white">
                       <div
                         ref={previewBackSvgRef}
-                        className="w-full flex items-center justify-center max-h-[48px] my-auto [&>svg]:!h-[48px] [&>svg]:!w-full"
+                        className="w-[88%] flex items-center justify-center max-h-[38px] my-auto [&>svg]:!h-[36px] [&>svg]:!w-full"
                       ></div>
                       <div
-                        className="w-full text-center text-[8.5px] text-charcoal-900 leading-none mt-1 font-mono tracking-wider font-bold"
+                        className="w-full text-center text-[8px] text-charcoal-900 leading-none mt-0.5 font-mono tracking-wider font-bold"
                         style={{
                           fontFamily: getFontFamilyCss(fontPreset).mono,
                           fontWeight: fontWeight === '600' ? 600 : fontWeight === '700' ? 700 : 800,

@@ -244,17 +244,17 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     metal_type: 'gold',
   });
 
-  // --- DEDICATED NOSE PIN SECTION STATE (ALL WRITTEN BY USER) ---
+  // --- DEDICATED NOSE PIN SECTION STATE (ONLY ITEM NAME, WEIGHT, AND AMT ENTERED BY USER) ---
   const [isNosePinSectionOpen, setIsNosePinSectionOpen] = useState(true);
-  const [nosePinItem, setNosePinItem] = useState({
+  const [nosePinItem, setNosePinItem] = useState<{
+    item_name: string;
+    weightInput: string;
+    amountInput: string;
+    rateInput?: string;
+  }>({
     item_name: 'Plain Nose Pin',
-    metal: 'Gold',
-    metal_type: '18K Gold',
-    purity: '750',
     weightInput: '',
-    rateInput: '',
     amountInput: '',
-    huid: '',
   });
 
   const [isLoadingItem, setIsLoadingItem] = useState(false);
@@ -819,55 +819,20 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     });
   };
 
-  const handleNosePinWeightChange = (wtVal: string) => {
-    setNosePinItem(prev => {
-      const wt = parseFloat(wtVal) || 0;
-      const rate = parseFloat(prev.rateInput) || allMetalRates['nose_pin'] || allMetalRates['gold_750'] || dailyGoldRate || 0;
-      const newAmt = prev.amountInput === '' && wt > 0 && rate > 0 ? Math.round(wt * rate).toString() : prev.amountInput;
-      return {
-        ...prev,
-        weightInput: wtVal,
-        amountInput: newAmt
-      };
-    });
-  };
-
-  const handleNosePinRateChange = (rateVal: string) => {
-    setNosePinItem(prev => {
-      const rate = parseFloat(rateVal) || 0;
-      const wt = parseFloat(prev.weightInput) || 0;
-      const newAmt = wt > 0 && rate > 0 ? Math.round(wt * rate).toString() : prev.amountInput;
-      return {
-        ...prev,
-        rateInput: rateVal,
-        amountInput: newAmt
-      };
-    });
-  };
-
-  const handleNosePinAmountChange = (amtVal: string) => {
-    setNosePinItem(prev => ({
-      ...prev,
-      amountInput: amtVal
-    }));
-  };
-
   const handleAddNosePinItem = () => {
     const weight = parseFloat(nosePinItem.weightInput) || 0;
     const directAmt = parseFloat(nosePinItem.amountInput);
-    const manualRate = parseFloat(nosePinItem.rateInput);
     const fallbackRate = allMetalRates['nose_pin'] || allMetalRates['gold_750'] || dailyGoldRate || 0;
-    const appliedRate = !isNaN(manualRate) && manualRate > 0 ? manualRate : fallbackRate;
 
     let lineTotal = 0;
-    let finalRate = appliedRate;
+    let finalRate = fallbackRate;
 
     if (!isNaN(directAmt) && directAmt > 0) {
       lineTotal = directAmt;
-      finalRate = weight > 0 ? Math.round(directAmt / weight) : appliedRate;
-    } else if (weight > 0 && appliedRate > 0) {
-      lineTotal = Math.round(weight * appliedRate);
-      finalRate = appliedRate;
+      finalRate = weight > 0 ? Math.round(directAmt / weight) : fallbackRate;
+    } else if (weight > 0 && fallbackRate > 0) {
+      lineTotal = Math.round(weight * fallbackRate);
+      finalRate = fallbackRate;
     } else {
       toast({
         title: "Validation Error",
@@ -877,17 +842,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       return;
     }
 
-    const itemName = nosePinItem.item_name?.trim() || 'Nose Pin';
-    const metalVal = nosePinItem.metal?.trim() || 'Gold';
-    const metalTypeVal = nosePinItem.metal_type?.trim() || metalVal;
-    const purityVal = nosePinItem.purity?.trim() || '750';
+    const itemName = nosePinItem.item_name?.trim() || 'Plain Nose Pin';
 
     setItems(prev => [...prev, {
       id: Date.now().toString(),
       barcode: '',
       category: 'Nose Pin',
       item_name: itemName,
-      huid: nosePinItem.huid || '',
+      huid: '',
       gross_weight: weight,
       net_weight: weight,
       weight: weight,
@@ -897,21 +859,21 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       making_charges_input: '',
       gst_rate: 0,
       line_total: lineTotal,
-      metal_type: metalTypeVal.toLowerCase().includes('silver') ? 'silver_92' : 'gold_750',
+      metal_type: 'gold_750',
       hsn_code: '711319',
-      purity: purityVal
+      purity: '750'
     }]);
 
     toast({
       title: "Nose Pin Added",
-      description: `${itemName} (${purityVal}) - ₹${lineTotal.toLocaleString()} ${weight > 0 ? `• ${weight.toFixed(3)}g` : ''}`
+      description: `${itemName} - ₹${lineTotal.toLocaleString()} ${weight > 0 ? `• ${weight.toFixed(3)}g` : ''}`
     });
 
-    setNosePinItem(prev => ({
-      ...prev,
+    setNosePinItem({
+      item_name: 'Plain Nose Pin',
       weightInput: '',
       amountInput: ''
-    }));
+    });
   };
 
   const handleRemoveItem = (id: string) => setItems(items.filter(i => i.id !== id));
@@ -1472,67 +1434,29 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
           {isNosePinSectionOpen && (
             <div className="p-5 space-y-4">
-              {/* Quick Fill Chips (Click to fill into text inputs, or type directly) */}
-              <div className="space-y-2 pb-2 border-b border-amber-100">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-bold text-charcoal-600 uppercase">Quick Item:</span>
-                  {['Plain Nose Pin', 'Stone Nose Pin', 'Diamond Nose Pin', 'Screw Nose Pin', 'Pressing Nose Pin', 'Mukku Pudaka'].map(name => (
-                    <button
-                      key={name}
-                      type="button"
-                      onClick={() => setNosePinItem(prev => ({ ...prev, item_name: name }))}
-                      className={`px-2.5 py-0.5 text-[11px] font-bold rounded border transition-all cursor-pointer ${
-                        nosePinItem.item_name === name
-                          ? 'bg-amber-500 text-charcoal-950 border-amber-600 shadow-sm'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
-                      }`}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-charcoal-500 uppercase">Metal:</span>
-                    {['Gold', 'Silver'].map(m => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setNosePinItem(prev => ({ ...prev, metal: m, metal_type: `${m} ${prev.purity || '750'}` }))}
-                        className={`px-2 py-0.5 text-[10px] font-bold rounded border transition-all cursor-pointer ${
-                          nosePinItem.metal === m
-                            ? 'bg-amber-500 text-charcoal-950 border-amber-600 shadow-sm'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-charcoal-500 uppercase">Purity:</span>
-                    {['750', '916', '18K', '22K', '92.5'].map(p => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setNosePinItem(prev => ({ ...prev, purity: p }))}
-                        className={`px-2 py-0.5 text-[10px] font-bold rounded border transition-all cursor-pointer ${
-                          nosePinItem.purity === p
-                            ? 'bg-amber-500 text-charcoal-950 border-amber-600 shadow-sm'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* Quick Fill Chips for Item Name */}
+              <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-amber-100">
+                <span className="text-[11px] font-bold text-charcoal-600 uppercase">Quick Item:</span>
+                {['Plain Nose Pin', 'Stone Nose Pin', 'Diamond Nose Pin', 'Screw Nose Pin', 'Pressing Nose Pin', 'Mukku Pudaka'].map(name => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setNosePinItem(prev => ({ ...prev, item_name: name }))}
+                    className={`px-2.5 py-0.5 text-[11px] font-bold rounded border transition-all cursor-pointer ${
+                      nosePinItem.item_name === name
+                        ? 'bg-amber-500 text-charcoal-950 border-amber-600 shadow-sm'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
+                    }`}
+                  >
+                    {name}
+                  </button>
+                ))}
               </div>
 
-              {/* 2-ROW GRID: ALL DETAILS TO BE WRITTEN BY USER */}
+              {/* ONLY 3 USER-ENTERED FIELDS: ITEM NAME, WEIGHT, AND AMT */}
               <div className="grid grid-cols-12 gap-3 items-end">
-                {/* 1. Item Name - Written by user */}
-                <div className="col-span-12 sm:col-span-4">
+                {/* 1. Item Name - Entered by user */}
+                <div className="col-span-12 sm:col-span-5">
                   <Input
                     label="Item Name"
                     placeholder="Enter item name..."
@@ -1541,98 +1465,56 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                   />
                 </div>
 
-                {/* 2. Metal - Written by user */}
+                {/* 2. Weight (g) - Entered by user */}
                 <div className="col-span-6 sm:col-span-2">
-                  <Input
-                    label="Metal"
-                    placeholder="e.g. Gold / Silver"
-                    value={nosePinItem.metal}
-                    onChange={e => setNosePinItem({ ...nosePinItem, metal: e.target.value })}
-                  />
-                </div>
-
-                {/* 3. Metal Type - Written by user */}
-                <div className="col-span-6 sm:col-span-3">
-                  <Input
-                    label="Metal Type"
-                    placeholder="e.g. 18K Gold / Stud"
-                    value={nosePinItem.metal_type}
-                    onChange={e => setNosePinItem({ ...nosePinItem, metal_type: e.target.value })}
-                  />
-                </div>
-
-                {/* 4. Purity - Written by user */}
-                <div className="col-span-12 sm:col-span-3">
-                  <Input
-                    label="Purity"
-                    placeholder="e.g. 750 / 916 / 18K"
-                    value={nosePinItem.purity}
-                    onChange={e => setNosePinItem({ ...nosePinItem, purity: e.target.value })}
-                  />
-                </div>
-
-                {/* 5. Weight - Written by user */}
-                <div className="col-span-6 sm:col-span-3">
                   <Input
                     label="Weight (g)"
                     type="number"
                     isMonospaced
                     placeholder="0.000"
                     value={nosePinItem.weightInput}
-                    onChange={e => handleNosePinWeightChange(e.target.value)}
+                    onChange={e => setNosePinItem({ ...nosePinItem, weightInput: e.target.value })}
                   />
                 </div>
 
-                {/* 6. Rate/g (Optional) - Written by user or Live */}
+                {/* 3. Amt (₹) - Entered by user */}
                 <div className="col-span-6 sm:col-span-3">
-                  <Input
-                    label="Rate /g (Optional)"
-                    type="number"
-                    isMonospaced
-                    placeholder={(allMetalRates['nose_pin'] || allMetalRates['gold_750'] || dailyGoldRate || 0).toString()}
-                    value={nosePinItem.rateInput}
-                    onChange={e => handleNosePinRateChange(e.target.value)}
-                  />
-                </div>
-
-                {/* 7. Amt (₹) - Written by user (Direct Amount entry) */}
-                <div className="col-span-12 sm:col-span-3">
                   <Input
                     label="Amt (₹)"
                     type="number"
                     isMonospaced
-                    placeholder="Enter direct ₹ amount"
+                    placeholder="Enter amount"
                     value={nosePinItem.amountInput}
-                    onChange={e => handleNosePinAmountChange(e.target.value)}
+                    onChange={e => setNosePinItem({ ...nosePinItem, amountInput: e.target.value })}
                   />
                 </div>
 
-                {/* 8. Add Nose Pin Button */}
-                <div className="col-span-12 sm:col-span-3 flex items-end">
+                {/* 4. Add Button */}
+                <div className="col-span-12 sm:col-span-2 flex items-end">
                   <Button
                     type="button"
                     onClick={handleAddNosePinItem}
-                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 shadow-sm flex items-center justify-center gap-2"
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 shadow-sm flex items-center justify-center gap-1.5"
                   >
                     <Plus size={16} />
-                    <span>Add Nose Pin to Bill</span>
+                    <span>Add to Bill</span>
                   </Button>
                 </div>
 
                 {/* Computed Preview Hint */}
                 <div className="col-span-12 flex justify-between items-center text-xs text-gray-500 pt-1 border-t border-amber-100">
                   <span>
-                    Item: <strong>{nosePinItem.item_name || 'Nose Pin'}</strong> • {nosePinItem.metal || 'Gold'} ({nosePinItem.purity || '750'})
-                    {nosePinItem.weightInput ? ` • ${parseFloat(nosePinItem.weightInput).toFixed(3)}g` : ''}
+                    Item: <strong>{nosePinItem.item_name || 'Plain Nose Pin'}</strong>
+                    {nosePinItem.weightInput ? ` • Weight: ${parseFloat(nosePinItem.weightInput).toFixed(3)}g` : ''}
                   </span>
                   <span className="font-bold text-amber-800 font-mono text-sm">
                     {(() => {
                       const direct = parseFloat(nosePinItem.amountInput);
                       if (!isNaN(direct) && direct > 0) return `Total: ₹${direct.toLocaleString()}`;
                       const wt = parseFloat(nosePinItem.weightInput) || 0;
-                      const rt = parseFloat(nosePinItem.rateInput) || allMetalRates['nose_pin'] || allMetalRates['gold_750'] || dailyGoldRate || 0;
-                      if (wt > 0 && rt > 0) return `Total: ₹${Math.round(wt * rt).toLocaleString()}`;
-                      return 'Enter Amt or Wt/Rate';
+                      const rt = allMetalRates['nose_pin'] || allMetalRates['gold_750'] || dailyGoldRate || 0;
+                      if (wt > 0 && rt > 0) return `Est: ₹${Math.round(wt * rt).toLocaleString()}`;
+                      return 'Enter Amt';
                     })()}
                   </span>
                 </div>
