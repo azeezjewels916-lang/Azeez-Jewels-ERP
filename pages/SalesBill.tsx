@@ -919,8 +919,32 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     setLoading(true);
     try {
       const netGrandTotal = Math.max(0, calculatedTotals.grandTotal - (calculatedTotals.discount || 0));
+      const customBillNo = billNo.trim();
+      const finalBillNo = customBillNo || await generateBillNo();
+
+      if (customBillNo) {
+        let checkQuery = supabase.from('bills').select('id').eq('bill_no', customBillNo);
+        if (billId) {
+          checkQuery = checkQuery.neq('id', billId);
+        }
+        const { data: existingBill } = await checkQuery.maybeSingle();
+        if (existingBill) {
+          toast({
+            title: "Duplicate Bill Number",
+            description: `Bill number "${customBillNo}" already exists. Please choose a different bill number.`,
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (!billNo.trim()) {
+        setBillNo(finalBillNo);
+      }
+
       const billData = {
-        bill_no: billNo || await generateBillNo(),
+        bill_no: finalBillNo,
         bill_date: billDate,
         customer_id: customer.id,
         staff_id: staffId,
@@ -1384,9 +1408,48 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
             )}
           </Card>
           <Card className="shadow-sm">
-            <div className="flex gap-4">
-              <div className="flex-1"><Input type="date" label="Bill Date" value={billDate} isMonospaced onChange={(e) => setBillDate(e.target.value)} /></div>
-              <div className="flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-charcoal-800 uppercase tracking-wide">
+                    Bill No.
+                  </label>
+                  {!billId && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const nextNo = await generateBillNo();
+                          setBillNo(nextNo);
+                          toast({ title: "Bill No. Refreshed", description: nextNo });
+                        } catch (err) {
+                          console.error("Failed to generate bill no:", err);
+                        }
+                      }}
+                      title="Generate next sequential bill number"
+                      className="text-[10px] text-gold-700 hover:text-gold-900 flex items-center gap-1 font-semibold hover:underline"
+                    >
+                      <RefreshCw size={10} /> Auto
+                    </button>
+                  )}
+                </div>
+                <Input
+                  value={billNo}
+                  isMonospaced
+                  placeholder="e.g. AHS-0001"
+                  onChange={(e) => setBillNo(e.target.value)}
+                />
+              </div>
+              <div>
+                <Input
+                  type="date"
+                  label="Bill Date"
+                  value={billDate}
+                  isMonospaced
+                  onChange={(e) => setBillDate(e.target.value)}
+                />
+              </div>
+              <div>
                 <Select
                   label="Sale Type"
                   value={saleType}
@@ -1775,7 +1838,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       {/* Action Panel */}
       <div className="w-[420px] bg-white border-l border-gray-300 flex flex-col z-40 h-full shadow-lg print:hidden">
         <div className="p-5 border-b border-gray-200 bg-charcoal-900 text-white font-bold uppercase tracking-wider text-sm flex justify-between items-center">
-          <span>{billId ? `Editing Bill: ${billNo}` : 'Summary'}</span>
+          <span>{billId ? `Editing Bill: ${billNo}` : (billNo ? `Bill: ${billNo}` : 'Summary')}</span>
           {billId && (
             <button
               onClick={onClearEdit}
