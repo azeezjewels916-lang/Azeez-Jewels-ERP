@@ -84,16 +84,27 @@ export const AdvanceBooking: React.FC = () => {
     makingCharges: 0,
     metalType: 'gold'
   });
-  const [metalRates, setMetalRates] = useState<any>(null);
+  const [metalRates, setMetalRates] = useState<Record<string, number>>({
+    gold: 0, gold_916: 0, gold_750: 0, gold_585: 0,
+    silver_92: 0, silver_70: 0, selam_silver: 0, nose_pin: 0
+  });
+
+  const getRateForPurity = (purity: string) => {
+    if (!metalRates) return 0;
+    if (purity.includes('916') || purity.includes('22K')) return metalRates.gold_916 || metalRates.gold || 0;
+    if (purity.includes('750') || purity.includes('18K')) return metalRates.gold_750 || 0;
+    if (purity.includes('585') || purity.includes('14K')) return metalRates.gold_585 || 0;
+    if (purity.includes('24K') || purity.includes('Pure')) return metalRates.gold || 0;
+    if (purity.includes('925') || purity.includes('92.5') || purity.includes('92')) return metalRates.silver_92 || 0;
+    if (purity.includes('70')) return metalRates.silver_70 || 0;
+    if (purity.toLowerCase().includes('selam') || purity.toLowerCase().includes('payal')) return metalRates.selam_silver || 0;
+    return metalRates.gold || 0;
+  };
 
   // Sync initial rate when rates are loaded or item is reset
   useEffect(() => {
     if (metalRates && !newItem.rate) {
-      let rate = 0;
-      if (newItem.purity.includes('22K') || newItem.purity.includes('916')) rate = metalRates.gold22k;
-      else if (newItem.purity.includes('18K') || newItem.purity.includes('750')) rate = metalRates.gold18k;
-      else if (newItem.purity.includes('24K') || newItem.purity.includes('Pure')) rate = metalRates.goldStd;
-
+      const rate = getRateForPurity(newItem.purity);
       if (rate > 0) {
         setNewItem(prev => ({ ...prev, rate }));
       }
@@ -136,10 +147,27 @@ export const AdvanceBooking: React.FC = () => {
     try {
       const data = await getAdvanceBookings();
       setBookings(data);
-      const rates = await getDailyRates(new Date().toISOString().split('T')[0]);
+      const { data: rates } = await supabase
+        .from('gold_rates')
+        .select('*')
+        .order('effective_date', { ascending: false })
+        .limit(20);
+
+      const ratesMap: Record<string, number> = {
+        gold: 0, gold_916: 0, gold_750: 0, gold_585: 0,
+        silver_92: 0, silver_70: 0, selam_silver: 0, nose_pin: 0
+      };
+
       if (rates && rates.length > 0) {
-        setMetalRates(rates[0]);
+        rates.forEach(r => {
+          const metalKey = (r.metal_type || '').toLowerCase();
+          const rateVal = parseFloat(r.rate_per_gram || r.rate) || 0;
+          if (!ratesMap[metalKey]) {
+            ratesMap[metalKey] = rateVal;
+          }
+        });
       }
+      setMetalRates(ratesMap);
     } catch (error) {
       console.error('Error fetching advance bookings:', error);
       toast({ title: 'Error', description: 'Failed to load bookings.', variant: 'destructive' });
@@ -384,16 +412,17 @@ export const AdvanceBooking: React.FC = () => {
           }).eq('id', booking.bill_id);
 
           await supabase.from('bill_items').delete().eq('bill_id', booking.bill_id);
-          const itemsToInsert = items.map(item => ({
+          const itemsToInsert = items.map((item, idx) => ({
             bill_id: booking.bill_id,
+            sl_no: idx + 1,
             item_name: item.name,
-            metal_type: item.metalType,
-            purity: item.purity,
+            metal_type: item.metalType || 'gold',
+            purity: item.purity || 'Standard',
+            gross_weight: item.weight,
+            net_weight: item.weight,
             weight: item.weight,
             rate: item.rate,
-            making_charges: item.makingCharges,
-            making_charges_type: item.makingChargesType,
-            making_charges_input: item.makingChargesInput,
+            making_charges: item.makingCharges || 0,
             line_total: item.lineTotal
           }));
           await createBillItems(booking.bill_id, itemsToInsert);
@@ -437,16 +466,17 @@ export const AdvanceBooking: React.FC = () => {
       });
 
       if (items.length > 0) {
-        const itemsToInsert = items.map(item => ({
+        const itemsToInsert = items.map((item, idx) => ({
           bill_id: bill.id,
+          sl_no: idx + 1,
           item_name: item.name,
           metal_type: item.metalType || 'gold',
           purity: item.purity || 'Standard',
+          gross_weight: item.weight,
+          net_weight: item.weight,
           weight: item.weight,
           rate: item.rate,
-          making_charges: item.makingCharges,
-          making_charges_type: item.makingChargesType,
-          making_charges_input: item.makingChargesInput,
+          making_charges: item.makingCharges || 0,
           line_total: item.lineTotal
         }));
         await createBillItems(bill.id, itemsToInsert);
@@ -909,16 +939,15 @@ export const AdvanceBooking: React.FC = () => {
                         { value: '14K (585)', label: '14K (585)' },
                         { value: 'Silver (925)', label: 'Silver (925)' },
                         { value: 'Silver (70)', label: 'Silver (70)' },
-                        { value: 'Selam', label: 'Selam' }
+                        { value: 'Fancy Payal', label: 'Fancy Payal' }
                       ]} value={newItem.purity} onChange={e => {
                         const newPurity = e.target.value;
-                        let newRate = 0;
-                        if (metalRates) {
-                          if (newPurity.includes('22K') || newPurity.includes('916')) newRate = metalRates.gold22k;
-                          else if (newPurity.includes('18K') || newPurity.includes('750')) newRate = metalRates.gold18k;
-                          else if (newPurity.includes('24K') || newPurity.includes('Pure')) newRate = metalRates.goldStd;
+                        const newRate = getRateForPurity(newPurity);
+                        let mType = 'gold';
+                        if (newPurity.includes('Silver') || newPurity.includes('925') || newPurity.includes('70') || newPurity.includes('Payal')) {
+                          mType = 'silver';
                         }
-                        setNewItem({ ...newItem, purity: newPurity, rate: newRate || newItem.rate });
+                        setNewItem({ ...newItem, purity: newPurity, metalType: mType, rate: newRate || newItem.rate });
                       }} />
                     </div>
 

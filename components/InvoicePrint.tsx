@@ -60,7 +60,7 @@ const metalLabels: Record<string, string> = {
   'gold_585': '14K (585)',
   'silver_92': 'Silver (925)',
   'silver_70': 'Silver (70)',
-  'selam_silver': 'Selam',
+  'selam_silver': 'Fancy Payal',
   'service': 'Service'
 };
 

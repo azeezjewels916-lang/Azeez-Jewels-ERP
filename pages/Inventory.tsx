@@ -865,7 +865,7 @@ export const Inventory: React.FC = () => {
                                           { value: '14K (585)', label: '14K (585)' },
                                           { value: 'Silver (925)', label: 'Silver (925)' },
                                           { value: 'Silver (70)', label: 'Silver (70)' },
-                                          { value: 'Selam', label: 'Selam' },
+                                          { value: 'Fancy Payal', label: 'Fancy Payal' },
                                        ]}
                                     />
                                  )}

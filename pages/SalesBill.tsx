@@ -215,9 +215,13 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
     if (metalType === 'gold_750') return '18K 750';
     if (metalType === 'silver_92') return '92.5 Silver';
     if (metalType === 'silver_70') return '70 Silver';
-    if (metalType === 'selam_silver') return 'Selam Silver';
+    if (metalType === 'selam_silver') return 'Fancy Payal';
     return '22K 916';
   };
+
+  // --- PRINT SNAPSHOT & AUTO-REFRESH STATE ---
+  const [savedPrintData, setSavedPrintData] = useState<any>(null);
+  const [billJustSaved, setBillJustSaved] = useState<boolean>(false);
 
   // --- BILL ITEM STATE ---
   const [items, setItems] = useState<BillItem[]>([]);
@@ -390,7 +394,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
   // 1. Sync initial rate when rates are loaded or metal_type changes (do NOT depend on rateInput so backspace works cleanly)
   useEffect(() => {
-    const currentTypeRate = allMetalRates[newItem.metal_type] || 0;
+    const currentTypeRate = (newItem.metal_type && newItem.metal_type !== 'other') ? (allMetalRates[newItem.metal_type] || (newItem.metal_type === 'gold' ? dailyGoldRate : 0)) : 0;
     if (currentTypeRate > 0 && !newItem.rateInput) {
       setNewItem(prev => ({
         ...prev,
@@ -754,9 +758,10 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       return;
     }
     const customRate = parseFloat(newItem.rateInput) || 0;
+    const currentMetalRate = (newItem.metal_type && newItem.metal_type !== 'other') ? (allMetalRates[newItem.metal_type] || 0) : 0;
     const defaultRate = newItem.metal_type === 'other'
       ? 0
-      : (newItem.metal_type.includes('gold') ? allMetalRates['gold'] : dailyGoldRate) || 0;
+      : (currentMetalRate > 0 ? currentMetalRate : (newItem.metal_type.includes('gold') ? (allMetalRates['gold'] || dailyGoldRate) : 0));
     const finalRate = customRate > 0 ? customRate : (defaultRate > 0 ? defaultRate : newItem.rate);
 
     if (finalRate <= 0) {
@@ -808,14 +813,19 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       purity: newItem.purity || (newItem.metal_type === 'other' ? 'Custom' : getDefaultPurity(newItem.metal_type))
     }]);
 
+    const nextMetalType = newItem.metal_type || 'gold';
+    const nextRate = nextMetalType !== 'other' ? (allMetalRates[nextMetalType] || (nextMetalType === 'gold' ? dailyGoldRate : 0)) : 0;
+
     setNewItem({
       barcode: '', inventory_item_id: '', category: '', item_name: '', huid: '', gross_weight: 0, grossWeightInput: '',
-      net_weight: 0, netWeightInput: '', weight: 0, weightInput: '', rate: 0, rateInput: '',
+      net_weight: 0, netWeightInput: '', weight: 0, weightInput: '',
+      rate: nextRate,
+      rateInput: nextRate > 0 ? nextRate.toString() : '',
       making_charges: 0, makingChargesInput: '', makingChargesAmount: '',
       makingChargesPercentage: '',
-      purity: newItem.metal_type === 'other' ? '' : getDefaultPurity(newItem.metal_type || 'gold'),
+      purity: nextMetalType === 'other' ? '' : getDefaultPurity(nextMetalType),
       hsn_code: '711319',
-      metal_type: newItem.metal_type || 'gold'
+      metal_type: nextMetalType
     });
   };
 
@@ -895,7 +905,45 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
   const handleRemovePayment = (id: string) => setPaymentMethods(paymentMethods.filter(p => p.id !== id));
 
-  // --- PRINT / PREVIEW LOGIC ---
+  // --- PRINT / PREVIEW LOGIC & AUTO REFRESH ---
+
+  const startFreshBill = async () => {
+    resetForm();
+    if (onClearEdit) onClearEdit();
+    try {
+      const nextNo = await generateBillNo();
+      setBillNo(nextNo);
+      const nextVNo = await generateBillNo();
+      setVoucherNo(nextVNo);
+      const initialMetalRate = allMetalRates['gold'] || dailyGoldRate || 0;
+      setNewItem({
+        barcode: '', inventory_item_id: '', category: '', item_name: '', huid: '', gross_weight: 0, grossWeightInput: '',
+        net_weight: 0, netWeightInput: '', weight: 0, weightInput: '',
+        rate: initialMetalRate,
+        rateInput: initialMetalRate > 0 ? initialMetalRate.toString() : '',
+        making_charges: 0, makingChargesInput: '', makingChargesAmount: '',
+        makingChargesPercentage: '',
+        purity: '22K 916',
+        hsn_code: '711319',
+        metal_type: 'gold'
+      });
+      setBillJustSaved(false);
+      setSavedPrintData(null);
+      toast({ title: "New Bill Ready", description: `Refreshed automatically. Next Bill No: ${nextNo}` });
+    } catch (err) {
+      console.error("Error generating bill number for new bill:", err);
+    }
+  };
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      if (billJustSaved) {
+        startFreshBill();
+      }
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, [billJustSaved, allMetalRates, dailyGoldRate]);
 
   const handleOpenPreview = (type: 'invoice' | 'exchange' | 'silver' | 'nosepin') => {
     setActivePrintView(type);
@@ -904,7 +952,19 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
 
   const handleActualPrint = () => {
     setShowPreviewModal(false);
-    setTimeout(() => window.print(), 100);
+    setTimeout(() => {
+      window.print();
+      if (billJustSaved) {
+        startFreshBill();
+      }
+    }, 150);
+  };
+
+  const handleClosePreview = () => {
+    setShowPreviewModal(false);
+    if (billJustSaved) {
+      startFreshBill();
+    }
   };
 
   const handleSaveBill = async () => {
@@ -1001,6 +1061,39 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       }
       await createBillItems(savedBill.id, billItems);
       await deductInventoryStock(billItems);
+
+      // Snapshot current bill for printing/previewing
+      setSavedPrintData({
+        billNo: finalBillNo,
+        billDate,
+        saleType,
+        customer,
+        items: [...items],
+        allMetalRates: { ...allMetalRates },
+        totals: { ...calculatedTotals },
+        mcValueAdded: { ...mcValueAdded },
+        paymentMethods: [...paymentMethods],
+        discount: calculatedTotals.discount,
+        oldGold: {
+          weight: parseFloat(oldGoldExchange.weightInput) || 0,
+          rate: parseFloat(oldGoldExchange.rateInput) || 0,
+          total: oldGoldExchange.total,
+          purity: oldGoldExchange.purity,
+          description: oldGoldExchange.particulars
+        },
+        oldSilver: {
+          weight: parseFloat(oldSilverExchange.weightInput) || 0,
+          rate: parseFloat(oldSilverExchange.rateInput) || 0,
+          total: oldSilverExchange.total,
+          purity: oldSilverExchange.purity,
+          description: oldSilverExchange.particulars
+        },
+        exchangeValuePct,
+        returnValuePct,
+        voucherNo
+      });
+      setBillJustSaved(true);
+
       toast({ title: "Success", description: billId ? "Bill updated successfully!" : "Bill saved successfully!" });
       handleOpenPreview(billMode === 'silver' ? 'silver' : billMode === 'nosepin' ? 'nosepin' : 'invoice');
     } catch (err: any) {
@@ -1014,6 +1107,36 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
   const finalPayable = Math.max(0, calculatedTotals.grandTotal - (calculatedTotals.discount || 0));
   const balanceDue = finalPayable - totalPaid;
 
+  const activePrintData = savedPrintData || {
+    billNo,
+    billDate,
+    saleType,
+    customer,
+    items,
+    allMetalRates,
+    totals: calculatedTotals,
+    mcValueAdded,
+    paymentMethods,
+    discount: calculatedTotals.discount,
+    oldGold: {
+      weight: parseFloat(oldGoldExchange.weightInput) || 0,
+      rate: parseFloat(oldGoldExchange.rateInput) || 0,
+      total: oldGoldExchange.total,
+      purity: oldGoldExchange.purity,
+      description: oldGoldExchange.particulars
+    },
+    oldSilver: {
+      weight: parseFloat(oldSilverExchange.weightInput) || 0,
+      rate: parseFloat(oldSilverExchange.rateInput) || 0,
+      total: oldSilverExchange.total,
+      purity: oldSilverExchange.purity,
+      description: oldSilverExchange.particulars
+    },
+    exchangeValuePct,
+    returnValuePct,
+    voucherNo
+  };
+
   return (
     <div className="flex h-full bg-app-bg relative">
 
@@ -1021,73 +1144,43 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
       <div className="print-block">
         {activePrintView === 'invoice' && (
           <InvoicePrint
-            billNo={billNo} billDate={billDate} saleType={saleType}
-            customer={customer} items={items} allMetalRates={allMetalRates}
-            totals={calculatedTotals} mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
-            discount={calculatedTotals.discount}
-            oldGold={{
-              weight: parseFloat(oldGoldExchange.weightInput) || 0,
-              rate: parseFloat(oldGoldExchange.rateInput) || 0,
-              total: oldGoldExchange.total, purity: oldGoldExchange.purity,
-              description: oldGoldExchange.particulars
-            }}
-            oldSilver={{
-              weight: parseFloat(oldSilverExchange.weightInput) || 0,
-              rate: parseFloat(oldSilverExchange.rateInput) || 0,
-              total: oldSilverExchange.total, purity: oldSilverExchange.purity,
-              description: oldSilverExchange.particulars
-            }}
+            billNo={activePrintData.billNo} billDate={activePrintData.billDate} saleType={activePrintData.saleType}
+            customer={activePrintData.customer} items={activePrintData.items} allMetalRates={activePrintData.allMetalRates}
+            totals={activePrintData.totals} mcValueAdded={activePrintData.mcValueAdded} paymentMethods={activePrintData.paymentMethods}
+            discount={activePrintData.discount}
+            oldGold={activePrintData.oldGold}
+            oldSilver={activePrintData.oldSilver}
           />
         )}
         {activePrintView === 'silver' && (
           <SilverBillPrint
-            billNo={billNo} billDate={billDate} saleType={saleType}
-            customer={customer} items={items} totals={calculatedTotals}
-            mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
-            discount={calculatedTotals.discount}
-            exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
-            oldGold={{
-              weight: parseFloat(oldGoldExchange.weightInput) || 0,
-              rate: parseFloat(oldGoldExchange.rateInput) || 0,
-              total: oldGoldExchange.total, purity: oldGoldExchange.purity,
-              description: oldGoldExchange.particulars
-            }}
-            oldSilver={{
-              weight: parseFloat(oldSilverExchange.weightInput) || 0,
-              rate: parseFloat(oldSilverExchange.rateInput) || 0,
-              total: oldSilverExchange.total, purity: oldSilverExchange.purity,
-              description: oldSilverExchange.particulars
-            }}
+            billNo={activePrintData.billNo} billDate={activePrintData.billDate} saleType={activePrintData.saleType}
+            customer={activePrintData.customer} items={activePrintData.items} totals={activePrintData.totals}
+            mcValueAdded={activePrintData.mcValueAdded} paymentMethods={activePrintData.paymentMethods}
+            discount={activePrintData.discount}
+            exchangeValuePct={activePrintData.exchangeValuePct} returnValuePct={activePrintData.returnValuePct}
+            oldGold={activePrintData.oldGold}
+            oldSilver={activePrintData.oldSilver}
           />
         )}
         {activePrintView === 'nosepin' && (
           <NosePinBillPrint
-            billNo={billNo} billDate={billDate} saleType={saleType}
-            customer={customer} items={items} totals={calculatedTotals}
-            mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
-            discount={calculatedTotals.discount}
-            exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
-            oldGold={{
-              weight: parseFloat(oldGoldExchange.weightInput) || 0,
-              rate: parseFloat(oldGoldExchange.rateInput) || 0,
-              total: oldGoldExchange.total, purity: oldGoldExchange.purity,
-              description: oldGoldExchange.particulars
-            }}
-            oldSilver={{
-              weight: parseFloat(oldSilverExchange.weightInput) || 0,
-              rate: parseFloat(oldSilverExchange.rateInput) || 0,
-              total: oldSilverExchange.total, purity: oldSilverExchange.purity,
-              description: oldSilverExchange.particulars
-            }}
+            billNo={activePrintData.billNo} billDate={activePrintData.billDate} saleType={activePrintData.saleType}
+            customer={activePrintData.customer} items={activePrintData.items} totals={activePrintData.totals}
+            mcValueAdded={activePrintData.mcValueAdded} paymentMethods={activePrintData.paymentMethods}
+            discount={activePrintData.discount}
+            exchangeValuePct={activePrintData.exchangeValuePct} returnValuePct={activePrintData.returnValuePct}
+            oldGold={activePrintData.oldGold}
+            oldSilver={activePrintData.oldSilver}
           />
         )}
         {activePrintView === 'exchange' && (
           <ExchangePrint
-            voucherNo={voucherNo} date={billDate} customer={customer}
+            voucherNo={activePrintData.voucherNo} date={activePrintData.billDate} customer={activePrintData.customer}
             exchangeData={{
-              particulars: oldGoldExchange.particulars, weight: parseFloat(oldGoldExchange.weightInput) || 0,
-              rate: parseFloat(oldGoldExchange.rateInput) || 0, purity: oldGoldExchange.purity,
-              hsn_code: oldGoldExchange.hsn_code, total: oldGoldExchange.total
+              particulars: activePrintData.oldGold.description, weight: activePrintData.oldGold.weight,
+              rate: activePrintData.oldGold.rate, purity: activePrintData.oldGold.purity,
+              hsn_code: '7113', total: activePrintData.oldGold.total
             }}
           />
         )}
@@ -1140,7 +1233,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                 >
                   <Printer size={18} className="mr-2" /> Send to Printer
                 </Button>
-                <button onClick={() => setShowPreviewModal(false)} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/10 rounded-full">
+                <button onClick={handleClosePreview} className="p-2 text-gray-400 hover:text-white transition-colors bg-white/10 rounded-full">
                   <X size={24} />
                 </button>
               </div>
@@ -1174,73 +1267,43 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                 {activePrintView === 'invoice' ? (
                   <InvoicePrint
                     isScreenPreview
-                    billNo={billNo} billDate={billDate} saleType={saleType}
-                    customer={customer} items={items} allMetalRates={allMetalRates}
-                    totals={calculatedTotals} mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
-                    discount={calculatedTotals.discount}
-                    oldGold={{
-                      weight: parseFloat(oldGoldExchange.weightInput) || 0,
-                      rate: parseFloat(oldGoldExchange.rateInput) || 0,
-                      total: oldGoldExchange.total, purity: oldGoldExchange.purity,
-                      description: oldGoldExchange.particulars
-                    }}
-                    oldSilver={{
-                      weight: parseFloat(oldSilverExchange.weightInput) || 0,
-                      rate: parseFloat(oldSilverExchange.rateInput) || 0,
-                      total: oldSilverExchange.total, purity: oldSilverExchange.purity,
-                      description: oldSilverExchange.particulars
-                    }}
+                    billNo={activePrintData.billNo} billDate={activePrintData.billDate} saleType={activePrintData.saleType}
+                    customer={activePrintData.customer} items={activePrintData.items} allMetalRates={activePrintData.allMetalRates}
+                    totals={activePrintData.totals} mcValueAdded={activePrintData.mcValueAdded} paymentMethods={activePrintData.paymentMethods}
+                    discount={activePrintData.discount}
+                    oldGold={activePrintData.oldGold}
+                    oldSilver={activePrintData.oldSilver}
                   />
                 ) : activePrintView === 'silver' ? (
                   <SilverBillPrint
                     isScreenPreview
-                    billNo={billNo} billDate={billDate} saleType={saleType}
-                    customer={customer} items={items} totals={calculatedTotals}
-                    mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
-                    discount={calculatedTotals.discount}
-                    exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
-                    oldGold={{
-                      weight: parseFloat(oldGoldExchange.weightInput) || 0,
-                      rate: parseFloat(oldGoldExchange.rateInput) || 0,
-                      total: oldGoldExchange.total, purity: oldGoldExchange.purity,
-                      description: oldGoldExchange.particulars
-                    }}
-                    oldSilver={{
-                      weight: parseFloat(oldSilverExchange.weightInput) || 0,
-                      rate: parseFloat(oldSilverExchange.rateInput) || 0,
-                      total: oldSilverExchange.total, purity: oldSilverExchange.purity,
-                      description: oldSilverExchange.particulars
-                    }}
+                    billNo={activePrintData.billNo} billDate={activePrintData.billDate} saleType={activePrintData.saleType}
+                    customer={activePrintData.customer} items={activePrintData.items} totals={activePrintData.totals}
+                    mcValueAdded={activePrintData.mcValueAdded} paymentMethods={activePrintData.paymentMethods}
+                    discount={activePrintData.discount}
+                    exchangeValuePct={activePrintData.exchangeValuePct} returnValuePct={activePrintData.returnValuePct}
+                    oldGold={activePrintData.oldGold}
+                    oldSilver={activePrintData.oldSilver}
                   />
                 ) : activePrintView === 'nosepin' ? (
                   <NosePinBillPrint
                     isScreenPreview
-                    billNo={billNo} billDate={billDate} saleType={saleType}
-                    customer={customer} items={items} totals={calculatedTotals}
-                    mcValueAdded={mcValueAdded} paymentMethods={paymentMethods}
-                    discount={calculatedTotals.discount}
-                    exchangeValuePct={exchangeValuePct} returnValuePct={returnValuePct}
-                    oldGold={{
-                      weight: parseFloat(oldGoldExchange.weightInput) || 0,
-                      rate: parseFloat(oldGoldExchange.rateInput) || 0,
-                      total: oldGoldExchange.total, purity: oldGoldExchange.purity,
-                      description: oldGoldExchange.particulars
-                    }}
-                    oldSilver={{
-                      weight: parseFloat(oldSilverExchange.weightInput) || 0,
-                      rate: parseFloat(oldSilverExchange.rateInput) || 0,
-                      total: oldSilverExchange.total, purity: oldSilverExchange.purity,
-                      description: oldSilverExchange.particulars
-                    }}
+                    billNo={activePrintData.billNo} billDate={activePrintData.billDate} saleType={activePrintData.saleType}
+                    customer={activePrintData.customer} items={activePrintData.items} totals={activePrintData.totals}
+                    mcValueAdded={activePrintData.mcValueAdded} paymentMethods={activePrintData.paymentMethods}
+                    discount={activePrintData.discount}
+                    exchangeValuePct={activePrintData.exchangeValuePct} returnValuePct={activePrintData.returnValuePct}
+                    oldGold={activePrintData.oldGold}
+                    oldSilver={activePrintData.oldSilver}
                   />
                 ) : (
                   <ExchangePrint
                     isScreenPreview
-                    voucherNo={voucherNo} date={billDate} customer={customer}
+                    voucherNo={activePrintData.voucherNo} date={activePrintData.billDate} customer={activePrintData.customer}
                     exchangeData={{
-                      particulars: oldGoldExchange.particulars, weight: parseFloat(oldGoldExchange.weightInput) || 0,
-                      rate: parseFloat(oldGoldExchange.rateInput) || 0, purity: oldGoldExchange.purity,
-                      hsn_code: oldGoldExchange.hsn_code, total: oldGoldExchange.total
+                      particulars: activePrintData.oldGold.description, weight: activePrintData.oldGold.weight,
+                      rate: activePrintData.oldGold.rate, purity: activePrintData.oldGold.purity,
+                      hsn_code: '7113', total: activePrintData.oldGold.total
                     }}
                   />
                 )}
@@ -1266,7 +1329,7 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
           <div className="flex-1 grid grid-cols-7 gap-3">
             {Object.entries({
               'Gold (Std)': 'gold', 'Gold (22k)': 'gold_916', 'Gold (18k)': 'gold_750',
-              'Silver (925)': 'silver_92', 'Silver (70)': 'silver_70', 'Selam': 'selam_silver',
+              'Silver (925)': 'silver_92', 'Silver (70)': 'silver_70', 'Fancy Payal': 'selam_silver',
               'Nose Pin': 'nose_pin'
             }).map(([label, key]) => (
               <div key={key} className="text-center bg-gold-50/40 rounded-lg p-1.5 border border-gold-500/15">
@@ -1293,7 +1356,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                 onClick={() => {
                   setBillMode('gold');
                   setActivePrintView('invoice');
-                  setNewItem(prev => ({ ...prev, metal_type: 'gold' }));
+                  const gRate = allMetalRates['gold'] || dailyGoldRate || 0;
+                  setNewItem(prev => ({
+                    ...prev,
+                    metal_type: 'gold',
+                    rate: gRate,
+                    rateInput: gRate > 0 ? gRate.toString() : '',
+                    purity: getDefaultPurity('gold')
+                  }));
                 }}
                 className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${billMode === 'gold'
                     ? 'bg-gold-500 text-charcoal-950 shadow-md font-extrabold'
@@ -1309,7 +1379,14 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                 onClick={() => {
                   setBillMode('silver');
                   setActivePrintView('silver');
-                  setNewItem(prev => ({ ...prev, metal_type: 'silver_92', rateInput: (allMetalRates['silver_92'] || 0).toString() }));
+                  const sRate = allMetalRates['silver_92'] || 0;
+                  setNewItem(prev => ({
+                    ...prev,
+                    metal_type: 'silver_92',
+                    rate: sRate,
+                    rateInput: sRate > 0 ? sRate.toString() : '',
+                    purity: getDefaultPurity('silver_92')
+                  }));
                 }}
                 className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 ${billMode === 'silver'
                     ? 'bg-charcoal-900 text-white shadow-md font-extrabold'
@@ -1604,17 +1681,19 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                   { value: 'gold_750', label: 'Gold (18k)' },
                   { value: 'silver_92', label: 'Silver (92.5)' },
                   { value: 'silver_70', label: 'Silver (70)' },
-                  { value: 'selam_silver', label: 'Selam' },
+                  { value: 'selam_silver', label: 'Fancy Payal' },
                   { value: 'other', label: 'Other' },
                 ]}
                 onChange={e => {
                   const val = e.target.value;
                   const isOther = val === 'other';
+                  const chosenRate = isOther ? 0 : (allMetalRates[val] || (val === 'gold' ? dailyGoldRate : 0));
                   setNewItem({
                     ...newItem,
                     metal_type: val,
                     purity: isOther ? '' : getDefaultPurity(val),
-                    rateInput: isOther ? '' : (allMetalRates[val] || 0).toString()
+                    rate: chosenRate,
+                    rateInput: chosenRate > 0 ? chosenRate.toString() : ''
                   });
                 }}
               />
@@ -1637,13 +1716,22 @@ export const SalesBill: React.FC<SalesBillProps> = ({ billId, onClearEdit }) => 
                     { value: '24K 999', label: '24K 999' },
                     { value: '92.5 Silver', label: '92.5 Silver' },
                     { value: '70 Silver', label: '70 Silver' },
-                    { value: 'Selam Silver', label: 'Selam' },
+                    { value: 'Fancy Payal', label: 'Fancy Payal' },
                   ]}
                   onChange={e => setNewItem({ ...newItem, purity: e.target.value })}
                 />
               )}
             </div>
-            <div className="col-span-1"><Input label="Rate/Gm" type="number" isMonospaced placeholder={dailyGoldRate.toString()} value={newItem.rateInput} onChange={(e) => setNewItem({ ...newItem, rateInput: e.target.value })} /></div>
+            <div className="col-span-1">
+              <Input
+                label="Rate/Gm"
+                type="number"
+                isMonospaced
+                placeholder={((allMetalRates[newItem.metal_type] || (newItem.metal_type === 'gold' ? dailyGoldRate : 0)) || '').toString()}
+                value={newItem.rateInput}
+                onChange={(e) => setNewItem({ ...newItem, rateInput: e.target.value })}
+              />
+            </div>
             <div className="col-span-1">
               <label className="block text-xs font-bold text-charcoal-700 mb-1.5 uppercase">MC</label>
               <div className="flex gap-1">

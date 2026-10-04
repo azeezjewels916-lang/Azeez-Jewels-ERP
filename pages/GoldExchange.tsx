@@ -114,6 +114,7 @@ export const GoldExchange: React.FC = () => {
       weight: '',
       purity: '22K',
       rate: '',
+      amountInput: '',
       gstRate: 0,
       gstAmount: 0,
       totalValue: 0
@@ -145,12 +146,18 @@ export const GoldExchange: React.FC = () => {
 
    // Auto-calculate Total Value in Form
    useEffect(() => {
-      const w = parseFloat(formData.weight) || 0;
-      const r = parseFloat(formData.rate) || 0;
-      const baseTotal = w * r;
+      const directAmt = parseFloat(formData.amountInput);
+      let baseTotal = 0;
+      if (!isNaN(directAmt) && directAmt > 0) {
+         baseTotal = directAmt;
+      } else {
+         const w = parseFloat(formData.weight) || 0;
+         const r = parseFloat(formData.rate) || 0;
+         baseTotal = w * r;
+      }
       const gstAmount = baseTotal * ((formData.gstRate || 0) / 100);
       setFormData(prev => ({ ...prev, gstAmount: gstAmount, totalValue: baseTotal + gstAmount }));
-   }, [formData.weight, formData.rate, formData.gstRate]);
+   }, [formData.amountInput, formData.weight, formData.rate, formData.gstRate]);
 
    const filteredRecords = useMemo(() => {
       return records.filter(rec => {
@@ -177,8 +184,9 @@ export const GoldExchange: React.FC = () => {
    // --- HANDLERS ---
 
    const handleSave = async () => {
-      if (!formData.customerName || !formData.weight || !formData.rate) {
-         toast({ title: "Missing Fields", description: "Name, Weight and Rate are required.", variant: 'destructive' });
+      const finalTotal = formData.totalValue;
+      if (finalTotal <= 0) {
+         toast({ title: "Amount Missing", description: "Please enter Weight & Rate or direct Amount.", variant: 'destructive' });
          return;
       }
 
@@ -191,20 +199,21 @@ export const GoldExchange: React.FC = () => {
          else if (purityStr.includes('14K') || purityStr.includes('585')) cleanPurityNum = 14;
          else if (purityStr.includes('925')) cleanPurityNum = 92.5;
          else if (purityStr.includes('70')) cleanPurityNum = 70;
+         else if (purityStr.toLowerCase().includes('payal') || purityStr.toLowerCase().includes('selam')) cleanPurityNum = 70;
          else {
             const match = purityStr.match(/(\d+(?:\.\d+)?)/);
             if (match) cleanPurityNum = parseFloat(match[1]);
          }
 
          const recordData = {
-            customer_name: formData.customerName,
-            customer_phone: formData.customerPhone || 'N/A',
-            particulars: formData.description || 'Old Gold',
-            description: formData.description || 'Old Gold',
+            customer_name: formData.customerName.trim() || 'Walk-in Customer',
+            customer_phone: formData.customerPhone.trim() || 'N/A',
+            particulars: formData.description.trim() || 'Old Gold / Exchange',
+            description: formData.description.trim() || 'Old Gold / Exchange',
             hsn_code: formData.hsnCode || '7113',
-            weight: parseFloat(formData.weight),
+            weight: parseFloat(formData.weight) || 0,
             purity: cleanPurityNum,
-            rate: parseFloat(formData.rate),
+            rate: parseFloat(formData.rate) || 0,
             gst_rate: formData.gstRate,
             gst_amount: formData.gstAmount,
             total: formData.totalValue,
@@ -235,16 +244,17 @@ export const GoldExchange: React.FC = () => {
    const handleEdit = (rec: any) => {
       setEditingId(rec.id);
       setFormData({
-         customerName: rec.customer_name,
-         customerPhone: rec.customer_phone,
+         customerName: rec.customer_name || '',
+         customerPhone: rec.customer_phone || '',
          description: rec.particulars || rec.description || 'Old Gold',
-         hsnCode: rec.hsn_code,
-         weight: rec.weight.toString(),
-         purity: rec.purity,
-         rate: rec.rate.toString(),
+         hsnCode: rec.hsn_code || '7113',
+         weight: rec.weight?.toString() || '',
+         purity: rec.purity?.toString() || '22K',
+         rate: rec.rate?.toString() || '',
+         amountInput: rec.total_value?.toString() || rec.total?.toString() || '',
          gstRate: rec.gst_rate || 0,
          gstAmount: rec.gst_amount || 0,
-         totalValue: rec.total || rec.total_value || 0
+         totalValue: parseFloat(rec.total_value || rec.total) || 0
       });
       setIsModalOpen(true);
    };
@@ -477,18 +487,18 @@ export const GoldExchange: React.FC = () => {
                      {/* Customer Section */}
                      <div className="bg-white p-5 rounded-lg border border-pink-100 shadow-sm mb-6">
                         <h4 className="text-xs font-bold text-pink-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                           Client Details
+                           Client Details <span className="text-[10px] lowercase text-pink-300 font-normal">(optional)</span>
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
                            <Input
-                              label="Customer Name"
-                              placeholder="Full Name"
+                              label="Customer Name (Optional)"
+                              placeholder="Full Name (Optional)"
                               value={formData.customerName}
                               onChange={e => setFormData({ ...formData, customerName: e.target.value })}
                            />
                            <Input
-                              label="Phone Number"
-                              placeholder="Mobile No"
+                              label="Phone Number (Optional)"
+                              placeholder="Mobile No (Optional)"
                               value={formData.customerPhone}
                               onChange={e => setFormData({ ...formData, customerPhone: e.target.value })}
                            />
@@ -498,21 +508,22 @@ export const GoldExchange: React.FC = () => {
                      {/* Item Section */}
                      <div className="bg-white p-5 rounded-lg border border-pink-100 shadow-sm">
                         <h4 className="text-xs font-bold text-pink-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                           Item Specifications
+                           Item Specifications & Valuation
                         </h4>
                         <div className="space-y-4">
                            <div className="grid grid-cols-3 gap-4">
                               <div className="col-span-2">
                                  <Input
-                                    label="Particulars / Description"
-                                    placeholder="e.g. Old Gold Chain"
+                                    label="Particulars / Description (Optional)"
+                                    placeholder="e.g. Old Gold Chain (Optional)"
                                     value={formData.description}
                                     onChange={e => setFormData({ ...formData, description: e.target.value })}
                                  />
                               </div>
                               <div className="col-span-1">
                                  <Input
-                                    label="HSN Code"
+                                    label="HSN Code (Optional)"
+                                    placeholder="7113 (Optional)"
                                     value={formData.hsnCode}
                                     isMonospaced
                                     onChange={e => setFormData({ ...formData, hsnCode: e.target.value })}
@@ -520,17 +531,32 @@ export const GoldExchange: React.FC = () => {
                               </div>
                            </div>
 
+                           {/* Direct Amount Input */}
+                           <div className="bg-pink-50/70 p-3.5 rounded-lg border border-pink-200">
+                              <Input
+                                 label="Direct Amount (₹) (Optional - Enter directly to record exact value)"
+                                 type="number"
+                                 placeholder="Enter direct amount (e.g. 15000) (Optional)"
+                                 isMonospaced
+                                 value={formData.amountInput}
+                                 onChange={e => setFormData({ ...formData, amountInput: e.target.value })}
+                              />
+                              <p className="text-[11px] text-pink-700/80 mt-1 font-medium">
+                                 Direct amount overrides weight × rate calculation when entered.
+                              </p>
+                           </div>
+
                            <div className="grid grid-cols-4 gap-4">
                               <Input
-                                 label="Weight (g)"
+                                 label="Weight (g) (Optional)"
                                  type="number"
-                                 placeholder="0.000"
+                                 placeholder="0.000 (Optional)"
                                  isMonospaced
                                  value={formData.weight}
                                  onChange={e => setFormData({ ...formData, weight: e.target.value })}
                               />
                               <Select
-                                 label="Purity"
+                                 label="Purity (Optional)"
                                  options={[
                                     { value: '22K', label: '22K (916)' },
                                     { value: '18K', label: '18K (750)' },
@@ -538,22 +564,22 @@ export const GoldExchange: React.FC = () => {
                                     { value: '24K', label: '24K (999)' },
                                     { value: 'Silver (925)', label: 'Silver (925)' },
                                     { value: 'Silver (70)', label: 'Silver (70)' },
-                                    { value: 'Selam', label: 'Selam' },
+                                    { value: 'Fancy Payal', label: 'Fancy Payal' },
                                     { value: 'Other', label: 'Other' },
                                  ]}
                                  value={formData.purity}
                                  onChange={e => setFormData({ ...formData, purity: e.target.value })}
                               />
                               <Input
-                                 label="Rate / gm (₹)"
+                                 label="Rate / gm (₹) (Optional)"
                                  type="number"
                                  isMonospaced
-                                 placeholder="0.00"
+                                 placeholder="0.00 (Optional)"
                                  value={formData.rate}
                                  onChange={e => setFormData({ ...formData, rate: e.target.value })}
                               />
                               <Select
-                                 label="GST"
+                                 label="GST (Optional)"
                                  options={[
                                     { value: '0', label: 'Non-GST (0%)' },
                                     { value: '1.5', label: 'GST (1.5%)' },
